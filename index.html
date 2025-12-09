@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Tenis Ligi</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2c3e50">
+</head>
+<body>
+
+    <div id="auth-screen">
+        <h2>Tenis Ligi Giriş</h2>
+
+        <div id="register-fields" style="display: none;">
+            <div class="profile-upload-container">
+                <img id="profile-preview" src="https://via.placeholder.com/100" alt="Profil">
+                <label for="profile-photo" class="upload-label">+ Fotoğraf Ekle</label>
+                <input type="file" id="profile-photo" accept="image/*" style="display:none;">
+            </div>
+
+            <input type="text" id="full-name" placeholder="Ad Soyad">
+            
+            <select id="court-preference">
+                <option value="" disabled selected>Favori Kort Tipi Seçin</option>
+                <option value="Toprak">Toprak 🧱</option>
+                <option value="Sert">Sert 🟦</option>
+                <option value="Çim">Çim 🌱</option>
+                <option value="Her İkisi">Farketmez 🤷‍♂️</option>
+            </select>
+
+            <input type="tel" id="phone-number" placeholder="Telefon (05XX...)">
+        </div>
+        
+        <input type="email" id="email" placeholder="E-posta">
+        <input type="password" id="password" placeholder="Şifre">
+        
+        <button id="login-btn">Giriş Yap</button>
+        <button id="register-btn" style="display:none;">Kayıt Ol</button>
+        
+        <p id="toggle-auth-mode">Hesabın yok mu? Kayıt Ol</p>
+        <p id="auth-error"></p>
+    </div>
+
+    <div id="main-app" style="display: none;">
+        
+        <div class="header-container">
+            <h1>🎾 Tenis Ligi</h1>
+        </div>
+
+        <div id="tab-lobby" class="tab-section active-section">
+            <h3>Lobi 🏠</h3>
+            
+            <div class="lobby-card">
+                <h4>Hoşgeldin!</h4>
+                <p>Tenis Ligi lobisine hoşgeldin. İyi oyunlar! 🎾</p>
+            </div>
+            
+            <div style="margin-top: 20px; display:flex; justify-content:space-between; align-items:center; margin-bottom: 5px;">
+                <h4 style="margin:0; color: #2c3e50; border:none; padding:0;">📢 Açık Maç İlanları</h4>
+                <span style="font-size:0.7em; color:#777;">(Kaydır ↕)</span>
+            </div>
+            
+            <div id="lobby-requests-container" class="lobby-scroll-list">
+                <p style="text-align:center; color:#777; padding:10px;">İlanlar yükleniyor...</p>
+            </div>
+
+            <div class="lobby-card" style="background:#e8f5e9; border-color:#c8e6c9; margin-top: 25px;">
+                <p style="color:#2e7d32; margin:0; text-align:center; font-size: 0.85em;">
+                    ℹ️ <strong>İpucu:</strong> Açık ilanlardan birini kabul ederek hemen maça başlayabilirsin. Kendi ilanını oluşturmak için "Meydan" sekmesine gitmelisin.
+                </p>
+            </div>
+        </div>
+
+        <div id="tab-rankings" class="tab-section" style="display: none;">
+            <h3>Lig Sıralaması 🏆</h3>
+            <div id="leaderboard">
+            </div>
+            
+            <div class="lobby-card" style="background:#fff3e0; border-color:#ffe0b2; margin-top: 15px;">
+                <p style="color:#ef6c00; margin:0; text-align:center; font-size: 0.85em;">
+                    ℹ️ Sıralama, onaylanmış maç sonuçlarına göre puanlar hesaplandıktan sonra otomatik olarak güncellenir.
+                </p>
+            </div>
+        </div>
+
+        <div id="tab-challenge" class="tab-section" style="display: none;">
+            <h3>Meydan Oku ⚔️</h3>
+            
+            <div class="challenge-actions" style="margin-top: 10px;">
+                <button id="btn-show-create-ad" class="btn-purple">📢 Herkese Açık Maç Talebi Oluştur</button>
+                <button id="btn-show-specific-challenge" class="btn-accept">👤 Oyuncuya Özel Maç Talebi Oluştur</button>
+            </div>
+
+            <div id="create-ad-form" style="display:none; background:#f9f9f9; padding:15px; border-radius:10px; margin-top:10px; border:1px solid #eee;">
+                <h4>Yeni Maç Talebi Oluştur</h4>
+                <p style="font-size:0.85em; color:#666; margin-bottom:10px;">Bu talebi ligdeki herkes görebilir ve kabul edebilir.</p>
+                
+                <select id="ad-match-type">
+                    <option value="Dostluk">Dostluk Maçı</option>
+                    <option value="Meydan Okuma">Puanlı Meydan Okuma</option>
+                </select>
+                <input type="number" id="ad-wager-points" placeholder="Bahis Puanı (Min 50)" min="50" style="display:none;">
+                
+                <div style="display:flex; gap:10px;">
+                    <button id="submit-ad-btn" class="btn-save">Yayınla</button>
+                    <button onclick="document.getElementById('create-ad-form').style.display='none';" class="btn-reject" style="background:#ccc; color:#333;">İptal</button>
+                </div>
+            </div>
+
+            <div id="challenge-form" style="display:none; background:#f9f9f9; padding:15px; border-radius:10px; margin-top:10px; border:1px solid #eee;">
+                <h4>Özel Maç Talebi</h4>
+                <select id="opponent-select">
+                    <option value="">Rakip Seçin</option>
+                </select>
+
+                <select id="match-type-select">
+                    <option value="Dostluk">Dostluk Maçı</option>
+                    <option value="Meydan Okuma">Puanlı Meydan Okuma</option>
+                </select>
+
+                <input type="number" id="wager-points" placeholder="Bahis Puanı (Min 50)" min="50" style="display:none;">
+
+                <div style="display:flex; gap:10px;">
+                    <button id="submit-challenge-btn" class="btn-save">Teklifi Gönder</button>
+                    <button onclick="document.getElementById('challenge-form').style.display='none';" class="btn-reject" style="background:#ccc; color:#333;">İptal</button>
+                </div>
+                <p id="challenge-message"></p>
+            </div>
+
+            <div class="lobby-card" style="background:#e3f2fd; border-color:#90caf9; margin-top: 25px;">
+                <p style="color:#0d47a1; margin:0; text-align:center; font-size: 0.85em;">
+                    ℹ️ <strong>Bilgi:</strong> Açık maç ilanlarını artık <strong>Lobi</strong> ekranında görebilirsin. 
+                    Buradan sadece yeni ilan oluşturabilirsin.
+                </p>
+            </div>
+        </div>
+
+        <div id="tab-fixture" class="tab-section" style="display: none;">
+            <h3>Lig Fikstürü 📅</h3>
+            
+            <div id="program-content" style="display:block;">
+                <div id="filters-container">
+                    <div class="filter-row">
+                        <input type="date" id="filter-date-start" placeholder="Başlangıç">
+                        <input type="date" id="filter-date-end" placeholder="Bitiş">
+                    </div>
+                    <div class="filter-row">
+                        <select id="filter-court"><option value="">Tüm Kortlar</option></select>
+                        <select id="filter-player"><option value="">Tüm Oyuncular</option></select>
+                    </div>
+                    <div class="filter-row">
+                        <select id="filter-status" style="width: 100%;">
+                            <option value="">Tüm Durumlar</option>
+                            <option value="Bekliyor">Yanıt Bekleniyor ⏳</option>
+                            <option value="Hazır">Oynanıyor / Hazır 🎾</option>
+                            <option value="Sonuç_Bekleniyor">Sonuç Onayı Bekliyor 📝</option>
+                            <option value="Tamamlandı">Bitti ✅</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button id="apply-filters-btn" class="btn-filter-apply">Filtrele 🔍</button>
+                        <button id="clear-filters-btn" class="btn-filter-clear">Temizle ❌</button>
+                    </div>
+                </div>
+
+                <div id="program-list-container">
+                    <p style="text-align:center; color:#777;">Yükleniyor...</p>
+                </div>
+            </div>
+
+            <div class="lobby-card" style="background:#f3e5f5; border-color:#e1bee7; margin-top: 15px;">
+                <p style="color:#7b1fa2; margin:0; text-align:center; font-size: 0.85em;">
+                    ℹ️ Geçmiş maç sonuçlarını, gelecek programı veya belirli bir oyuncunun maçlarını filtreleyerek buradan inceleyebilirsin.
+                </p>
+            </div>
+        </div>
+
+        <div id="tab-matches" class="tab-section" style="display: none;">
+            <h2 id="match-list-title">Maç Akışı 🎾</h2>
+            <div id="match-tabs">
+                <button class="tab-btn" data-status="pending_to_me">Cevap Bekleyen</button>
+                <button class="tab-btn" data-status="pending_from_me">Tekliflerim</button>
+                <button class="tab-btn" data-status="active">Aktif</button>
+                <button class="tab-btn" data-status="completed">Geçmiş</button>
+            </div>
+            
+            <div id="user-match-list-container">
+                <p>Lütfen bir sekme seçin...</p>
+            </div>
+
+            <div class="lobby-card" style="background:#e1f5fe; border-color:#b3e5fc; margin-top: 15px;">
+                <p style="color:#0277bd; margin:0; text-align:center; font-size: 0.85em;">
+                    ℹ️ <strong>Aktif</strong> sekmesindeki maçlarına girerek maç günü/saatini planlayabilir ve maç bitiminde skorunu girebilirsin.
+                </p>
+            </div>
+        </div>
+
+        <div id="tab-chat" class="tab-section" style="display: none;">
+            <h3>Mesajlar 💬</h3>
+            <div id="my-chats-section" style="display: block; margin-top: 15px;">
+                <div id="chat-list-container">
+                    <p style="text-align:center; color:#777;">Sohbetler yükleniyor...</p>
+                </div>
+            </div>
+
+            <div class="lobby-card" style="background:#fafafa; border-color:#eee; margin-top: 15px;">
+                <p style="color:#666; margin:0; text-align:center; font-size: 0.85em;">
+                    ℹ️ Sohbetler özeldir. Bir sohbeti temizlemek veya silmek için yanındaki çöp kutusu simgesini kullanabilirsin.
+                </p>
+            </div>
+        </div>
+
+        <div id="tab-profile" class="tab-section" style="display: none;">
+            <h3>Profilim 👤</h3>
+
+            <div class="my-stats-grid">
+                <div class="stat-item"><h4 id="my-stats-points" class="text-green">0</h4><span>Puan</span></div>
+                <div class="stat-item"><h4 id="my-stats-matches" class="text-blue">0</h4><span>Maç</span></div>
+                <div class="stat-item"><h4 id="my-stats-winrate" class="text-yellow">0%</h4><span>Galibiyet</span></div>
+                <div class="stat-item"><h4 id="my-stats-setrate" class="text-purple">0%</h4><span>Set %</span></div>
+                <div class="stat-item"><h4 id="my-stats-gamerate" class="text-orange">0%</h4><span>Oyun %</span></div>
+            </div>
+
+            <div style="background-color: #fff; padding: 20px; border-radius: 10px; border: 1px solid #eee; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                
+                <div class="profile-upload-container">
+                    <img id="edit-profile-preview" src="https://via.placeholder.com/100" class="profile-preview-large">
+                    <label for="edit-profile-photo" class="upload-label-blue">Fotoğrafı Değiştir</label>
+                    <input type="file" id="edit-profile-photo" accept="image/*" style="display:none;">
+                </div>
+
+                <label class="input-label">Ad Soyad:</label>
+                <input type="text" id="edit-full-name" placeholder="Ad Soyad">
+                
+                <label class="input-label">Kort Tercihi:</label>
+                <select id="edit-court-preference">
+                    <option value="Toprak">Toprak</option>
+                    <option value="Sert">Sert</option>
+                    <option value="Çim">Çim</option>
+                    <option value="Her İkisi">Farketmez</option>
+                </select>
+                
+                <label class="input-label">Telefon:</label>
+                <input type="tel" id="edit-phone-number" placeholder="Telefon">
+
+                <label class="input-label">Bildirim Tercihi:</label>
+                <select id="edit-notification-preference">
+                    <option value="ses">Ses 🔊</option>
+                    <option value="titresim">Titreşim 📳</option>
+                    <option value="sessiz">İstemiyorum 🔕</option>
+                </select>
+                
+                <button id="request-permission-btn" class="btn-purple" style="margin-top:15px;">Bildirim İzni İste 🔔</button>
+                <button id="save-profile-btn" class="btn-save-profile">Kaydet ve Güncelle</button>
+                
+                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+                
+                <button id="logout-btn-profile" style="background-color: #dc3545; margin-top: 5px;">Çıkış Yap 🚪</button>
+            </div>
+        </div>
+
+        <div style="height: 80px;"></div>
+
+        <nav class="bottom-nav">
+            <div class="nav-item active" data-target="tab-lobby">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-text">Lobi</span>
+            </div>
+            <div class="nav-item" data-target="tab-rankings">
+                <span class="nav-icon">🏆</span>
+                <span class="nav-text">Sıralama</span>
+            </div>
+            <div class="nav-item" data-target="tab-challenge">
+                <span class="nav-icon">⚔️</span>
+                <span class="nav-text">Meydan</span>
+            </div>
+            <div class="nav-item" data-target="tab-matches">
+                <span class="nav-icon">🎾</span>
+                <span class="nav-text">Maçlarım</span>
+            </div>
+             <div class="nav-item" data-target="tab-fixture">
+                <span class="nav-icon">📅</span>
+                <span class="nav-text">Fikstür</span>
+            </div>
+            <div class="nav-item" data-target="tab-chat">
+                <span class="nav-icon">💬</span>
+                <span class="nav-text">Sohbet</span>
+            </div>
+            <div class="nav-item" data-target="tab-profile">
+                <span class="nav-icon">👤</span>
+                <span class="nav-text">Profil</span>
+            </div>
+        </nav>
+
+        <div id="match-detail-view" style="display: none;">
+            <h3>Maç Detayı</h3>
+            <p id="detail-match-info"></p>
+            <button id="chat-from-match-btn" class="btn-chat-small" style="display:none;">💬 Rakibe Mesaj At</button>
+
+            <div id="schedule-input-section" style="display:none;">
+                <h4>Maç Planlama 📅</h4>
+                <label class="input-label">Kort Seçimi:</label>
+                <select id="match-venue-select"><option value="">Kort Seçiniz</option></select>
+                <label class="input-label">Tarih ve Saat:</label>
+                <input type="datetime-local" id="match-time-input">
+                <button id="save-schedule-btn" class="btn-save-schedule">Planı Kaydet</button>
+            </div>
+
+            <div id="score-input-section" style="display:none;">
+                <h4>Set Skorları (Ben - Rakip)</h4>
+                <div class="score-row"><span>Set 1:</span><input type="number" id="s1-me" class="score-box" placeholder="0" min="0" max="7"> - <input type="number" id="s1-opp" class="score-box" placeholder="0" min="0" max="7"></div>
+                <div class="score-row"><span>Set 2:</span><input type="number" id="s2-me" class="score-box" placeholder="0" min="0" max="7"> - <input type="number" id="s2-opp" class="score-box" placeholder="0" min="0" max="7"></div>
+                <div class="score-row"><span>Tie-Break:</span><input type="number" id="s3-me" class="score-box" placeholder="0" min="0"> - <input type="number" id="s3-opp" class="score-box" placeholder="0" min="0"></div>
+            </div>
+
+            <div id="score-display-section" style="display:none;"></div>
+            <select id="winner-select" style="display:none;"><option value="">Kazananı Seçin</option></select>
+            <div id="action-buttons-container"></div>
+            <p id="result-message"></p>
+            <button id="back-to-list-btn">Geri Dön</button>
+        </div>
+
+        <div id="player-stats-modal" class="modal">
+            <div class="modal-content">
+                <span id="close-stats-modal" class="close-modal">&times;</span>
+                <div class="modal-header-center">
+                    <img id="stats-player-photo" src="" class="modal-photo">
+                    <h3 id="stats-player-name"></h3>
+                    <button id="start-chat-btn" class="btn-chat">Mesaj Gönder 💬</button>
+                </div>
+                <div class="stats-body">
+                    <p><strong>Toplam Puan:</strong> <span id="stats-total-points"></span></p>
+                    <p><strong>Favori Kort:</strong> <span id="stats-court-pref" class="highlight-text"></span></p>
+                    <p><strong>Telefon:</strong> <span id="stats-phone"></span></p>
+                    <hr>
+                    <p><strong>Maç Kazanma:</strong> <span id="stats-match-win-rate"></span>% (<span id="stats-match-record"></span>)</p>
+                    <p><strong>Set Kazanma:</strong> <span id="stats-set-win-rate"></span>% (<span id="stats-set-record"></span>)</p>
+                    <p><strong>Oyun Kazanma:</strong> <span id="stats-game-win-rate"></span>% (<span id="stats-game-record"></span>)</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="chat-window-modal" class="modal">
+            <div class="modal-content chat-content">
+                <div class="chat-header">
+                    <h3 id="chat-recipient-name">Sohbet</h3>
+                    <div>
+                        <button id="clear-chat-btn" style="background: none; border: none; color: #dc3545; font-size: 0.8em; margin-right: 10px; cursor: pointer;">Temizle 🗑️</button>
+                        <span id="close-chat-window" class="close-modal-x" style="font-size:24px; cursor: pointer;">&times;</span>
+                    </div>
+                </div>
+                <div id="chat-messages" class="chat-messages"></div>
+                <div class="chat-input-area">
+                    <input type="text" id="chat-input" placeholder="Mesaj yaz...">
+                    <button id="send-message-btn">Gönder</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="notification-container"></div>
+        
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    
+    <script src="app.js"></script>
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('sw.js').then(function(registration) {
+                    console.log('SW Başarılı:', registration.scope);
+                }, function(err) { console.log('SW Hatası:', err); });
+            });
+        }
+    </script>
+</body>
+</html>

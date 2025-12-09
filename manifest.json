@@ -1,0 +1,21 @@
+{
+  "name": "Tenis Ligi",
+  "short_name": "TenisLigi",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#f4f7f6",
+  "theme_color": "#2c3e50",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192.png?text=TL+Icon",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://via.placeholder.com/512.png?text=TenisLigi",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

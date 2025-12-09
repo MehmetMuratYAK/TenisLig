@@ -1,0 +1,177 @@
+/* --- GENEL SAYFA YAPISI --- */
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 10px; box-sizing: border-box; }
+
+/* --- ANA KONTEYNERLAR --- */
+#auth-screen, #main-app { background-color: #ffffff; width: 100%; max-width: 450px; padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); box-sizing: border-box; display: flex; flex-direction: column; margin-top: 20px; margin-bottom: 20px; position: relative; min-height: 90vh; }
+
+/* --- METİNLER --- */
+h1 { text-align: center; color: #2c3e50; font-size: 24px; margin: 0; }
+h2 { color: #34495e; font-size: 20px; margin-top: 0; margin-bottom: 15px; text-align: center; }
+h3 { color: #555; font-size: 16px; margin-top: 15px; margin-bottom: 10px; border-left: 4px solid #28a745; padding-left: 10px; }
+h4 { color: #34495e; font-size: 15px; margin-bottom: 10px; border-bottom: 1px dashed #ccc; padding-bottom: 5px; }
+
+/* --- HEADER --- */
+.header-container { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; margin-bottom: 10px; }
+.divider { margin-top: 20px; border: none; border-top: 1px solid #eee; }
+
+/* --- LOBİ (YENİ) --- */
+.lobby-card { background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+.lobby-card h4 { margin-top: 0; border: none; padding: 0; font-size: 1.1em; color: #333; }
+.lobby-card p { margin-bottom: 0; color: #666; font-size: 0.9em; }
+
+/* LOBİ KAYDIRMA LİSTESİ */
+.lobby-scroll-list {
+    max-height: 300px; /* Yaklaşık 3 kart sığacak kadar */
+    overflow-y: auto;  /* Fazlasında scroll çıkar */
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    padding: 10px;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+    margin-bottom: 15px;
+}
+.lobby-scroll-list::-webkit-scrollbar { width: 4px; }
+.lobby-scroll-list::-webkit-scrollbar-thumb { background-color: #ccc; border-radius: 4px; }
+
+/* --- ALT NAVİGASYON (GÜNCELLENDİ) --- */
+.bottom-nav { 
+    position: fixed; bottom: 0; left: 0; width: 100%; height: 65px; background-color: #ffffff; 
+    display: flex; align-items: center; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1000; border-top: 1px solid #eee; 
+    overflow-x: auto; /* Yatay kaydırma aktif */
+    -webkit-overflow-scrolling: touch; 
+}
+/* Kaydırma çubuğunu gizle (Chrome, Safari) */
+.bottom-nav::-webkit-scrollbar { display: none; }
+.bottom-nav { -ms-overflow-style: none; scrollbar-width: none; }
+
+.nav-item { 
+    display: flex; flex-direction: column; align-items: center; justify-content: center; 
+    color: #999; font-size: 10px; cursor: pointer; height: 100%; transition: color 0.2s; 
+    min-width: 70px; /* Her öğe için minimum genişlik */
+    flex-shrink: 0; /* Öğelerin küçülmesini engelle */
+}
+.nav-icon { font-size: 22px; margin-bottom: 2px; }
+.nav-item.active { color: #28a745; font-weight: bold; }
+.nav-item:active { background-color: #f9f9f9; }
+
+/* --- TAB ANİMASYONU --- */
+.tab-section { animation: fadeIn 0.3s ease-in-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* --- FORM --- */
+.profile-upload-container { display: flex; flex-direction: column; align-items: center; margin-bottom: 15px; }
+#profile-preview, #edit-profile-preview { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 3px solid #eee; background-color: #f0f0f0; }
+.profile-preview-large { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; }
+.upload-label { cursor: pointer; color: #28a745; font-weight: bold; font-size: 0.9em; }
+.upload-label-blue { cursor: pointer; color: #007bff; font-size: 0.9em; }
+input, select { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; background-color: #f9f9f9; transition: border-color 0.3s; }
+input:focus, select:focus { border-color: #28a745; outline: none; background-color: #fff; }
+.input-label { font-size: 0.85em; color: #666; margin-bottom: 5px; display: block; }
+
+/* --- KUTULAR --- */
+.score-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 5px; background-color: #fff; border-radius: 6px; }
+.score-row span { font-weight: bold; color: #555; flex: 1; }
+.score-box { width: 60px !important; text-align: center; margin-bottom: 0 !important; padding: 8px !important; font-weight: bold; }
+#score-input-section, #schedule-input-section { margin-bottom: 15px; background-color: #f9f9f9; padding: 10px; border-radius: 8px; }
+#score-display-section { margin-bottom: 15px; text-align: center; font-weight: bold; font-size: 1.2em; color: #333; }
+
+/* --- BUTONLAR --- */
+button { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background-color 0.2s, transform 0.1s; margin-bottom: 10px; color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+button:active { transform: scale(0.98); }
+button:hover { opacity: 0.9; }
+#login-btn, #register-btn, #submit-challenge-btn { background-color: #28a745; }
+#challenge-btn { background-color: #007bff; }
+#back-to-list-btn { background-color: #6c757d; }
+.btn-accept { background-color: #28a745; color: white; }
+.btn-reject { background-color: #dc3545; color: white; }
+.btn-withdraw { background-color: #ffc107; color: #333; }
+.btn-save { background-color: #007bff; color: white; }
+.btn-approve { background-color: #17a2b8; color: white; }
+.btn-save-profile { background-color: #28a745; margin-top: 10px; }
+.btn-save-schedule { background-color: #6f42c1; color: white; } 
+.btn-purple { background-color: #6f42c1; color: white; } .btn-purple:hover { background-color: #59359a; }
+.btn-filter-apply { background-color: #28a745; flex: 2; }
+.btn-filter-clear { background-color: #dc3545; flex: 1; }
+.btn-chat { background-color: #17a2b8; color: white; margin-top: 5px; font-size: 0.9em; padding: 8px; width: auto; }
+.btn-chat-small { background-color: #17a2b8; color: white; padding: 8px; font-size: 0.9em; margin-bottom: 15px; width: 100%; }
+.btn-delete-chat { background: none; border: none; color: #dc3545; font-size: 1.2em; padding: 0 10px; margin: 0; width: auto; box-shadow: none; }
+.btn-delete-chat:hover { color: #a71d2a; opacity: 1; }
+
+/* --- MAÇ AKIŞI --- */
+#match-tabs { display: flex; justify-content: space-between; gap: 5px; margin-bottom: 15px; background-color: #e9ecef; padding: 5px; border-radius: 10px; overflow-x: auto; scrollbar-width: none; }
+.tab-btn { background-color: transparent; color: #555; font-size: 13px; padding: 8px 5px; margin: 0; border-radius: 6px; box-shadow: none; white-space: nowrap; }
+.tab-btn:hover { background-color: #dfe6e9; color: #333; }
+.match-card { background-color: #fff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 15px; padding-right: 125px; margin-bottom: 15px; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.05); box-sizing: border-box; }
+.match-card p { margin: 5px 0; font-size: 14px; color: #555; }
+.match-action-btn { background-color: #007bff; color: white; width: auto; padding: 6px 12px; font-size: 13px; border-radius: 4px; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); float: none; margin: 0; }
+.match-plan-info { font-size: 0.85em; color: #d63384; margin-top: 5px; font-weight: 500; }
+
+/* --- SOHBET LİSTESİ --- */
+.chat-list-item { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.chat-list-name { font-weight: bold; color: #333; margin-bottom: 3px; }
+.chat-list-msg { font-size: 0.85em; color: #777; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+.chat-list-time { font-size: 0.75em; color: #999; }
+
+/* --- FİLTRE --- */
+#filters-container { background-color: #f1f3f5; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #e9ecef; }
+.filter-row { display: flex; gap: 10px; margin-bottom: 10px; }
+.filter-row input, .filter-row select { flex: 1; margin-bottom: 0; padding: 8px; font-size: 14px; }
+.filter-actions { display: flex; gap: 10px; }
+
+/* --- LİG SIRALAMASI --- */
+#leaderboard { max-height: 400px; overflow-y: auto; margin-bottom: 20px; padding-right: 5px; border: 1px solid #f0f0f0; border-radius: 8px; }
+.player-card { background-color: #fff; border-bottom: 1px solid #eee; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; transition: background-color 0.2s; cursor: pointer; }
+.player-card:last-child { border-bottom: none; } .player-card:hover { background-color: #f9f9f9; }
+
+/* --- MODAL --- */
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1100; justify-content: center; align-items: center; }
+.modal-content { background: white; padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; position: relative; max-height: 90vh; overflow-y: auto; }
+.close-modal { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; }
+.modal-header-center { text-align: center; }
+.modal-photo { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #eee; }
+.modal-title { text-align: center; border: none; }
+
+/* --- SOHBET MODAL --- */
+.chat-content { height: 80vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+.chat-header { padding: 15px; background: #f8f9fa; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
+.chat-header h3 { margin: 0; font-size: 1.1em; color: #333; }
+.close-modal-x { font-size: 24px; cursor: pointer; color: #666; }
+.chat-messages { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background-color: #fff; }
+.chat-input-area { padding: 10px; border-top: 1px solid #ddd; display: flex; gap: 10px; background: #f8f9fa; }
+.chat-input-area input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 20px; margin-bottom: 0; }
+.chat-input-area button { width: auto; padding: 10px 20px; border-radius: 20px; margin-bottom: 0; background-color: #007bff; }
+.message-bubble { max-width: 75%; padding: 10px 15px; border-radius: 15px; font-size: 14px; line-height: 1.4; position: relative; word-wrap: break-word; }
+.message-sent { align-self: flex-end; background-color: #007bff; color: white; border-bottom-right-radius: 2px; }
+.message-received { align-self: flex-start; background-color: #e9ecef; color: #333; border-bottom-left-radius: 2px; }
+.message-time { font-size: 0.7em; margin-top: 5px; text-align: right; opacity: 0.7; display: block; }
+
+/* --- İSTATİSTİK GRID --- */
+.my-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; text-align: center; background-color: #f8f9fa; padding: 15px; border-radius: 10px; }
+.stat-item h4 { margin: 0; font-size: 1.2em; color: #333; }
+.stat-item span { font-size: 0.8em; color: #777; text-transform: uppercase; }
+.text-green { color: #28a745 !important; } .text-blue { color: #007bff !important; } .text-yellow { color: #ffc107 !important; } .text-purple { color: #6f42c1 !important; } .text-orange { color: #fd7e14 !important; }
+.pie-chart { width: 45px; height: 45px; border-radius: 50%; background: conic-gradient(#28a745 var(--p), #e9ecef 0); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #333; position: relative; flex-shrink: 0; margin-left: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.pie-chart::before { content: ""; position: absolute; width: 33px; height: 33px; border-radius: 50%; background: white; z-index: 1; }
+.pie-chart span { z-index: 2; }
+
+/* --- DİĞER --- */
+#match-detail-view { background-color: #fff; border: 1px solid #ddd; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+#detail-match-info { background-color: #f1f3f5; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 15px; line-height: 1.6; color: #333; }
+#auth-error, #challenge-message, #result-message { font-size: 14px; margin-top: 10px; font-weight: bold; text-align: center; min-height: 20px; }
+#auth-error { color: red; } #challenge-message { color: blue; } #result-message { color: red; }
+#toggle-auth-mode { cursor: pointer; color: blue; text-decoration: underline; font-size: 0.9em; margin-top: 10px; }
+.highlight-text { color: #007bff; }
+
+/* --- BİLDİRİM --- */
+#notification-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+.notification-toast { background-color: #333; color: #fff; padding: 15px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-size: 14px; animation: slideIn 0.3s ease-out; display: flex; align-items: center; justify-content: space-between; min-width: 250px; }
+.notification-toast.success { background-color: #28a745; } .notification-toast.info { background-color: #007bff; } .notification-toast.warning { background-color: #ffc107; color: #333; }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* --- RESPONSIVE --- */
+@media (max-width: 400px) {
+    h1 { font-size: 20px; }
+    .tab-btn { font-size: 11px; padding: 6px 2px; }
+    #match-tabs { gap: 2px; }
+    .filter-row { flex-direction: column; gap: 5px; }
+}
