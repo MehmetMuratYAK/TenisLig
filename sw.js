@@ -29,7 +29,7 @@ messaging.onBackgroundMessage(function(payload) {
 });
 
 // --- CACHING (Eski Kodlar) ---
-const CACHE_NAME = 'tenis-ligi-v7'; // Versiyonu artırdık
+const CACHE_NAME = 'tenis-ligi-v8'; // Versiyonu artırdık
 const urlsToCache = [
   './',
   './index.html',

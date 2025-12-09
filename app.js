@@ -181,7 +181,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('Bildirim izni verildi.');
                 if (messaging) {
                     // Token al ve DB'ye kaydet
-                    messaging.getToken({ vapidKey: 'BQPx7cufHZRDDD1mZLyogDw2G2V2hvuSsPJa6xFmFss' })
+                    messaging.getToken({ vapidKey: 'BQPx7cufHZRDDD1mZLBERxzEwiUowktlBiSp3SHKFs0lm5lRhHAnigIQoT9bEFIHpNMDSjsnrm9RAn5RQ5iP-_nzzAfEk_dMOjof1_D7A' })
                     .then((currentToken) => {
                         if (currentToken) {
                             console.log('FCM Token:', currentToken);
