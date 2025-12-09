@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tenis-ligi-v3';
+const CACHE_NAME = 'tenis-ligi-v4';
 const urlsToCache = [
   './',
   './index.html',
