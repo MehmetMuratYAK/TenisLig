@@ -32,6 +32,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let isReadOnlyView = false;
     let currentChatId = null;
     let currentChatUnsubscribe = null;
+    
+    // YENİ: Geri dönüş için hangi sekmenin açılacağını tutan değişken
+    let returnToTab = null; 
 
     // --- DOM ELEMENTLERİ ---
     const authScreen = document.getElementById('auth-screen');
@@ -67,8 +70,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const submitChallengeBtn = document.getElementById('submit-challenge-btn');
     const submitAdBtn = document.getElementById('submit-ad-btn');
     
-    // YENİ: Lobi İlan Listesi Container
+    // Lobi Listeleri
     const openRequestsContainer = document.getElementById('lobby-requests-container');
+    const scheduledMatchesContainer = document.getElementById('lobby-scheduled-container');
+    const announcementsContainer = document.getElementById('lobby-announcements-container'); 
     
     // LİSTELER
     const leaderboardDiv = document.getElementById('leaderboard');
@@ -128,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeChatModal = document.getElementById('close-chat-window');
     const clearChatBtn = document.getElementById('clear-chat-btn'); 
 
-    // Profil Düzenleme Alanları (Artık Modal Değil)
+    // Profil Düzenleme Alanları
     const editProfilePhotoInput = document.getElementById('edit-profile-photo');
     const editProfilePreview = document.getElementById('edit-profile-preview');
     const editFullNameInput = document.getElementById('edit-full-name');
@@ -187,7 +192,6 @@ document.addEventListener('DOMContentLoaded', function() {
         chatMessages.innerHTML = '<p style="text-align:center;color:#999;">Mesajlar yükleniyor...</p>';
         
         chatModal.style.display = 'flex';
-        // Diğer pencereleri kapat
         playerStatsModal.style.display = 'none';
         matchDetailView.style.display = 'none';
         
@@ -397,6 +401,195 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // --- GELİŞMİŞ YAPAY ZEKA YORUM MOTORU ---
+    function generateAdvancedAIComment(matchData, p1Name, p2Name) {
+        // 1. Veri Analizi
+        const type = matchData.durum;
+        const wager = matchData.bahisPuani || 0;
+        const score = matchData.skor || {};
+        const winnerId = matchData.kayitliKazananID;
+        
+        let winnerName = "Biri";
+        let loserName = "Diğeri";
+        if (winnerId) {
+            winnerName = (winnerId === matchData.oyuncu1ID) ? p1Name : p2Name;
+            loserName = (winnerId === matchData.oyuncu1ID) ? p2Name : p1Name;
+        }
+
+        // 2. Yorum Havuzları
+        const comments = {
+            'Acik_Ilan': [
+                `📢 <strong>${p1Name}</strong> kortlara meydan okuyor! "Var mı bana yan bakan?" diyor.`,
+                `👀 <strong>${p1Name}</strong> dişli bir rakip arıyor. Cesareti olan sahaya çıksın!`,
+                `🎾 Raketler konuşsun! <strong>${p1Name}</strong> maç yapacak partner arıyor.`,
+                `🚀 <strong>${p1Name}</strong> formunun zirvesinde, kendini test edecek birini bekliyor.`,
+                `📣 <strong>${p1Name}</strong> ligde ses getirmek istiyor, rakip bekleniyor!`
+            ],
+            'Acik_Ilan_HighWager': [ 
+                `💰 <strong>${p1Name}</strong> masaya büyük koydu! Tam <strong>${wager} Puan</strong> bahisli maç arıyor.`,
+                `🔥 Ligde bahisler yükseliyor! <strong>${p1Name}</strong> kendine çok güveniyor, ${wager} puanı riske etti.`,
+                `🤑 "Büyük oyna ya da eve dön" diyen <strong>${p1Name}</strong>, ${wager} puanlık iddialı bir rakip bekliyor.`,
+                `💎 <strong>${p1Name}</strong>'den servet değerinde teklif! ${wager} puanlık maça var mısın?`
+            ],
+            'Bekliyor': [
+                `⚔️ <strong>${p1Name}</strong> gözünü kararttı, <strong>${p2Name}</strong> kişisine resmen meydan okudu!`,
+                `👀 Yeni bir rekabet doğuyor: <strong>${p1Name}</strong> vs <strong>${p2Name}</strong>. Bakalım cevap ne olacak?`,
+                `⚡ Ortalık geriliyor! <strong>${p1Name}</strong>, <strong>${p2Name}</strong> ile kozlarını paylaşmak istiyor.`,
+                `📩 <strong>${p2Name}</strong>'in telefonuna bildirim düştü: <strong>${p1Name}</strong> maç istiyor!`,
+                `🛡️ <strong>${p1Name}</strong> defans hattını kurdu, <strong>${p2Name}</strong>'i düelloya davet etti.`
+            ],
+            'Hazır': [
+                `🤝 Ve anlaşma sağlandı! <strong>${p1Name}</strong> ile <strong>${p2Name}</strong> maçı kesinleşti.`,
+                `🍿 Mısırları hazırlayın, <strong>${p1Name}</strong> - <strong>${p2Name}</strong> maçı yaklaşıyor!`,
+                `📅 Randevu deftere yazıldı. <strong>${p1Name}</strong> ve <strong>${p2Name}</strong> kortta buluşacak.`,
+                `💣 Saatli bomba kuruldu: <strong>${p1Name}</strong> vs <strong>${p2Name}</strong>. İyi olan kazansın!`,
+                `🔋 İki oyuncu da hazır. <strong>${p1Name}</strong> ve <strong>${p2Name}</strong> enerjilerini maça saklıyor.`
+            ],
+            'Sonuç_Bekleniyor': [
+                `📝 Maç bitti, terler soğudu. Şimdi skor onayı bekleniyor...`,
+                `🤔 Korttan sonuçlar geldi. Bakalım kazanan kim? Onay bekleniyor.`,
+                `⏳ Nefesler tutuldu, maç sonucu sisteme girildi. Tarafların onayı bekleniyor.`
+            ],
+            'Tamamlandı_Generic': [
+                `🏆 Kazanan: <strong>${winnerName}</strong>! ${loserName} elinden geleni yaptı ama yetmedi.`,
+                `✨ <strong>${winnerName}</strong> günü galibiyetle kapattı. Tebrikler!`,
+                `🔥 Kortun tozunu attıran isim <strong>${winnerName}</strong> oldu.`,
+                `✅ İstatistiklere bir galibiyet daha: <strong>${winnerName}</strong> kazandı.`,
+                `📢 Maçın son düdüğü, kazanan <strong>${winnerName}</strong>! ${loserName} bir sonraki maça odaklanmalı.`
+            ],
+            'Tamamlandı_Crushing': [
+                `😱 Aman Allah'ım! <strong>${winnerName}</strong> rakibine kortu dar etti! Ezici bir skor.`,
+                `🍩 <strong>${winnerName}</strong> bugün rakibine "simit" ikram etmiş olabilir. Çok net bir galibiyet!`,
+                `🚀 <strong>${winnerName}</strong> maçı antrenman havasında geçti. ${loserName} için zor bir gün oldu.`,
+                `🔨 Çekiç gibi indi! <strong>${winnerName}</strong> rakibine hiç şans tanımadı, silindir gibi geçti.`,
+                `🌪️ Kortta fırtına vardı ve adı <strong>${winnerName}</strong> idi! Farklı kazandı.`
+            ],
+            'Tamamlandı_Tight': [
+                `🥵 Ne maçtı ama! <strong>${winnerName}</strong> zor da olsa ${loserName} karşısında kazanmayı bildi.`,
+                `🤯 Kalpler dayanamaz! Müthiş bir çekişme, tie-breakler, uzatmalar... Sonunda <strong>${winnerName}</strong> güldü.`,
+                `⚖️ Gitti geldi, gitti geldi... Sonunda <strong>${winnerName}</strong> kazandı. ${loserName} harika direndi.`,
+                `🕰️ Kortun ışıkları sönene kadar oynadılar sandık! <strong>${winnerName}</strong> bu maratonu kazandı.`,
+                `😰 Tırnaklar yendi! <strong>${winnerName}</strong> son topta maçı aldı.`
+            ]
+        };
+
+        // 3. Mantıksal Seçim
+        let selectedCategory = [];
+
+        if (type === 'Acik_Ilan') {
+            selectedCategory = (wager >= 500) ? comments['Acik_Ilan_HighWager'] : comments['Acik_Ilan'];
+        } 
+        else if (type === 'Bekliyor') {
+            selectedCategory = comments['Bekliyor'];
+        }
+        else if (type === 'Hazır') {
+            selectedCategory = comments['Hazır'];
+        }
+        else if (type === 'Sonuç_Bekleniyor') {
+            selectedCategory = comments['Sonuç_Bekleniyor'];
+        }
+        else if (type === 'Tamamlandı') {
+            const s1 = parseInt(score.s1_me) + parseInt(score.s1_opp); 
+            const s3 = (score.s3_me && score.s3_opp) ? parseInt(score.s3_me) + parseInt(score.s3_opp) : 0;
+            
+            const setsPlayed = (s3 > 0) ? 3 : 2;
+            const isCrushing = [score.s1_me, score.s1_opp, score.s2_me, score.s2_opp].some(val => val == 0 || val == 1);
+            const isTight = setsPlayed === 3 || [score.s1_me, score.s1_opp, score.s2_me, score.s2_opp].some(val => val == 7);
+
+            if (isTight) {
+                selectedCategory = comments['Tamamlandı_Tight'];
+            } else if (isCrushing) {
+                selectedCategory = comments['Tamamlandı_Crushing'];
+            } else {
+                selectedCategory = comments['Tamamlandı_Generic'];
+            }
+        }
+
+        if (!selectedCategory || selectedCategory.length === 0) return `🎾 <strong>${p1Name}</strong> vs <strong>${p2Name}</strong>`;
+        
+        const randomIndex = Math.floor(Math.random() * selectedCategory.length);
+        return selectedCategory[randomIndex];
+    }
+
+    // --- LOBİ: HABER AKIŞINI YÜKLE ---
+    function loadAnnouncements() {
+        if(!announcementsContainer) return;
+        
+        const loadingTexts = ["Veriler analiz ediliyor...", "Maç sonuçları taranıyor...", "Yapay zeka yorum hazırlıyor...", "Kortlardan haberler toplanıyor..."];
+        const randLoad = loadingTexts[Math.floor(Math.random()*loadingTexts.length)];
+        announcementsContainer.innerHTML = `<p style="text-align:center; color:#999; font-style:italic;">🤖 ${randLoad}</p>`;
+
+        db.collection('matches')
+          .orderBy('tarih', 'desc')
+          .limit(15)
+          .get()
+          .then(snapshot => {
+              announcementsContainer.innerHTML = '';
+              let hasNews = false;
+
+              snapshot.forEach(doc => {
+                  hasNews = true;
+                  const m = doc.data();
+                  const p1 = userMap[m.oyuncu1ID]?.isim || 'Gizli Oyuncu';
+                  const p2 = m.oyuncu2ID ? (userMap[m.oyuncu2ID]?.isim || 'Rakip') : '???';
+                  
+                  const comment = generateAdvancedAIComment(m, p1, p2);
+                  
+                  let icon = '🎾';
+                  if (m.durum === 'Acik_Ilan') icon = '📢';
+                  if (m.durum === 'Bekliyor') icon = '⚔️';
+                  if (m.durum === 'Hazır') icon = '📅';
+                  if (m.durum === 'Tamamlandı') icon = '🏆';
+
+                  let dateStr = '';
+                  if (m.tarih) {
+                      const d = m.tarih.toDate();
+                      const today = new Date();
+                      if (d.getDate() === today.getDate() && d.getMonth() === today.getMonth()) {
+                          dateStr = `Bugün ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+                      } else {
+                          dateStr = d.toLocaleDateString('tr-TR');
+                      }
+                  }
+
+                  const item = document.createElement('div');
+                  item.style.cssText = 'padding:12px; border-bottom:1px solid #eee; font-size:0.95em; line-height:1.5; animation: fadeIn 0.5s;';
+                  
+                  const headerDiv = document.createElement('div');
+                  headerDiv.style.cssText = 'margin-bottom:4px; display:flex; justify-content:space-between; align-items:center;';
+                  headerDiv.innerHTML = `<span style="font-size:1.2em;">${icon}</span><span style="font-size:0.75em; color:#bbb;">${dateStr}</span>`;
+                  
+                  const commentDiv = document.createElement('div');
+                  commentDiv.style.color = '#444';
+                  commentDiv.innerHTML = comment;
+                  
+                  const btnDiv = document.createElement('div');
+                  btnDiv.style.marginTop = '8px';
+                  
+                  const detailBtn = document.createElement('button');
+                  detailBtn.textContent = 'İncele 🔍';
+                  detailBtn.className = 'btn-chat-small'; 
+                  detailBtn.style.cssText = 'padding: 5px 12px; font-size: 0.8em; width: auto; margin:0; background-color: #6c757d; border:none; border-radius:15px;';
+                  
+                  detailBtn.onclick = function() {
+                      // YENİ: Dönüş sekmesini Lobi olarak ayarla
+                      returnToTab = 'tab-lobby';
+                      showMatchDetail(doc.id);
+                  };
+
+                  btnDiv.appendChild(detailBtn);
+                  
+                  item.appendChild(headerDiv);
+                  item.appendChild(commentDiv);
+                  item.appendChild(btnDiv);
+
+                  announcementsContainer.appendChild(item);
+              });
+
+              if(!hasNews) announcementsContainer.innerHTML = '<p style="text-align:center; color:#777;">Henüz dedikodu yok.</p>';
+          });
+    }
+
     // --- AÇIK İLANLAR LİSTESİ ---
     function loadOpenRequests() {
         if(!openRequestsContainer) return;
@@ -413,7 +606,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
               snapshot.forEach(doc => {
                   const data = doc.data();
-                  // Kendi ilanımızı listede göstermeyelim (Maçlarım'da görünecek)
                   if(data.oyuncu1ID === currentUserID) return;
 
                   hasRequest = true;
@@ -449,6 +641,95 @@ document.addEventListener('DOMContentLoaded', function() {
           });
     }
 
+    // --- LOBİ: PLANLI MAÇLARI YÜKLE ---
+    function loadScheduledMatches() {
+        if(!scheduledMatchesContainer) return;
+        scheduledMatchesContainer.innerHTML = '<p style="text-align:center;">Yükleniyor...</p>';
+
+        db.collection('matches')
+          .where('durum', '==', 'Hazır')
+          .get()
+          .then(snapshot => {
+              scheduledMatchesContainer.innerHTML = '';
+              let matches = [];
+
+              snapshot.forEach(doc => {
+                  matches.push({ ...doc.data(), id: doc.id });
+              });
+
+              matches.sort((a, b) => {
+                  const timeA = a.macZamani ? a.macZamani.toMillis() : 9999999999999;
+                  const timeB = b.macZamani ? b.macZamani.toMillis() : 9999999999999;
+                  return timeA - timeB;
+              });
+
+              if(matches.length === 0) {
+                  scheduledMatchesContainer.innerHTML = '<p style="text-align:center; color:#777; padding:15px;">Planlanmış maç yok.</p>';
+                  return;
+              }
+
+              matches.forEach(match => {
+                  const p1Name = userMap[match.oyuncu1ID]?.isim || 'Bilinmiyor';
+                  const p2Name = userMap[match.oyuncu2ID]?.isim || 'Bilinmiyor';
+                  const kort = match.macYeri || 'Kort Belirlenmedi';
+                  
+                  let timeStr = '<span style="color:#999; font-style:italic;">Zaman bekleniyor</span>';
+                  let dateBadge = '';
+
+                  if (match.macZamani) {
+                      const date = match.macZamani.toDate();
+                      const day = date.getDate();
+                      const month = date.toLocaleString('tr-TR', { month: 'short' });
+                      const time = date.toLocaleString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+                      
+                      timeStr = `<strong style="color:#333;">${time}</strong>`;
+                      dateBadge = `
+                        <div style="background:#e3f2fd; color:#0d47a1; padding:5px 10px; border-radius:8px; text-align:center; margin-right:10px; min-width:45px;">
+                            <div style="font-size:0.8em; font-weight:bold;">${day}</div>
+                            <div style="font-size:0.7em;">${month}</div>
+                        </div>`;
+                  } else {
+                       dateBadge = `
+                        <div style="background:#f5f5f5; color:#999; padding:5px 10px; border-radius:8px; text-align:center; margin-right:10px; min-width:45px;">
+                            <div style="font-size:1.2em;">?</div>
+                        </div>`;
+                  }
+
+                  const card = document.createElement('div');
+                  card.className = 'lobby-match-card';
+                  card.style.cssText = 'background:#fff; border:1px solid #dee2e6; border-left: 4px solid #007bff; border-radius:8px; padding:10px; margin-bottom:10px; display:flex; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05); cursor:pointer;';
+                  
+                  card.innerHTML = `
+                      ${dateBadge}
+                      <div style="flex-grow:1;">
+                          <div style="font-weight:600; font-size:0.95em; color:#333;">${p1Name} <span style="color:#999; font-weight:normal;">vs</span> ${p2Name}</div>
+                          <div style="font-size:0.85em; color:#666; margin-top:2px;">📍 ${kort} | ${timeStr}</div>
+                      </div>
+                  `;
+                  
+                  card.onclick = () => {
+                      // YENİ: Lobiye geri dönüş
+                      returnToTab = 'tab-lobby';
+                      
+                      const myUid = auth.currentUser.uid;
+                      // Kendi maçıysa düzenleyebilir, değilse salt okunur
+                      if(match.oyuncu1ID === myUid || match.oyuncu2ID === myUid) {
+                          isReadOnlyView = false;
+                      } else {
+                          isReadOnlyView = true;
+                      }
+                      showMatchDetail(match.id);
+                  };
+
+                  scheduledMatchesContainer.appendChild(card);
+              });
+          })
+          .catch(err => {
+              console.error("Planlı maçlar hatası:", err);
+              scheduledMatchesContainer.innerHTML = '<p style="text-align:center; color:red;">Liste yüklenemedi.</p>';
+          });
+    }
+
     async function acceptOpenRequest(matchId, wager, type) {
         if(!confirm("Bu maçı kabul etmek istiyor musun?")) return;
         
@@ -461,13 +742,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         try {
-            // İlanı kabul et ve durumu 'Hazır' yap (Maç Başlasın)
             await db.collection('matches').doc(matchId).update({
                 oyuncu2ID: myUid,
                 durum: 'Hazır'
             });
             alert("Maç kabul edildi! İletişime geçip maçı planlayabilirsin.");
-            // Maçlarım sekmesine git
             document.querySelector('[data-target="tab-matches"]').click();
         } catch (error) {
             console.error(error);
@@ -511,7 +790,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 break;
             case 'active': query = db.collection('matches').where('durum', 'in', ['Hazır', 'Sonuç_Bekleniyor']); break;
             case 'completed': query = db.collection('matches').where('durum', '==', 'Tamamlandı'); break;
-            case 'all_matches': query = db.collection('matches').where('durum', 'in', ['Bekliyor', 'Hazır', 'Sonuç_Bekleniyor', 'Tamamlandı']); break; // Acik_Ilan fikstürde görünmesin
+            case 'all_matches': query = db.collection('matches').where('durum', 'in', ['Bekliyor', 'Hazır', 'Sonuç_Bekleniyor', 'Tamamlandı']); break; 
             default: return;
         }
 
@@ -556,7 +835,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     const p1 = userMap[match.oyuncu1ID]?.isim || '???'; const p2 = userMap[match.oyuncu2ID]?.isim || '???';
                     titleHTML = `<strong>${p1}</strong> vs <strong>${p2}</strong>`;
                 } else {
-                    // Eğer Açık İlan ise
                     if (match.durum === 'Acik_Ilan') {
                         titleHTML = `<strong>AÇIK İLAN</strong> (Henüz rakip yok)`;
                     } else {
@@ -581,6 +859,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 const card = document.createElement('div'); card.className = 'match-card';
                 card.innerHTML = `<p><strong>${match.macTipi}</strong> | ${dm}</p><p>${titleHTML}</p><p>Bahis: ${match.bahisPuani}</p>${planInfo}<button class="match-action-btn" data-id="${match.id}">Detay</button>`;
+                // YENİ: Maçlarım veya Fikstürden geliyorsa ilgili sekme adını ata
+                card.querySelector('.match-action-btn').addEventListener('click', () => {
+                   if (filterType === 'all_matches') returnToTab = 'tab-fixture';
+                   else returnToTab = 'tab-matches';
+                });
                 targetContainer.appendChild(card);
             });
         });
@@ -639,7 +922,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- DETAY GÖSTERİMİ ---
     function showMatchDetail(matchDocId) {
-        // Tabları gizle, detayı aç
         tabSections.forEach(s => s.style.display = 'none');
         matchDetailView.style.display = 'block';
         
@@ -649,7 +931,6 @@ document.addEventListener('DOMContentLoaded', function() {
         db.collection('matches').doc(matchDocId).get().then(doc => {
             const match = doc.data();
             const p1Name = userMap[match.oyuncu1ID]?.isim || '???';
-            // Eğer açık ilansa oyuncu2 henüz yoktur
             const p2Name = match.oyuncu2ID ? (userMap[match.oyuncu2ID]?.isim || '???') : 'Henüz Yok';
 
             winnerSelect.innerHTML = `<option value="">Kazananı Seçin</option><option value="${match.oyuncu1ID}">${p1Name}</option>`;
@@ -689,7 +970,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // AÇIK İLAN İSE SİLME SEÇENEĞİ (Sadece Sahibi İçin)
             if (match.durum === 'Acik_Ilan' && currentUserID === match.oyuncu1ID) {
                 const dbn = document.createElement('button'); dbn.textContent='İlanı Kaldır 🗑️'; dbn.className='btn-reject'; dbn.onclick=()=>deleteMatch(matchDocId,"İlan kaldırıldı.");
                 actionButtonsContainer.appendChild(dbn);
@@ -764,21 +1044,33 @@ document.addEventListener('DOMContentLoaded', function() {
         alert("Onaylandı!"); goBackToList(); loadLeaderboard();
     }
 
+    // YENİ: Geri dönüş fonksiyonu güncellendi
     function goBackToList() {
         matchDetailView.style.display='none';
-        // Aktif tab hangisiyse onu aç
-        document.querySelector('.tab-section[style*="block"]').style.display = 'block'; 
-        
-        // Eğer detaydan dönerken hiçbir tab açık değilse varsayılanı (Maçlarım) aç
-        if ([...tabSections].every(s => s.style.display === 'none')) {
-             document.getElementById('tab-matches').style.display = 'block';
-             loadMatches(activeTabFilter);
-        } else if (document.getElementById('tab-matches').style.display === 'block') {
-             loadMatches(activeTabFilter);
-        } else if (document.getElementById('tab-fixture').style.display === 'block') {
-             loadMatches('all_matches');
-        } else if (document.getElementById('tab-lobby').style.display === 'block') {
-             // Lobi zaten açık, bir şey yapma
+
+        if (returnToTab) {
+            // Tüm sekmeleri gizle
+            tabSections.forEach(s => s.style.display = 'none');
+            // Hedef sekmeyi göster
+            document.getElementById(returnToTab).style.display = 'block';
+            
+            // Navigasyon stilini güncelle
+            navItems.forEach(n => n.classList.remove('active'));
+            const navItem = document.querySelector(`.nav-item[data-target="${returnToTab}"]`);
+            if(navItem) navItem.classList.add('active');
+
+            if (returnToTab === 'tab-matches') loadMatches(activeTabFilter);
+            if (returnToTab === 'tab-fixture') loadMatches('all_matches');
+            
+            // Değişkeni sıfırla
+            returnToTab = null;
+        } else {
+            // Varsayılan davranış (eğer returnToTab set edilmemişse)
+            document.querySelector('.tab-section[style*="block"]').style.display = 'block'; 
+            if ([...tabSections].every(s => s.style.display === 'none')) {
+                document.getElementById('tab-matches').style.display = 'block';
+                loadMatches(activeTabFilter);
+            }
         }
     }
 
@@ -849,27 +1141,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 loadOpponents(); 
                 loadMatches('pending_to_me');
                 loadOpenRequests();
+                loadScheduledMatches(); 
+                loadAnnouncements(); 
                 setupNotifications(user.uid); 
                 if(Notification.permission === "default") Notification.requestPermission();
             });
         } else { authScreen.style.display = 'flex'; mainApp.style.display = 'none'; listeners.forEach(u=>u()); }
     });
 
-    // --- NAVİGASYON VE SEKMELER (GÜNCELLENDİ) ---
+    // --- NAVİGASYON VE SEKMELER ---
     navItems.forEach(item => {
         item.addEventListener('click', () => {
             const targetId = item.getAttribute('data-target');
             
-            // Tüm sekmeleri gizle
             tabSections.forEach(section => section.style.display = 'none');
-            // Hedef sekmeyi göster
             document.getElementById(targetId).style.display = 'block';
-            
-            // Aktif buton stilini ayarla
             navItems.forEach(nav => nav.classList.remove('active'));
             item.classList.add('active');
 
-            // --- SEKME ÖZEL YÜKLEMELER ---
             if (targetId === 'tab-fixture') { 
                 setTodayFilters(); 
                 loadMatches('all_matches'); 
@@ -884,9 +1173,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 loadLeaderboard(); 
             }
             else if (targetId === 'tab-lobby') { 
-                loadOpenRequests(); 
+                loadOpenRequests();
+                loadScheduledMatches(); 
+                loadAnnouncements(); 
             }
-            // YENİ: Profil sekmesine tıklandığında verileri yükle
             else if (targetId === 'tab-profile') {
                 const u = userMap[auth.currentUser.uid];
                 if(u) {
@@ -913,16 +1203,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Event Listeners
     if(toggleAuthModeBtn) toggleAuthModeBtn.addEventListener('click', ()=>{ isLoginMode=!isLoginMode; document.getElementById('register-fields').style.display=isLoginMode?'none':'block'; loginBtn.style.display=isLoginMode?'block':'none'; registerBtn.style.display=isLoginMode?'none':'block'; });
-    
     if(userMatchListContainer) userMatchListContainer.addEventListener('click', e => { if (e.target.classList.contains('match-action-btn')) showMatchDetail(e.target.getAttribute('data-id')); });
     if(programListContainer) programListContainer.addEventListener('click', e => { if (e.target.classList.contains('match-action-btn')) showMatchDetail(e.target.getAttribute('data-id')); });
-
     if(matchTabs) matchTabs.addEventListener('click', e=>{ if(e.target.classList.contains('tab-btn')) loadMatches(e.target.getAttribute('data-status')); });
-    
     if(requestPermissionBtn) requestPermissionBtn.addEventListener('click', requestNotificationPermission);
-    
     if(saveProfileBtn) saveProfileBtn.addEventListener('click', async ()=>{ 
         const f=editProfilePhotoInput.files[0]; let url=userMap[auth.currentUser.uid].fotoURL; if(f) url=await convertToBase64(f);
         await db.collection('users').doc(auth.currentUser.uid).update({isim:editFullNameInput.value, telefon:editPhoneNumber.value, kortTercihi:editCourtPreference.value, bildirimTercihi:editNotificationPreference.value, fotoURL:url});
@@ -930,23 +1215,17 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     document.querySelectorAll('.close-modal').forEach(b=>b.onclick=function(){this.closest('.modal').style.display='none'});
     window.onclick=e=>{if(e.target.classList.contains('modal'))e.target.style.display='none'};
-    
-    // MEYDAN OKUMA BUTONLARI
     if(btnShowCreateAd) btnShowCreateAd.addEventListener('click', () => { createAdForm.style.display='block'; challengeForm.style.display='none'; });
     if(btnShowSpecificChallenge) btnShowSpecificChallenge.addEventListener('click', () => { challengeForm.style.display='block'; createAdForm.style.display='none'; });
-
     matchTypeSelect.addEventListener('change', e=>{wagerPointsInput.style.display=e.target.value==='Meydan Okuma'?'block':'none'});
     adMatchTypeSelect.addEventListener('change', e=>{adWagerPointsInput.style.display=e.target.value==='Meydan Okuma'?'block':'none'});
-    
     backToListBtn.addEventListener('click', goBackToList);
-
     if(loginBtn) loginBtn.addEventListener('click', ()=>{auth.signInWithEmailAndPassword(emailInput.value, passwordInput.value).catch(e=>authError.textContent=e.message)});
     if(registerBtn) registerBtn.addEventListener('click', async ()=>{ 
         try { const c = await auth.createUserWithEmailAndPassword(emailInput.value, passwordInput.value); 
         let url=null; if(profilePhotoInput.files[0]) url=await convertToBase64(profilePhotoInput.files[0]);
         await db.collection('users').doc(c.user.uid).set({email:emailInput.value, isim:fullNameInput.value, kortTercihi:courtPreferenceSelect.value, telefon:phoneNumberInput.value, fotoURL:url, toplamPuan:1000, bildirimTercihi:'ses', macSayisi:0, galibiyetSayisi:0, kayitTari:firebase.firestore.FieldValue.serverTimestamp()}); } catch(e){authError.textContent=e.message;} 
     });
-
     submitChallengeBtn.addEventListener('click', async ()=>{ 
         const oid=opponentSelect.value, mt=matchTypeSelect.value; let wp=parseInt(wagerPointsInput.value);
         if(!oid) return alert("Rakip seç!");
@@ -957,18 +1236,15 @@ document.addEventListener('DOMContentLoaded', function() {
         alert("Teklif yollandı!"); challengeForm.style.display='none'; 
         document.querySelector('[data-target="tab-matches"]').click();
     });
-
     submitAdBtn.addEventListener('click', async () => {
         const mt = adMatchTypeSelect.value; 
         let wp = parseInt(adWagerPointsInput.value);
         if(mt === 'Meydan Okuma' && (isNaN(wp)||wp<50||wp%50!==0)) return alert("Min 50 ve katları!");
-        
         const me = userMap[auth.currentUser.uid];
         if (mt === 'Meydan Okuma') {
             if (me.toplamPuan < 0) return alert("Puanın eksiye düştüğü için bahisli ilan açamazsın.");
             if (wp > me.toplamPuan * 0.5) return alert("Maksimum bahis toplam puanının yarısı olabilir.");
         }
-
         await db.collection('matches').add({
             oyuncu1ID: auth.currentUser.uid, 
             oyuncu2ID: null, 
@@ -978,27 +1254,22 @@ document.addEventListener('DOMContentLoaded', function() {
             tarih: firebase.firestore.FieldValue.serverTimestamp(), 
             kayitliKazananID: null
         });
-        
         alert("İlan yayınlandı!"); 
         createAdForm.style.display = 'none';
-        
-        loadOpenRequests(); // Listeyi yenile
+        loadOpenRequests(); 
         document.querySelector('[data-target="tab-lobby"]').click(); 
     });
-    
     if(applyFiltersBtn) applyFiltersBtn.addEventListener('click', () => loadMatches('all_matches'));
     if(clearFiltersBtn) clearFiltersBtn.addEventListener('click', () => {
         filterDateStart.value = ''; filterDateEnd.value = ''; filterCourt.value = ''; filterPlayer.value = ''; if(filterStatus) filterStatus.value = '';
         loadMatches('all_matches');
     });
-
     if(logoutBtnProfile) logoutBtnProfile.addEventListener('click', ()=> {
         if(confirm("Çıkış yapmak istediğinize emin misiniz?")) {
             auth.signOut();
             window.location.reload(); 
         }
     });
-    
     if (profilePhotoInput) {
         profilePhotoInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];

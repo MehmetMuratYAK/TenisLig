@@ -53,9 +53,13 @@
         <div id="tab-lobby" class="tab-section active-section">
             <h3>Lobi 🏠</h3>
             
-            <div class="lobby-card">
-                <h4>Hoşgeldin!</h4>
-                <p>Tenis Ligi lobisine hoşgeldin. İyi oyunlar! 🎾</p>
+            <div class="lobby-card" style="background: linear-gradient(to right, #ffffff, #f8f9fa); border-left: 4px solid #6f42c1;">
+                <h4 style="color:#6f42c1;">📢 Ligden Haberler & Dedikodular</h4>
+                <p style="font-size:0.8em; color:#888; margin-bottom:10px;">Yapay zeka ligi izliyor ve yorumluyor... 🤖</p>
+                
+                <div id="lobby-announcements-container" class="lobby-scroll-list" style="max-height: 250px;">
+                    <p style="text-align:center; color:#777;">Haberler yükleniyor...</p>
+                </div>
             </div>
             
             <div style="margin-top: 20px; display:flex; justify-content:space-between; align-items:center; margin-bottom: 5px;">
@@ -65,6 +69,15 @@
             
             <div id="lobby-requests-container" class="lobby-scroll-list">
                 <p style="text-align:center; color:#777; padding:10px;">İlanlar yükleniyor...</p>
+            </div>
+
+            <div style="margin-top: 20px; display:flex; justify-content:space-between; align-items:center; margin-bottom: 5px;">
+                <h4 style="margin:0; color: #2c3e50; border:none; padding:0;">📅 Yaklaşan Maçlar</h4>
+                <span style="font-size:0.7em; color:#777;">(Kaydır ↕)</span>
+            </div>
+            
+            <div id="lobby-scheduled-container" class="lobby-scroll-list">
+                <p style="text-align:center; color:#777; padding:10px;">Maçlar yükleniyor...</p>
             </div>
 
             <div class="lobby-card" style="background:#e8f5e9; border-color:#c8e6c9; margin-top: 25px;">
