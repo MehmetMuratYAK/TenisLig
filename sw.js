@@ -1,4 +1,4 @@
-// --- FIREBASE IMPORT (ÖNEMLİ: En üstte olmalı) ---
+// --- FIREBASE IMPORT ---
 importScripts('https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.6.1/firebase-messaging-compat.js');
 
@@ -16,20 +16,20 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage(function(payload) {
-  console.log('[firebase-messaging-sw.js] Arka plan mesajı alındı: ', payload);
+  console.log('[sw.js] Arka plan mesajı:', payload);
   
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    icon: 'https://www.pwabuilder.com/assets/icons/icon_192.png', // Sabit icon veya payload'dan gelen
+    icon: 'https://www.pwabuilder.com/assets/icons/icon_192.png', 
     vibrate: [200, 100, 200]
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// --- CACHING (Eski Kodlar) ---
-const CACHE_NAME = 'tenis-ligi-v8'; // Versiyonu artırdık
+// --- CACHING ---
+const CACHE_NAME = 'tenis-ligi-v6-github-fix'; // Versiyonu yeniledik
 const urlsToCache = [
   './',
   './index.html',
@@ -46,32 +46,41 @@ self.addEventListener('install', function(event) {
         return cache.addAll(urlsToCache);
       })
   );
+  self.skipWaiting();
 });
 
+self.addEventListener('activate', function(event) {
+  event.waitUntil(
+    caches.keys().then(function(cacheNames) {
+      return Promise.all(
+        cacheNames.map(function(cacheName) {
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+  self.clients.claim();
+});
+
+// FETCH (Hata Yakalamalı Versiyon)
 self.addEventListener('fetch', function(event) {
-  // Firebase isteklerini cachelememesi için kontrol eklenebilir ama basitlik için bırakıyoruz
+  // Sadece http isteklerini ele al
+  if (!event.request.url.startsWith('http')) return;
+
   event.respondWith(
     caches.match(event.request)
       .then(function(response) {
         if (response) {
           return response;
         }
-        return fetch(event.request);
+        // Fetch hatası (örneğin 404 resimler) uygulamanın çökmesine neden olmasın
+        return fetch(event.request).catch(error => {
+            console.log("Fetch hatası (önemsiz):", error);
+            // Hata durumunda sessizce devam et
+            return new Response("Network error", { status: 408 });
+        });
       })
-  );
-});
-
-self.addEventListener('activate', function(event) {
-  const cacheWhitelist = [CACHE_NAME];
-  event.waitUntil(
-    caches.keys().then(function(cacheNames) {
-      return Promise.all(
-        cacheNames.map(function(cacheName) {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
   );
 });
