@@ -168,6 +168,106 @@ button:hover { opacity: 0.9; }
 .notification-toast.success { background-color: #28a745; } .notification-toast.info { background-color: #007bff; } .notification-toast.warning { background-color: #ffc107; color: #333; }
 @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
+/* --- YENİ İSTATİSTİK MODAL TASARIMI --- */
+.stats-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+/* Head to Head (Aramızdaki Maçlar) */
+.h2h-box {
+    background-color: #e3f2fd;
+    color: #0d47a1;
+    padding: 8px;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 0.9em;
+    border: 1px solid #bbdefb;
+}
+
+/* Form Durumu (Son 5 Maç) */
+.form-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.form-title {
+    font-size: 0.8em;
+    color: #666;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.form-badges {
+    display: flex;
+    gap: 5px;
+}
+.form-badge {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75em;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.form-w { background-color: #28a745; } /* Galibiyet - Yeşil */
+.form-l { background-color: #dc3545; } /* Mağlubiyet - Kırmızı */
+
+/* Pasta Grafikler */
+.pies-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #eee;
+}
+.pie-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+/* CSS ile Pasta Grafik */
+.stat-pie {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: conic-gradient(#28a745 var(--p), #e9ecef 0); /* --p değişkeni JS ile atanacak */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+.stat-pie::before {
+    content: "";
+    position: absolute;
+    width: 44px; /* Halka kalınlığı için iç daire */
+    height: 44px;
+    border-radius: 50%;
+    background: white;
+}
+.stat-pie span {
+    position: relative;
+    z-index: 1;
+    font-size: 0.85em;
+    font-weight: bold;
+    color: #333;
+}
+.pie-label {
+    font-size: 0.75em;
+    color: #777;
+    font-weight: 600;
+}
+
 /* --- RESPONSIVE --- */
 @media (max-width: 400px) {
     h1 { font-size: 20px; }

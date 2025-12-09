@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentChatId = null;
     let currentChatUnsubscribe = null;
     
-    // YENİ: Geri dönüş için hangi sekmenin açılacağını tutan değişken
+    // Geri dönüş için hangi sekmenin açılacağını tutan değişken
     let returnToTab = null; 
 
     // --- DOM ELEMENTLERİ ---
@@ -111,17 +111,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const playerStatsModal = document.getElementById('player-stats-modal');
     const startChatBtn = document.getElementById('start-chat-btn'); 
     
-    // İstatistik
+    // İstatistik (Eski referanslar güncellendi veya kaldırıldı, yeni yapıda id ile çekiliyor)
     const statsPlayerName = document.getElementById('stats-player-name');
     const statsTotalPoints = document.getElementById('stats-total-points');
     const statsCourtPref = document.getElementById('stats-court-pref');
-    const statsPhone = document.getElementById('stats-phone'); 
-    const statsMatchWinRate = document.getElementById('stats-match-win-rate');
-    const statsMatchRecord = document.getElementById('stats-match-record');
-    const statsSetWinRate = document.getElementById('stats-set-win-rate');
-    const statsSetRecord = document.getElementById('stats-set-record');
-    const statsGameWinRate = document.getElementById('stats-game-win-rate');
-    const statsGameRecord = document.getElementById('stats-game-record');
+    // const statsPhone = document.getElementById('stats-phone'); 
     const statsPlayerPhoto = document.getElementById('stats-player-photo');
 
     // Sohbet Modalı
@@ -894,30 +888,134 @@ document.addEventListener('DOMContentLoaded', function() {
         return stats;
     }
 
-    async function showPlayerStats(userId) {
-        const u = userMap[userId];
-        if(!u) return;
-        statsPlayerName.textContent = u.isim; statsTotalPoints.textContent = u.toplamPuan;
-        statsCourtPref.textContent = u.kortTercihi; statsPhone.textContent = u.telefon;
-        if(statsPlayerPhoto) statsPlayerPhoto.src = u.fotoURL || 'https://via.placeholder.com/120';
-        
-        if(startChatBtn) {
-            if (userId === auth.currentUser.uid) { startChatBtn.style.display = 'none'; } 
-            else { startChatBtn.style.display = 'block'; startChatBtn.onclick = () => openChat(userId, u.isim); }
-        }
-        
-        playerStatsModal.style.display = 'flex'; 
-        const stats = await calculatePlayerStats(userId);
-        const matchRate = stats.matchesPlayed > 0 ? ((stats.matchesWon / stats.matchesPlayed) * 100).toFixed(0) : 0;
-        const setRate = stats.setsPlayed > 0 ? ((stats.setsWon / stats.setsPlayed) * 100).toFixed(0) : 0;
-        const gameRate = stats.gamesPlayed > 0 ? ((stats.gamesWon / stats.gamesPlayed) * 100).toFixed(0) : 0;
+    // --- YENİ: İSTATİSTİK HESAPLAMA (H2H ve FORM Dahil) ---
 
-        statsMatchWinRate.textContent = matchRate;
-        statsMatchRecord.textContent = `${stats.matchesWon}/${stats.matchesPlayed}`;
-        statsSetWinRate.textContent = setRate;
-        statsSetRecord.textContent = `${stats.setsWon}/${stats.setsPlayed}`;
-        statsGameWinRate.textContent = gameRate;
-        statsGameRecord.textContent = `${stats.gamesWon}/${stats.gamesPlayed}`;
+    // Yardımcı: Aramızdaki maçları hesapla
+    async function calculateHeadToHead(myId, opponentId) {
+        if (myId === opponentId) return null;
+
+        const q1 = db.collection('matches')
+            .where('oyuncu1ID', '==', myId)
+            .where('oyuncu2ID', '==', opponentId)
+            .where('durum', '==', 'Tamamlandı').get();
+            
+        const q2 = db.collection('matches')
+            .where('oyuncu1ID', '==', opponentId)
+            .where('oyuncu2ID', '==', myId)
+            .where('durum', '==', 'Tamamlandı').get();
+
+        const [snap1, snap2] = await Promise.all([q1, q2]);
+        
+        let myWins = 0;
+        let oppWins = 0;
+
+        const processMatch = (doc) => {
+            const m = doc.data();
+            if (m.kayitliKazananID === myId) myWins++;
+            else if (m.kayitliKazananID === opponentId) oppWins++;
+        };
+
+        snap1.forEach(processMatch);
+        snap2.forEach(processMatch);
+
+        return { myWins, oppWins };
+    }
+
+    // Yardımcı: Son 5 Maç Formu (DÜZELTİLDİ: SIRALAMA JS TARAFINDA)
+    async function getPlayerForm(userId) {
+        // İndeks hatasını önlemek için orderBy'ı sorgudan kaldırdık.
+        // Tüm tamamlanan maçları çekip JS tarafında sıralayacağız.
+        const q1 = db.collection('matches')
+            .where('oyuncu1ID', '==', userId)
+            .where('durum', '==', 'Tamamlandı')
+            .get();
+
+        const q2 = db.collection('matches')
+            .where('oyuncu2ID', '==', userId)
+            .where('durum', '==', 'Tamamlandı')
+            .get();
+
+        const [s1, s2] = await Promise.all([q1, q2]);
+        
+        let allMatches = [];
+        s1.forEach(d => allMatches.push({ ...d.data(), id: d.id }));
+        s2.forEach(d => allMatches.push({ ...d.data(), id: d.id }));
+
+        // JS ile tarihe göre sırala (En yeni en başa)
+        allMatches.sort((a, b) => {
+            const tA = a.tarih ? a.tarih.seconds : 0;
+            const tB = b.tarih ? b.tarih.seconds : 0;
+            return tB - tA;
+        });
+
+        // İlk 5 maçı al
+        const last5 = allMatches.slice(0, 5);
+        
+        return last5.map(m => {
+            return m.kayitliKazananID === userId ? 'G' : 'M';
+        });
+    }
+
+    async function showPlayerStats(userId) {
+        try {
+            const u = userMap[userId];
+            if(!u) return;
+            
+            statsPlayerName.textContent = u.isim; 
+            statsTotalPoints.textContent = u.toplamPuan;
+            statsCourtPref.textContent = u.kortTercihi || '-';
+            if(statsPlayerPhoto) statsPlayerPhoto.src = u.fotoURL || 'https://via.placeholder.com/120';
+            
+            if(startChatBtn) {
+                if (userId === auth.currentUser.uid) { startChatBtn.style.display = 'none'; } 
+                else { startChatBtn.style.display = 'block'; startChatBtn.onclick = () => openChat(userId, u.isim); }
+            }
+            
+            playerStatsModal.style.display = 'flex'; 
+
+            const stats = await calculatePlayerStats(userId);
+            const matchRate = stats.matchesPlayed > 0 ? ((stats.matchesWon / stats.matchesPlayed) * 100).toFixed(0) : 0;
+            const setRate = stats.setsPlayed > 0 ? ((stats.setsWon / stats.setsPlayed) * 100).toFixed(0) : 0;
+            const gameRate = stats.gamesPlayed > 0 ? ((stats.gamesWon / stats.gamesPlayed) * 100).toFixed(0) : 0;
+
+            document.getElementById('pie-match-chart').style.setProperty('--p', matchRate);
+            document.getElementById('text-match-rate').textContent = `%${matchRate}`;
+            
+            document.getElementById('pie-set-chart').style.setProperty('--p', setRate);
+            document.getElementById('text-set-rate').textContent = `%${setRate}`;
+            
+            document.getElementById('pie-game-chart').style.setProperty('--p', gameRate);
+            document.getElementById('text-game-rate').textContent = `%${gameRate}`;
+
+            const h2hBox = document.getElementById('stats-h2h-box');
+            if (userId !== auth.currentUser.uid) {
+                h2hBox.style.display = 'block';
+                h2hBox.innerHTML = 'H2H Hesaplanıyor...';
+                const h2h = await calculateHeadToHead(auth.currentUser.uid, userId);
+                h2hBox.innerHTML = `🆚 Aramızdaki Maçlar: <span style="color:#28a745">Sen ${h2h.myWins}</span> - <span style="color:#dc3545">${h2h.oppWins} Rakip</span>`;
+            } else {
+                h2hBox.style.display = 'none';
+            }
+
+            const formContainer = document.getElementById('stats-form-badges');
+            formContainer.innerHTML = '<span style="color:#999;">Yükleniyor...</span>';
+            const last5Form = await getPlayerForm(userId);
+            
+            formContainer.innerHTML = '';
+            if (last5Form.length === 0) {
+                formContainer.innerHTML = '<span style="font-size:0.8em; color:#999;">Henüz maç yok</span>';
+            } else {
+                last5Form.forEach(result => {
+                    const badge = document.createElement('div');
+                    badge.className = `form-badge ${result === 'G' ? 'form-w' : 'form-l'}`;
+                    badge.textContent = result;
+                    formContainer.appendChild(badge);
+                });
+            }
+        } catch (error) {
+            console.error("İstatistik hatası:", error);
+            document.getElementById('stats-form-badges').innerHTML = '<span style="color:red; font-size:0.8em;">Veri alınamadı</span>';
+        }
     }
 
     // --- DETAY GÖSTERİMİ ---

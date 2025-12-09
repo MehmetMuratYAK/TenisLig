@@ -339,19 +339,50 @@
         <div id="player-stats-modal" class="modal">
             <div class="modal-content">
                 <span id="close-stats-modal" class="close-modal">&times;</span>
+                
                 <div class="modal-header-center">
                     <img id="stats-player-photo" src="" class="modal-photo">
-                    <h3 id="stats-player-name"></h3>
-                    <button id="start-chat-btn" class="btn-chat">Mesaj Gönder 💬</button>
+                    <h3 id="stats-player-name" style="margin-bottom: 5px;"></h3>
+                    <div style="font-size:0.9em; color:#666; margin-bottom:10px;">
+                        <span id="stats-total-points" style="font-weight:bold; color:#28a745;"></span> Puan • 
+                        <span id="stats-court-pref"></span>
+                    </div>
+                    <button id="start-chat-btn" class="btn-chat" style="margin: 0 auto 10px auto;">Mesaj Gönder 💬</button>
                 </div>
-                <div class="stats-body">
-                    <p><strong>Toplam Puan:</strong> <span id="stats-total-points"></span></p>
-                    <p><strong>Favori Kort:</strong> <span id="stats-court-pref" class="highlight-text"></span></p>
-                    <p><strong>Telefon:</strong> <span id="stats-phone"></span></p>
-                    <hr>
-                    <p><strong>Maç Kazanma:</strong> <span id="stats-match-win-rate"></span>% (<span id="stats-match-record"></span>)</p>
-                    <p><strong>Set Kazanma:</strong> <span id="stats-set-win-rate"></span>% (<span id="stats-set-record"></span>)</p>
-                    <p><strong>Oyun Kazanma:</strong> <span id="stats-game-win-rate"></span>% (<span id="stats-game-record"></span>)</p>
+
+                <div class="stats-container">
+                    
+                    <div id="stats-h2h-box" class="h2h-box" style="display:none;">
+                        Aramızdaki Maçlar Yükleniyor...
+                    </div>
+
+                    <div class="form-container">
+                        <span class="form-title">Son 5 Maç Formu</span>
+                        <div id="stats-form-badges" class="form-badges">
+                            </div>
+                    </div>
+
+                    <div class="pies-container">
+                        <div class="pie-wrapper">
+                            <div class="stat-pie" id="pie-match-chart" style="--p:0;">
+                                <span id="text-match-rate">0%</span>
+                            </div>
+                            <span class="pie-label">Maç</span>
+                        </div>
+                        <div class="pie-wrapper">
+                            <div class="stat-pie" id="pie-set-chart" style="--p:0; background: conic-gradient(#007bff var(--p), #e9ecef 0);">
+                                <span id="text-set-rate">0%</span>
+                            </div>
+                            <span class="pie-label">Set</span>
+                        </div>
+                        <div class="pie-wrapper">
+                            <div class="stat-pie" id="pie-game-chart" style="--p:0; background: conic-gradient(#ffc107 var(--p), #e9ecef 0);">
+                                <span id="text-game-rate">0%</span>
+                            </div>
+                            <span class="pie-label">Oyun</span>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
