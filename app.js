@@ -14,6 +14,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     const auth = firebase.auth();
     const db = firebase.firestore();
+    
+    // --- FCM BAŞLATMA (YENİ) ---
+    let messaging;
+    try {
+        messaging = firebase.messaging();
+    } catch (e) {
+        console.log("Messaging desteklenmiyor olabilir:", e);
+    }
 
     // --- KORT LİSTESİ ---
     const COURT_LIST = [
@@ -111,11 +119,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const playerStatsModal = document.getElementById('player-stats-modal');
     const startChatBtn = document.getElementById('start-chat-btn'); 
     
-    // İstatistik (Eski referanslar güncellendi veya kaldırıldı, yeni yapıda id ile çekiliyor)
+    // İstatistik
     const statsPlayerName = document.getElementById('stats-player-name');
     const statsTotalPoints = document.getElementById('stats-total-points');
     const statsCourtPref = document.getElementById('stats-court-pref');
-    // const statsPhone = document.getElementById('stats-phone'); 
     const statsPlayerPhoto = document.getElementById('stats-player-photo');
 
     // Sohbet Modalı
@@ -162,19 +169,50 @@ document.addEventListener('DOMContentLoaded', function() {
         if(filterDateEnd) filterDateEnd.value = todayStr;
     };
 
+    // --- BİLDİRİM İZNİ VE TOKEN ALMA (GÜNCELLENDİ) ---
     const requestNotificationPermission = () => {
         if (!("Notification" in window)) {
             alert("Bu tarayıcı sistem bildirimlerini desteklemiyor.");
-        } else if (Notification.permission === "granted") {
-            alert("Bildirim izni zaten verilmiş.");
-        } else if (Notification.permission !== "denied") {
-            Notification.requestPermission().then(permission => {
-                if (permission === "granted") {
-                    new Notification("Tenis Ligi", { body: "Bildirimler aktif edildi! 🎾" });
-                }
-            });
+            return;
         }
+
+        Notification.requestPermission().then((permission) => {
+            if (permission === 'granted') {
+                console.log('Bildirim izni verildi.');
+                if (messaging) {
+                    // Token al ve DB'ye kaydet
+                    messaging.getToken({ vapidKey: 'BQPx7cufHZRDDD1mZLyogDw2G2V2hvuSsPJa6xFmFss' })
+                    .then((currentToken) => {
+                        if (currentToken) {
+                            console.log('FCM Token:', currentToken);
+                            // Token'ı kullanıcı profiline kaydet
+                            if (auth.currentUser) {
+                                db.collection('users').doc(auth.currentUser.uid).update({
+                                    fcmToken: currentToken
+                                }).catch(err => console.log('Token kaydedilemedi:', err));
+                            }
+                            alert("Bildirimler başarıyla aktifleştirildi! 🔔");
+                        } else {
+                            console.log('Token alınamadı.');
+                        }
+                    }).catch((err) => {
+                        console.log('Token alma hatası:', err);
+                    });
+                }
+            } else {
+                alert("Bildirim izni reddedildi.");
+            }
+        });
     };
+
+    // Uygulama AÇIKKEN (Foreground) Gelen Mesajları Dinle
+    if (messaging) {
+        messaging.onMessage((payload) => {
+            console.log('Ön plan mesajı:', payload);
+            const { title, body } = payload.notification;
+            showNotification(`${title}: ${body}`, 'info');
+        });
+    }
 
     // --- SOHBET FONKSİYONLARI ---
     function getChatId(uid1, uid2) { return uid1 < uid2 ? `${uid1}_${uid2}` : `${uid2}_${uid1}`; }
@@ -397,7 +435,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- GELİŞMİŞ YAPAY ZEKA YORUM MOTORU ---
     function generateAdvancedAIComment(matchData, p1Name, p2Name) {
-        // 1. Veri Analizi
+        // ... (Eski kodlar aynen) ...
         const type = matchData.durum;
         const wager = matchData.bahisPuani || 0;
         const score = matchData.skor || {};
@@ -410,7 +448,6 @@ document.addEventListener('DOMContentLoaded', function() {
             loserName = (winnerId === matchData.oyuncu1ID) ? p2Name : p1Name;
         }
 
-        // 2. Yorum Havuzları
         const comments = {
             'Acik_Ilan': [
                 `📢 <strong>${p1Name}</strong> kortlara meydan okuyor! "Var mı bana yan bakan?" diyor.`,
@@ -467,7 +504,6 @@ document.addEventListener('DOMContentLoaded', function() {
             ]
         };
 
-        // 3. Mantıksal Seçim
         let selectedCategory = [];
 
         if (type === 'Acik_Ilan') {
@@ -921,10 +957,8 @@ document.addEventListener('DOMContentLoaded', function() {
         return { myWins, oppWins };
     }
 
-    // Yardımcı: Son 5 Maç Formu (DÜZELTİLDİ: SIRALAMA JS TARAFINDA)
+    // Yardımcı: Son 5 Maç Formu
     async function getPlayerForm(userId) {
-        // İndeks hatasını önlemek için orderBy'ı sorgudan kaldırdık.
-        // Tüm tamamlanan maçları çekip JS tarafında sıralayacağız.
         const q1 = db.collection('matches')
             .where('oyuncu1ID', '==', userId)
             .where('durum', '==', 'Tamamlandı')
@@ -1142,17 +1176,13 @@ document.addEventListener('DOMContentLoaded', function() {
         alert("Onaylandı!"); goBackToList(); loadLeaderboard();
     }
 
-    // YENİ: Geri dönüş fonksiyonu güncellendi
     function goBackToList() {
         matchDetailView.style.display='none';
 
         if (returnToTab) {
-            // Tüm sekmeleri gizle
             tabSections.forEach(s => s.style.display = 'none');
-            // Hedef sekmeyi göster
             document.getElementById(returnToTab).style.display = 'block';
             
-            // Navigasyon stilini güncelle
             navItems.forEach(n => n.classList.remove('active'));
             const navItem = document.querySelector(`.nav-item[data-target="${returnToTab}"]`);
             if(navItem) navItem.classList.add('active');
@@ -1160,10 +1190,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (returnToTab === 'tab-matches') loadMatches(activeTabFilter);
             if (returnToTab === 'tab-fixture') loadMatches('all_matches');
             
-            // Değişkeni sıfırla
             returnToTab = null;
         } else {
-            // Varsayılan davranış (eğer returnToTab set edilmemişse)
             document.querySelector('.tab-section[style*="block"]').style.display = 'block'; 
             if ([...tabSections].every(s => s.style.display === 'none')) {
                 document.getElementById('tab-matches').style.display = 'block';
@@ -1172,7 +1200,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // --- BİLDİRİM ---
+    // --- BİLDİRİM: UYGULAMA İÇİ (FOREGROUND) ---
     function setupNotifications(userId) {
         listeners.forEach(u => u()); listeners = [];
         listeners.push(db.collection('matches').where('oyuncu1ID','==',userId).onSnapshot({includeMetadataChanges:true}, s=>handleSnapshot(s,userId,'p1')));
@@ -1211,8 +1239,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const t = document.createElement('div'); t.className=`notification-toast ${type}`;
         t.innerHTML = `<span>${msg}</span><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#fff;">&times;</button>`;
         notificationContainer.appendChild(t); setTimeout(()=>t.remove(), 5000);
+        
+        // Ses/Titreşim
         const u = userMap[auth.currentUser?.uid];
-        if (Notification.permission === "granted" && document.visibilityState === "hidden") { new Notification("Tenis Ligi", { body: msg }); }
         if(u?.bildirimTercihi==='ses') { try { const a=new (window.AudioContext||window.webkitAudioContext)(); const o=a.createOscillator(); const g=a.createGain(); o.connect(g); g.connect(a.destination); o.type='sine'; o.frequency.value=880; g.gain.value=0.1; o.start(); o.stop(a.currentTime+0.2); } catch(e){} }
         else if(u?.bildirimTercihi==='titresim' && navigator.vibrate) navigator.vibrate([200,100,200]);
     }
@@ -1242,39 +1271,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 loadScheduledMatches(); 
                 loadAnnouncements(); 
                 setupNotifications(user.uid); 
-                if(Notification.permission === "default") Notification.requestPermission();
+                
+                // --- İZİN İSTEME VE TOKEN ALMA ---
+                requestNotificationPermission();
             });
         } else { authScreen.style.display = 'flex'; mainApp.style.display = 'none'; listeners.forEach(u=>u()); }
     });
 
-    // --- NAVİGASYON VE SEKMELER ---
+    // ... (Diğer event listenerlar aynen kalıyor) ...
     navItems.forEach(item => {
         item.addEventListener('click', () => {
             const targetId = item.getAttribute('data-target');
-            
             tabSections.forEach(section => section.style.display = 'none');
             document.getElementById(targetId).style.display = 'block';
             navItems.forEach(nav => nav.classList.remove('active'));
             item.classList.add('active');
 
-            if (targetId === 'tab-fixture') { 
-                setTodayFilters(); 
-                loadMatches('all_matches'); 
-            }
-            else if (targetId === 'tab-matches') { 
-                loadMatches(activeTabFilter); 
-            }
-            else if (targetId === 'tab-chat') { 
-                loadChatList(); 
-            }
-            else if (targetId === 'tab-rankings') { 
-                loadLeaderboard(); 
-            }
-            else if (targetId === 'tab-lobby') { 
-                loadOpenRequests();
-                loadScheduledMatches(); 
-                loadAnnouncements(); 
-            }
+            if (targetId === 'tab-fixture') { setTodayFilters(); loadMatches('all_matches'); }
+            else if (targetId === 'tab-matches') { loadMatches(activeTabFilter); }
+            else if (targetId === 'tab-chat') { loadChatList(); }
+            else if (targetId === 'tab-rankings') { loadLeaderboard(); }
+            else if (targetId === 'tab-lobby') { loadOpenRequests(); loadScheduledMatches(); loadAnnouncements(); }
             else if (targetId === 'tab-profile') {
                 const u = userMap[auth.currentUser.uid];
                 if(u) {
@@ -1283,13 +1300,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('edit-court-preference').value = u.kortTercihi || 'Her İkisi'; 
                     if(editNotificationPreference) editNotificationPreference.value = u.bildirimTercihi || 'ses';
                     if(document.getElementById('edit-profile-preview')) document.getElementById('edit-profile-preview').src = u.fotoURL || 'https://via.placeholder.com/100';
-                    
                     (async () => {
                        const stats = await calculatePlayerStats(auth.currentUser.uid);
                        const matchRate = stats.matchesPlayed > 0 ? ((stats.matchesWon / stats.matchesPlayed) * 100).toFixed(0) : 0;
                        const setRate = stats.setsPlayed > 0 ? ((stats.setsWon / stats.setsPlayed) * 100).toFixed(0) : 0;
                        const gameRate = stats.gamesPlayed > 0 ? ((stats.gamesWon / stats.gamesPlayed) * 100).toFixed(0) : 0;
-    
                        document.getElementById('my-stats-points').textContent = u.toplamPuan;
                        document.getElementById('my-stats-matches').textContent = stats.matchesPlayed;
                        document.getElementById('my-stats-winrate').textContent = `%${matchRate}`;
