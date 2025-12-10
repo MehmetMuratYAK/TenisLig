@@ -1,5 +1,5 @@
 // --- CACHING ---
-const CACHE_NAME = 'tenis-ligi-v7-no-push'; // Versiyonu güncelledik
+const CACHE_NAME = 'tenis-ligi-v8-no-push'; // Versiyonu güncelledik
 const urlsToCache = [
   './',
   './index.html',
