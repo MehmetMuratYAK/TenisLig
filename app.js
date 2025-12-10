@@ -118,7 +118,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const scoreDisplaySection = document.getElementById('score-display-section');
     const actionButtonsContainer = document.getElementById('action-buttons-container');
     const scheduleInputSection = document.getElementById('schedule-input-section');
+    
+    // YENİ EKLENEN KORT TİPİ VE ESKİ KORT YERİ
+    const matchCourtTypeSelect = document.getElementById('match-court-type-select');
     const matchVenueSelect = document.getElementById('match-venue-select');
+    
     const matchTimeInput = document.getElementById('match-time-input');
     const saveScheduleBtn = document.getElementById('save-schedule-btn');
     const chatFromMatchBtn = document.getElementById('chat-from-match-btn');
@@ -612,7 +616,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Eğer filtre "Bu Ay" ise, "Ligin Efsanesi" (Toplam Puan) mantıklı değildir, 
             // bunun yerine o ay en çok kazanan gösterilebilir veya gizlenebilir.
-            // Ancak UI bütünlüğü için "Ligin Efsanesi"ni "Ayın Oyuncusu" (En çok kazanan) olarak değiştirelim.
+            // Biz burada generic bir obje dönüyoruz.
             
             let legendTitle = "Ligin Efsanesi (Puan)";
             let legendVal = stats.maxPointsTotal.val;
@@ -831,6 +835,9 @@ document.addEventListener('DOMContentLoaded', function() {
                   const p1Name = userMap[match.oyuncu1ID]?.isim || 'Bilinmiyor';
                   const p2Name = userMap[match.oyuncu2ID]?.isim || 'Bilinmiyor';
                   const kort = match.macYeri || 'Kort Belirlenmedi';
+                  // Kort Tipini de göster
+                  const kortTipi = match.kortTipi ? ` (${match.kortTipi})` : ''; 
+
                   let timeStr = '<span style="color:#999; font-style:italic;">Zaman bekleniyor</span>';
                   let dateBadge = `<div style="background:#f5f5f5; color:#999; padding:5px 10px; border-radius:8px; text-align:center; margin-right:10px; min-width:45px;"><div style="font-size:1.2em;">?</div></div>`;
 
@@ -845,7 +852,7 @@ document.addEventListener('DOMContentLoaded', function() {
                   const card = document.createElement('div');
                   card.className = 'lobby-match-card';
                   card.style.cssText = 'background:#fff; border:1px solid #dee2e6; border-left: 4px solid #007bff; border-radius:8px; padding:10px; margin-bottom:10px; display:flex; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05); cursor:pointer;';
-                  card.innerHTML = `${dateBadge}<div style="flex-grow:1;"><div style="font-weight:600; font-size:0.95em; color:#333;">${p1Name} <span style="color:#999; font-weight:normal;">vs</span> ${p2Name}</div><div style="font-size:0.85em; color:#666; margin-top:2px;">📍 ${kort} | ${timeStr}</div></div>`;
+                  card.innerHTML = `${dateBadge}<div style="flex-grow:1;"><div style="font-weight:600; font-size:0.95em; color:#333;">${p1Name} <span style="color:#999; font-weight:normal;">vs</span> ${p2Name}</div><div style="font-size:0.85em; color:#666; margin-top:2px;">📍 ${kort}${kortTipi} | ${timeStr}</div></div>`;
                   card.onclick = () => { returnToTab = 'tab-lobby'; isReadOnlyView = (match.oyuncu1ID !== auth.currentUser.uid && match.oyuncu2ID !== auth.currentUser.uid); showMatchDetail(match.id); };
                   scheduledMatchesContainer.appendChild(card);
               });
@@ -880,7 +887,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Geçmiş filtresi için kort listesini doldur
         if (histFilterCourt && histFilterCourt.options.length === 1) {
-            COURT_LIST.forEach(c => { 
+            // Sadece Toprak, Sert, Çim ekle
+            ['Toprak', 'Sert', 'Çim'].forEach(c => { 
                 const opt = document.createElement('option'); opt.value = c; opt.textContent = c; 
                 histFilterCourt.appendChild(opt); 
             });
@@ -946,7 +954,8 @@ document.addEventListener('DOMContentLoaded', function() {
             let planInfo = "";
             if (match.macZamani && match.macYeri) {
                 const d = match.macZamani.toDate().toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit' });
-                planInfo = `<div class="match-plan-info">📅 ${d} - ${match.macYeri}</div>`;
+                const courtType = match.kortTipi ? ` (${match.kortTipi})` : '';
+                planInfo = `<div class="match-plan-info">📅 ${d} - ${match.macYeri}${courtType}</div>`;
             }
 
             // Skor Gösterimi
@@ -996,7 +1005,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     const e = new Date(end); e.setHours(23,59,59);
                     if (!mDate || mDate > e) return false;
                 }
-                if (court && m.macYeri !== court) return false;
+                // Filtreleme, kort tipine göre yapılmalı, macYeri'ne göre değil.
+                if (court && m.kortTipi !== court) return false;
                 if (pName) {
                     const oid = m.oyuncu1ID === currentUserID ? m.oyuncu2ID : m.oyuncu1ID;
                     const oname = (userMap[oid]?.isim || '').toLowerCase();
@@ -1018,9 +1028,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if(fixturePendingContainer) fixturePendingContainer.innerHTML = '<p style="text-align:center;">Yükleniyor...</p>';
         if(fixtureHistoryContainer) fixtureHistoryContainer.innerHTML = '<p style="text-align:center;">Yükleniyor...</p>';
 
-        // Kort filtresi dolumu
+        // Kort filtresi dolumu (Sadece Toprak, Sert, Çim)
         if (filterCourt && filterCourt.options.length === 1) {
-            COURT_LIST.forEach(c => { 
+            ['Toprak', 'Sert', 'Çim'].forEach(c => { 
                 const opt = document.createElement('option'); opt.value = c; opt.textContent = c; 
                 filterCourt.appendChild(opt); 
             });
@@ -1061,7 +1071,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const fStart = filterDateStart.value ? new Date(filterDateStart.value) : null;
             const fEnd = filterDateEnd.value ? new Date(filterDateEnd.value) : null;
-            const fCourt = filterCourt.value;
+            // fCourt artık kort tipini temsil ediyor
+            const fCourt = filterCourt.value; 
             const fPlayer = filterPlayer.value;
 
             snapshot.forEach(doc => {
@@ -1074,7 +1085,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (fStart) { fStart.setHours(0,0,0,0); if (d < fStart) return; }
                     if (fEnd) { fEnd.setHours(23,59,59,999); if (d > fEnd) return; }
                 }
-                if (fCourt && match.macYeri !== fCourt) return;
+                // Kort Tipi filtresi
+                if (fCourt && match.kortTipi !== fCourt) return;
                 if (fPlayer && match.oyuncu1ID !== fPlayer && match.oyuncu2ID !== fPlayer) return;
 
                 historyMatches.push({ ...match, id: doc.id });
@@ -1139,7 +1151,9 @@ document.addEventListener('DOMContentLoaded', function() {
                              </div>`;
             }
 
-            const courtInfo = match.macYeri ? `<div style="font-size:0.85em; color:#555; margin-top:2px;">📍 ${match.macYeri}</div>` : '';
+            // Kort Tipi ve Yeri
+            const courtTypeInfo = match.kortTipi ? ` (${match.kortTipi})` : '';
+            const courtInfo = match.macYeri ? `<div style="font-size:0.85em; color:#555; margin-top:2px;">📍 ${match.macYeri}${courtTypeInfo}</div>` : '';
 
             const card = document.createElement('div');
             card.className = 'match-card';
@@ -1204,12 +1218,12 @@ document.addEventListener('DOMContentLoaded', function() {
             // Form (W/L) - Son 5 maç
             if(stats.form.length < 5) stats.form.push(isWinner ? 'W' : 'L');
 
-            // Kort Tipi Analizi
+            // Kort Tipi Analizi (macYeri yerine kortTipi kullanıldı)
             let surface = 'other';
-            const venue = (m.macYeri || '').toLowerCase();
-            if(venue.includes('meşeli') || venue.includes('podyum') || venue.includes('toprak')) surface = 'clay';
-            else if(venue.includes('sert') || venue.includes('esas') || venue.includes('hard') || venue.includes('akademi')) surface = 'hard';
-            else if(venue.includes('çim') || venue.includes('grass')) surface = 'grass';
+            const courtType = (m.kortTipi || '').toLowerCase();
+            if(courtType.includes('toprak')) surface = 'clay';
+            else if(courtType.includes('sert')) surface = 'hard';
+            else if(courtType.includes('çim')) surface = 'grass';
             
             if(surface !== 'other') {
                 stats[surface].played++;
@@ -1378,14 +1392,22 @@ document.addEventListener('DOMContentLoaded', function() {
             const p2Name = match.oyuncu2ID ? (userMap[match.oyuncu2ID]?.isim || '???') : 'Henüz Yok';
             winnerSelect.innerHTML = `<option value="">Kazananı Seçin</option><option value="${match.oyuncu1ID}">${p1Name}</option>`;
             if(match.oyuncu2ID) winnerSelect.innerHTML += `<option value="${match.oyuncu2ID}">${p2Name}</option>`;
+            
             let infoHTML = `<h3>${match.macTipi}</h3><p><strong>${p1Name}</strong> vs <strong>${p2Name}</strong></p><p>Bahis: ${match.bahisPuani} Puan</p>`;
             if(match.durum === 'Acik_Ilan') infoHTML += `<p style="color:orange; font-weight:bold;">Bu bir açık ilandır.</p>`;
+            
+            const courtType = match.kortTipi ? ` (${match.kortTipi})` : '';
             if(match.macYeri && match.macZamani) {
                 const d = match.macZamani.toDate().toLocaleString('tr-TR');
-                infoHTML += `<div style="background-color:#e2e6ea; padding:8px; border-radius:5px; margin-top:5px;">📍 <strong>${match.macYeri}</strong><br>⏰ <strong>${d}</strong></div>`;
+                infoHTML += `<div style="background-color:#e2e6ea; padding:8px; border-radius:5px; margin-top:5px;">📍 <strong>${match.macYeri}${courtType}</strong><br>⏰ <strong>${d}</strong></div>`;
+            } else if (match.kortTipi) {
+                infoHTML += `<div style="background-color:#e2e6ea; padding:8px; border-radius:5px; margin-top:5px;">Kort Tipi: <strong>${match.kortTipi}</strong></div>`;
             }
+
+
             detailMatchInfo.innerHTML = infoHTML;
             scoreInputSection.style.display = 'none'; scoreDisplaySection.style.display = 'none'; winnerSelect.style.display = 'none'; scheduleInputSection.style.display = 'none'; actionButtonsContainer.innerHTML = ''; document.getElementById('result-message').textContent = '';
+            
             if (chatFromMatchBtn) {
                 if (match.oyuncu2ID && (currentUserID === match.oyuncu1ID || currentUserID === match.oyuncu2ID)) {
                     const opponentId = currentUserID === match.oyuncu1ID ? match.oyuncu2ID : match.oyuncu1ID;
@@ -1393,6 +1415,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     chatFromMatchBtn.style.display = 'block'; chatFromMatchBtn.onclick = () => openChat(opponentId, opponentName);
                 } else { chatFromMatchBtn.style.display = 'none'; }
             }
+            
             const isParticipant = (currentUserID === match.oyuncu1ID || currentUserID === match.oyuncu2ID);
             if (isReadOnlyView || !isParticipant) {
                 if (match.durum === 'Sonuç_Bekleniyor' || match.durum === 'Tamamlandı') {
@@ -1402,6 +1425,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else { document.getElementById('result-message').textContent = "Bu maç henüz oynanmadı veya sonuç girilmedi."; }
                 return;
             }
+            
             if (match.durum === 'Acik_Ilan' && currentUserID === match.oyuncu1ID) {
                 const dbn = document.createElement('button'); dbn.textContent='İlanı Kaldır 🗑️'; dbn.className='btn-reject'; dbn.onclick=()=>deleteMatch(matchDocId,"İlan kaldırıldı."); actionButtonsContainer.appendChild(dbn); return;
             }
@@ -1411,9 +1435,17 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (match.durum === 'Bekliyor' && currentUserID === match.oyuncu1ID) {
                 const wb = document.createElement('button'); wb.textContent='Geri Çek'; wb.className='btn-withdraw'; wb.onclick=()=>deleteMatch(matchDocId,"Geri çekildi."); actionButtonsContainer.appendChild(wb);
             } else if (match.durum === 'Hazır') {
-                scheduleInputSection.style.display = 'block'; matchVenueSelect.innerHTML = '<option value="">Kort Seç</option>';
+                scheduleInputSection.style.display = 'block'; 
+                
+                // Kort Tipini Yükle
+                if(matchCourtTypeSelect) matchCourtTypeSelect.value = match.kortTipi || '';
+                
+                // Kort Yerlerini Yükle
+                matchVenueSelect.innerHTML = '<option value="">Kort Seç</option>';
                 COURT_LIST.forEach(c => { const o = document.createElement('option'); o.value=c; o.textContent=c; if(match.macYeri===c) o.selected=true; matchVenueSelect.appendChild(o); });
+                
                 if(match.macZamani) { matchTimeInput.value = new Date(match.macZamani.toDate().getTime() - (match.macZamani.toDate().getTimezoneOffset() * 60000)).toISOString().slice(0,16); }
+                
                 saveScheduleBtn.onclick = () => saveMatchSchedule(matchDocId);
                 scoreInputSection.style.display = 'block'; winnerSelect.style.display = 'block';
                 const sb = document.createElement('button'); sb.textContent='Sonucu Gir'; sb.className='btn-save'; sb.onclick=()=>saveMatchResult(matchDocId); actionButtonsContainer.appendChild(sb);
@@ -1432,11 +1464,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function updateMatchStatus(id, st, msg) { await db.collection('matches').doc(id).update({durum:st}); alert(msg); goBackToList(); }
     async function deleteMatch(id, msg) { await db.collection('matches').doc(id).delete(); alert(msg); goBackToList(); }
+    
+    // GÜNCELLENEN saveMatchSchedule FONKSİYONU
     async function saveMatchSchedule(id) { 
-        if(!matchVenueSelect.value || !matchTimeInput.value) { alert("Eksik bilgi."); return; }
-        await db.collection('matches').doc(id).update({ macYeri: matchVenueSelect.value, macZamani: firebase.firestore.Timestamp.fromDate(new Date(matchTimeInput.value)) });
-        alert("Planlandı!"); showMatchDetail(id);
+        const courtType = matchCourtTypeSelect ? matchCourtTypeSelect.value : '';
+        if(!courtType || !matchVenueSelect.value || !matchTimeInput.value) { alert("Lütfen Kort Tipi, Kort Seçimi ve Tarih/Saat bilgilerini eksiksiz girin."); return; }
+        
+        await db.collection('matches').doc(id).update({ 
+            kortTipi: courtType, // YENİ: Kort Tipini kaydet
+            macYeri: matchVenueSelect.value, 
+            macZamani: firebase.firestore.Timestamp.fromDate(new Date(matchTimeInput.value)) 
+        });
+        alert("Planlandı!"); 
+        showMatchDetail(id);
     }
+    
     async function saveMatchResult(id) {
         if(!winnerSelect.value) { alert("Kazanan seç!"); return; }
         const s1m=parseInt(document.getElementById('s1-me').value)||0, s1o=parseInt(document.getElementById('s1-opp').value)||0;
@@ -1653,6 +1695,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if(mt==='Meydan Okuma' && (isNaN(wp)||wp<50||wp%50!==0)) return alert("Min 50 ve katları!");
         const me=userMap[auth.currentUser.uid], op=userMap[oid];
         if(mt==='Meydan Okuma' && (me.toplamPuan<0||op.toplamPuan<0||wp>me.toplamPuan*0.5||wp>op.toplamPuan*0.5)) return alert("Puan yetersiz.");
+        // Yeni bir meydan okumada kort tipi bilgisi henüz girilmez, bu Hazır duruma geçince girilir.
         await db.collection('matches').add({oyuncu1ID:auth.currentUser.uid, oyuncu2ID:oid, macTipi:mt, bahisPuani:wp||0, durum:'Bekliyor', tarih:firebase.firestore.FieldValue.serverTimestamp(), kayitliKazananID:null});
         alert("Teklif yollandı!"); challengeForm.style.display='none'; document.querySelector('[data-target="tab-matches"]').click();
     });
