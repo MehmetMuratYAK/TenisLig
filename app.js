@@ -1,3 +1,4 @@
+
 document.addEventListener('DOMContentLoaded', function() {
     // --- FIREBASE BAŞLATMA ---
     const firebaseConfig = {
@@ -23,6 +24,50 @@ document.addEventListener('DOMContentLoaded', function() {
         "Gd Academy Bursa", "Uni+ Sport Club Tenis Kortları", "Aslanlar Tenis Akademisi"
     ];
 
+    // --- ROZET TANIMLARI (GAMIFICATION) ---
+    const BADGE_DEFINITIONS = {
+        'newbie': { icon: '🐣', name: 'Çaylak', desc: 'Ligdeki ilk maçına çıktın.' },
+        'first_win': { icon: '🥇', name: 'İlk Kan', desc: 'Ligdeki ilk galibiyetini aldın.' },
+        'hat_trick': { icon: '🔥', name: 'Alev Aldı', desc: 'Üst üste 3 galibiyet serisi.' },
+        'unstoppable': { icon: '🚀', name: 'Durdurulamaz', desc: 'Üst üste 5 galibiyet serisi.' },
+        'legend_streak': { icon: '🦁', name: 'Ligin Efsanesi', desc: 'Üst üste 10 galibiyet serisi.' },
+        'clay_master': { icon: '🧱', name: 'Toprak Ağası', desc: 'Toprak kortta 5 galibiyet.' },
+        'hard_hitter': { icon: '🟦', name: 'Beton Delen', desc: 'Sert kortta 5 galibiyet.' },
+        'grass_king': { icon: '🌱', name: 'Çim Ustası', desc: 'Çim kortta 5 galibiyet.' },
+        'marathon': { icon: '🏃', name: 'Maratoncu', desc: '3 set süren zorlu bir maçı kazandın.' },
+        'bagel_master': { icon: '🥯', name: 'Fırıncı', desc: 'Bir seti 6-0 kazandın.' },
+        'comeback_kid': { icon: '🪃', name: 'Geri Dönüş', desc: 'İlk seti kaybedip maçı kazandın.' },
+        'veteran': { icon: '👴', name: 'Tecrübeli', desc: 'Ligde 20 maç tamamladın.' },
+        'champion': { icon: '👑', name: 'Şampiyon', desc: '3000 puana ulaştın.' }
+    };
+    // --- YARDIMCI: PUANDAN LİG BULMA ---
+const getPlayerLeague = (points) => {
+    if (points >= 3000) return 'Altın';
+    if (points >= 1000) return 'Gümüş';
+    return 'Bronz';
+};
+
+    // --- YAPAY ZEKA CÜMLE HAVUZU ---
+    const AI_PHRASES = {
+        intros: [
+            "İnanılmaz bir haber!", "Kortlardan son dakika!", "Tenis severler buraya!", 
+            "Bursa sallandı!", "Raketler konuştu!", "Gözler bu maçtaydı.", "Nefesler tutuldu."
+        ],
+        verbs: [
+            "sahadan sildi", "rüzgar gibi esti", "duvar ördü", "adeta dans etti", 
+            "rakibini çaresiz bıraktı", "kortu dar etti", "tarih yazdı", "müthiş savaştı"
+        ],
+        adjectives: [
+            "efsanevi", "akıl almaz", "muazzam", "kusursuz", 
+            "kritik", "heyecan dolu", "destansı", "şok edici"
+        ],
+        reactions: ["😱", "🔥", "🎾", "👏", "💪", "🤯", "✨", "🚀"],
+        closings: [
+            "Bu performans konuşulur.", "Ligde dengeler değişiyor.", "Sıradaki rakip kim olacak?", 
+            "Formunun zirvesinde.", "Şapka çıkartılır.", "Alkışlar ona gelsin."
+        ]
+    };
+
     // --- DEĞİŞKENLER ---
     let userMap = {}; 
     let currentMatchDocId = null; 
@@ -32,6 +77,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentChatId = null;
     let currentChatUnsubscribe = null;
     let returnToTab = null; 
+    let matchInteractionListeners = []; // YENİ: Anket ve yorum listener'larını tutmak için
 
     // --- DOM ELEMENTLERİ (GENEL) ---
     const authScreen = document.getElementById('auth-screen');
@@ -110,8 +156,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const bestsContainer = document.getElementById('bests-container');
     const bestsFilterSelect = document.getElementById('bests-filter-select');
 
+    // --- GALERİ DOM ELEMENTLERİ (YENİ EKLENDİ) ---
+    const galleryGrid = document.getElementById('gallery-grid');
+    const galleryFilterDate = document.getElementById('gallery-filter-date');
+    const galleryFilterCourt = document.getElementById('gallery-filter-court');
+    const galleryFilterPlayer = document.getElementById('gallery-filter-player');
+    const btnGalleryFilter = document.getElementById('btn-gallery-filter');
+    const btnGalleryClear = document.getElementById('btn-gallery-clear');
+
+    // --- MAÇ DETAY DOM ELEMENTLERİ ---
     const matchDetailView = document.getElementById('match-detail-view');
     const detailMatchInfo = document.getElementById('detail-match-info');
+    const detailMatchPhoto = document.getElementById('detail-match-photo');
     const winnerSelect = document.getElementById('winner-select');
     const backToListBtn = document.getElementById('back-to-list-btn');
     const scoreInputSection = document.getElementById('score-input-section');
@@ -119,7 +175,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const actionButtonsContainer = document.getElementById('action-buttons-container');
     const scheduleInputSection = document.getElementById('schedule-input-section');
     
-    // YENİ EKLENEN KORT TİPİ VE ESKİ KORT YERİ
+    // --- MAÇ FOTOĞRAF YÜKLEME DOM ---
+    const matchResultPhotoInput = document.getElementById('match-result-photo'); 
+    const matchUploadPreview = document.getElementById('match-upload-preview'); 
+    
     const matchCourtTypeSelect = document.getElementById('match-court-type-select');
     const matchVenueSelect = document.getElementById('match-venue-select');
     
@@ -135,6 +194,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const statsTotalPoints = document.getElementById('stats-total-points');
     const statsCourtPref = document.getElementById('stats-court-pref');
     const statsPlayerPhoto = document.getElementById('stats-player-photo');
+    const statsBadgesGrid = document.getElementById('stats-badges-grid');
 
     const chatModal = document.getElementById('chat-window-modal');
     const chatMessages = document.getElementById('chat-messages');
@@ -153,8 +213,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const editNotificationPreference = document.getElementById('edit-notification-preference');
     const saveProfileBtn = document.getElementById('save-profile-btn');
     const logoutBtnProfile = document.getElementById('logout-btn-profile');
+    const myBadgesContainer = document.getElementById('my-badges-container');
+    const myPhotosContainer = document.getElementById('my-photos-container'); // YENİ EKLENDİ
     
-    // --- YENİ İSTATİSTİK DOM ELEMENTLERİ ---
+    // --- İSTATİSTİK DOM ELEMENTLERİ ---
     const statsViewPlayerSelect = document.getElementById('stats-view-player-select');
     const statTotalMatch = document.getElementById('stat-total-match');
     const statTotalWin = document.getElementById('stat-total-win');
@@ -170,18 +232,91 @@ document.addEventListener('DOMContentLoaded', function() {
     const valGrass = document.getElementById('val-grass');
     const statFormBadges = document.getElementById('stat-form-badges');
 
-
     const navItems = document.querySelectorAll('.nav-item');
     const tabSections = document.querySelectorAll('.tab-section');
 
     // --- YARDIMCI FONKSİYONLAR ---
-    const convertToBase64 = (file) => {
+
+    // SIKIŞTIRMA VE CONVERT FONKSİYONU
+    const compressAndConvertToBase64 = (file, maxWidth = 800, quality = 0.8) => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const elem = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > maxWidth) {
+                        height = height * (maxWidth / width);
+                        width = maxWidth;
+                    }
+                    elem.width = width;
+                    elem.height = height;
+                    const ctx = elem.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const data = ctx.toDataURL('image/jpeg', quality);
+                    resolve(data);
+                };
+                img.onerror = error => reject(error);
+            };
             reader.onerror = error => reject(error);
         });
+    };
+    
+    // HAVA DURUMU FONKSİYONU
+    function fetchWeather() {
+        const widget = document.getElementById('weather-widget');
+        const tempEl = document.getElementById('weather-temp');
+        const descEl = document.getElementById('weather-desc');
+        const windEl = document.getElementById('weather-wind');
+
+        if (!widget) return;
+
+        const url = 'https://api.open-meteo.com/v1/forecast?latitude=40.1885&longitude=29.0610&current_weather=true&timezone=auto';
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                const weather = data.current_weather;
+                const temp = Math.round(weather.temperature);
+                const wind = Math.round(weather.windspeed);
+                const code = weather.weathercode;
+
+                let desc = "Bilinmiyor";
+                let icon = "";
+                let bgGradient = "linear-gradient(135deg, #56ab2f 0%, #a8e063 100%)"; 
+
+                if (code === 0) { desc = "Açık / Güneşli"; icon = "☀️"; bgGradient = "linear-gradient(135deg, #FFC371 0%, #FF5F6D 100%)"; }
+                else if (code >= 1 && code <= 3) { desc = "Parçalı Bulutlu"; icon = "⛅"; bgGradient = "linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%)"; }
+                else if (code >= 45 && code <= 48) { desc = "Sisli"; icon = "🌫️"; bgGradient = "linear-gradient(135deg, #606c88 0%, #3f4c6b 100%)"; }
+                else if (code >= 51 && code <= 67) { desc = "Yağmurlu"; icon = "🌧️"; bgGradient = "linear-gradient(135deg, #373B44 0%, #4286f4 100%)"; }
+                else if (code >= 71 && code <= 77) { desc = "Karlı"; icon = "❄️"; bgGradient = "linear-gradient(135deg, #E6DADA 0%, #274046 100%)"; }
+                else if (code >= 80 && code <= 82) { desc = "Sağanak Yağış"; icon = "🌦️"; bgGradient = "linear-gradient(135deg, #373B44 0%, #4286f4 100%)"; }
+                else if (code >= 95) { desc = "Fırtına"; icon = "⛈️"; bgGradient = "linear-gradient(135deg, #141E30 0%, #243B55 100%)"; }
+                else { desc = "Bulutlu"; icon = "☁️"; bgGradient = "linear-gradient(135deg, #757F9A 0%, #D7DDE8 100%)"; }
+
+                tempEl.textContent = `${temp}°C`;
+                descEl.textContent = `${icon} ${desc}`;
+                windEl.textContent = `💨 ${wind} km/s`;
+                widget.style.background = bgGradient;
+                widget.style.display = 'block';
+            })
+            .catch(err => {
+                console.error("Hava durumu hatası:", err);
+                widget.style.display = 'none';
+            });
+    }
+    
+    // --- LİG ROZETİ OLUŞTURUCU ---
+    const getLeagueBadgeHTML = (points) => {
+        let cls = 'league-bronze';
+        let txt = 'BRONZ';
+        if (points >= 3000) { cls = 'league-gold'; txt = 'ALTIN'; }
+        else if (points >= 1000) { cls = 'league-silver'; txt = 'GÜMÜŞ'; }
+        return `<span class="league-badge ${cls}">${txt}</span>`;
     };
 
     // Fikstür filtresi için
@@ -205,6 +340,131 @@ document.addEventListener('DOMContentLoaded', function() {
         if(histFilterStart) histFilterStart.value = todayStr;
         if(histFilterEnd) histFilterEnd.value = todayStr;
     };
+
+    // YENİ: Galeri için "Bugün" filtresi
+    const setGalleryTodayFilters = () => {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${yyyy}-${mm}-${dd}`;
+        if(galleryFilterDate) galleryFilterDate.value = todayStr;
+    };
+
+    // --- YAPAY ZEKA YORUM ÜRETİCİSİ ---
+    function getRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+    function generateAICommentary(type, data) {
+        const p1 = data.p1Name || 'Oyuncu 1';
+        const p2 = data.p2Name || 'Oyuncu 2';
+        const winner = data.winnerName;
+        const score = data.scoreStr || '';
+        const wager = data.wager || 0;
+        
+        let intro = getRandom(AI_PHRASES.intros);
+        let reaction = getRandom(AI_PHRASES.reactions);
+        let closing = getRandom(AI_PHRASES.closings);
+
+        if (type === 'new_player') {
+            return `👋 <strong>Aramıza Hoşgeldin!</strong> ${intro} <strong>${p1}</strong> lige katıldı. Kortlar yeni bir yetenek kazandı. Başarılar dileriz! ${reaction}`;
+        }
+        
+        if (type === 'badge_earned') {
+            return `🎖️ <strong>Rozet Alarmı!</strong> ${p1}, gösterdiği üstün performansla <strong>"${data.badgeName}"</strong> rozetini kazandı! ${reaction} ${closing}`;
+        }
+
+        if (type === 'open_ad') {
+            if (wager >= 500) return `📢 <strong>BÜYÜK BAHİS!</strong> ${p1} masaya tam <strong>${wager} Puan</strong> koydu! Kendine güvenen var mı? ${reaction}`;
+            return `📢 <strong>${p1}</strong> kortlara meydan okuyor! Bir rakip aranıyor. Raketine güvenen çıksın!`;
+        }
+
+        if (type === 'match_scheduled') {
+            return `📅 <strong>Maç Ayarlandı!</strong> ${p1} ve ${p2} anlaştı. Raketler bilendi, kort rezervasyonu tamam. ${reaction} Heyecanla bekliyoruz!`;
+        }
+
+        if (type === 'match_result') {
+            const verb = getRandom(AI_PHRASES.verbs);
+            const adj = getRandom(AI_PHRASES.adjectives);
+            
+            if (data.isCrushing) {
+                return `😱 <strong>Ezip Geçti!</strong> ${intro} <strong>${winner}</strong>, rakibi ${p1 === winner ? p2 : p1}'i ${verb}! ${adj} bir skorla maçı aldı: ${score}. ${closing} ${reaction}`;
+            }
+            if (data.isTight) {
+                return `🥵 <strong>Nefes Kesen Maç!</strong> ${intro} Gitti geldi, gitti geldi! Sonunda <strong>${winner}</strong> gülen taraf oldu. ${score}. ${adj} bir mücadeleydi. ${reaction}`;
+            }
+            if (data.isComeback) {
+                return `🪃 <strong>Muhteşem Geri Dönüş!</strong> ${intro} <strong>${winner}</strong> geriye düştüğü maçı çevirmeyi bildi! ${verb}. İşte şampiyon ruhu budur! ${score} ${reaction}`;
+            }
+            
+            return `🏆 <strong>Maç Sonucu:</strong> ${intro} <strong>${winner}</strong>, ${p1 === winner ? p2 : p1} karşısında ${adj} bir oyunla kazandı. ${verb}! Skor: ${score}. ${closing} ${reaction}`;
+        }
+        
+        return `${intro} ${p1} ve ${p2} arasında gelişmeler var. ${reaction}`;
+    }
+
+    // --- ROZET KONTROL VE DAĞITIM SİSTEMİ ---
+    async function checkAndGrantBadges(userId) {
+        const userRef = db.collection('users').doc(userId);
+        const userDoc = await userRef.get();
+        if(!userDoc.exists) return;
+        const userData = userDoc.data();
+        
+        let currentBadges = userData.badges || [];
+        let newBadges = [];
+
+        const stats = await calculateAdvancedStats(userId);
+        
+        const check = (id, condition) => {
+            if (!currentBadges.includes(id) && condition) {
+                newBadges.push(id);
+                currentBadges.push(id);
+            }
+        };
+
+        check('newbie', stats.played >= 1);
+        check('first_win', stats.won >= 1);
+        check('veteran', stats.played >= 20);
+        check('champion', userData.toplamPuan >= 3000);
+        
+        const allMatchesSnap = await db.collection('matches').where('durum','==','Tamamlandı').get();
+        let userMatches = [];
+        allMatchesSnap.forEach(doc => {
+            const d = doc.data();
+            if(d.oyuncu1ID === userId || d.oyuncu2ID === userId) userMatches.push(d);
+        });
+        userMatches.sort((a,b) => (a.tarih?.seconds||0) - (b.tarih?.seconds||0));
+        
+        let streak = 0;
+        let maxStreak = 0;
+        userMatches.forEach(m => {
+            if(m.kayitliKazananID === userId) { streak++; if(streak>maxStreak) maxStreak=streak; }
+            else { streak=0; }
+        });
+
+        check('hat_trick', maxStreak >= 3);
+        check('unstoppable', maxStreak >= 5);
+        check('legend_streak', maxStreak >= 10);
+
+        check('clay_master', stats.clay.won >= 5);
+        check('hard_hitter', stats.hard.won >= 5);
+        check('grass_king', stats.grass.won >= 5);
+
+        if (newBadges.length > 0) {
+            await userRef.update({ badges: currentBadges });
+            
+            newBadges.forEach(badgeId => {
+                const bInfo = BADGE_DEFINITIONS[badgeId];
+                db.collection('news').add({
+                    type: 'badge_earned',
+                    userId: userId,
+                    badgeId: badgeId,
+                    badgeName: bInfo.name,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            });
+        }
+        return newBadges;
+    }
 
     // --- AUTH (GİRİŞ/KAYIT) MANTIĞI ---
     function switchAuthTab(mode) {
@@ -410,8 +670,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function fetchUserMap() {
         return db.collection('users').get().then(snapshot => {
             if (filterPlayer) filterPlayer.innerHTML = '<option value="">Tüm Oyuncular</option>';
+            // YENİ: Galeri filtresi için
+            if (galleryFilterPlayer) galleryFilterPlayer.innerHTML = '<option value="">Tüm Oyuncular</option>';
             
-            // Stats dropdown temizliği ve tekrar doldurulması
             if (statsViewPlayerSelect) {
                  while(statsViewPlayerSelect.options.length > 1) {
                     statsViewPlayerSelect.remove(1);
@@ -424,13 +685,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     isim: player.isim || player.email, email: player.email, uid: doc.id,
                     toplamPuan: player.toplamPuan, kortTercihi: player.kortTercihi, telefon: player.telefon,
                     fotoURL: player.fotoURL, bildirimTercihi: player.bildirimTercihi || 'ses',
-                    macSayisi: player.macSayisi || 0, galibiyetSayisi: player.galibiyetSayisi || 0
+                    macSayisi: player.macSayisi || 0, galibiyetSayisi: player.galibiyetSayisi || 0,
+                    badges: player.badges || []
                 };
                 if (filterPlayer) {
                     const option = document.createElement('option'); option.value = doc.id; option.textContent = player.isim || player.email; filterPlayer.appendChild(option);
                 }
+                // YENİ: Galeri filtresi
+                if (galleryFilterPlayer) {
+                    const option = document.createElement('option'); option.value = doc.id; option.textContent = player.isim || player.email; galleryFilterPlayer.appendChild(option);
+                }
                 
-                // İstatistik Dropdown'ını doldur (Kendisi hariç)
                 if (statsViewPlayerSelect && doc.id !== auth.currentUser?.uid) {
                     const opt = document.createElement('option');
                     opt.value = doc.id;
@@ -447,31 +712,41 @@ document.addEventListener('DOMContentLoaded', function() {
             let rank = 1;
             snapshot.forEach(doc => {
                 const player = doc.data();
-                const kort = player.kortTercihi || 'Bilinmiyor';
-                const photoHTML = player.fotoURL ? `<img src="${player.fotoURL}" class="profile-img-small" style="width:40px; height:40px; border-radius:50%; margin-right:10px; object-fit:cover;">` : '';
-                const played = player.macSayisi || 0;
-                const won = player.galibiyetSayisi || 0;
-                const winRate = played > 0 ? Math.round((won / played) * 100) : 0;
                 
+                // Kort tercihi ve kazanma yüzdesi kaldırıldı.
+                
+                const photoHTML = player.fotoURL ? `<img src="${player.fotoURL}" class="profile-img-small" style="width:40px; height:40px; border-radius:50%; margin-right:10px; object-fit:cover;">` : '';
+                
+                const badgeHTML = getLeagueBadgeHTML(player.toplamPuan);
+
                 const playerCard = document.createElement('div');
                 playerCard.className = 'player-card';
-                // Sıralamada karta basınca yine modal açılabilir, hızlı önizleme için
                 playerCard.onclick = () => showPlayerStats(doc.id); 
                 
+                // YENİ DÜZEN:
+                // Sol Taraf: Sıra No (#1) + Fotoğraf + İsim
+                // Sağ Taraf: Puan (Üstte) + Lig Rozeti (Altta)
+                
                 playerCard.innerHTML = `
-                    <div style="width:100%;">
-                        <div style="display:flex; align-items:center;">
-                            <span style="font-weight:bold; min-width:35px; display:inline-block;">#${rank}</span>
+                    <div style="width:100%; display:flex; align-items:center; justify-content:space-between;">
+                        
+                        <!-- SOL KISIM: Sıra, Foto, İsim -->
+                        <div style="display:flex; align-items:center; flex:1; overflow:hidden;">
+                            <span style="font-weight:bold; min-width:30px; margin-right:5px; color:#555;">#${rank}</span>
                             ${photoHTML}
-                            <div style="flex-grow:1;">
-                                <div style="font-weight:bold;">${player.isim || player.email}</div>
-                                <div style="font-size:0.85em; color:#666;">${player.toplamPuan} Puan</div>
+                            <div style="font-weight:600; font-size:1em; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                ${player.isim || player.email}
                             </div>
-                            <div class="pie-chart" style="--p:${winRate}"><span>%${winRate}</span></div>
                         </div>
-                        <div style="font-size:0.8em; color:#888; margin-top:5px; padding-left:45px;">
-                            ${kort}
+
+                        <!-- SAĞ KISIM: Puan ve Altında Lig Detayı -->
+                        <div style="display:flex; flex-direction:column; align-items:flex-end; justify-content:center; min-width:85px; margin-left:10px; text-align:right;">
+                            <div style="font-weight:bold; color:#c06035; font-size:1.1em; margin-bottom:4px;">${player.toplamPuan} P</div>
+                            <div style="transform: scale(0.9); transform-origin: right center;">
+                                ${badgeHTML}
+                            </div>
                         </div>
+
                     </div>
                 `;
                 leaderboardDiv.appendChild(playerCard);
@@ -481,17 +756,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // --- ORTAK İSTATİSTİK HESAPLAMA MOTORU ---
-    // Bu fonksiyon verilen maç listesine göre en'leri hesaplar.
     function analyzeStats(matches) {
         let playerStats = {}; 
         let courtStats = {};
 
-        // Kullanıcıları başlat
         Object.keys(userMap).forEach(uid => {
             playerStats[uid] = { 
                 id: uid, 
                 name: userMap[uid].isim, 
-                points: 0, // Bu maç listesi içindeki performans puanı (Basitçe galibiyet sayısı gibi düşünülebilir veya userMap'ten çekilmez çünkü aylık hesapta sıfırlanmalı)
+                points: 0,
                 wins: 0, 
                 matches: 0, 
                 setsPlayed: 0, 
@@ -501,12 +774,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         matches.forEach(m => {
-            // Kort İstatistiği
             if (m.macYeri) {
                 courtStats[m.macYeri] = (courtStats[m.macYeri] || 0) + 1;
             }
 
-            // Oyuncu İstatistikleri
             const p1 = m.oyuncu1ID;
             const p2 = m.oyuncu2ID;
             const winner = m.kayitliKazananID;
@@ -517,13 +788,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     playerStats[pid].matches++;
                     if (pid === winner) {
                         playerStats[pid].wins++;
-                        // Aylık hesaplamada "Puan" yerine Galibiyet sayısı baz alınır, çünkü puan kümülatiftir.
                     }
                     playerStats[pid].history.push({ time: time, win: (pid === winner) });
                 }
             });
 
-            // Set ve Tie-Break Analizi
             if (m.skor) {
                 const s = m.skor;
                 const sets = [
@@ -546,19 +815,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // En'leri Bul
         let maxWins = { val: 0, p: null };
         let maxMatches = { val: 0, p: null };
         let maxSets = { val: 0, p: null };
         let maxTB = { val: 0, p: null };
         let maxStreak = { val: 0, p: null };
 
-        // Puan Lideri: Eğer 'Tüm Zamanlar' ise userMap'teki toplam puan. Eğer aylıksa o ayki galibiyet sayısı.
-        // Ancak 'En'ler' ekranında genellikle 'Ligin Efsanesi' toplam puandır.
-        // Biz burada generic bir obje dönüyoruz.
         let maxPointsTotal = { val: -99999, p: null };
 
-        // Tüm zamanlar puan liderini userMap'ten bulalım (Aylık filtrede kullanılmaz genelde ama dursun)
         Object.values(userMap).forEach(u => {
             if(u.toplamPuan > maxPointsTotal.val) maxPointsTotal = { val: u.toplamPuan, p: u.isim };
         });
@@ -569,7 +833,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (p.setsPlayed > maxSets.val) maxSets = { val: p.setsPlayed, p: p.name };
             if (p.tieBreakWins > maxTB.val) maxTB = { val: p.tieBreakWins, p: p.name };
 
-            // Seri Hesaplama
             if (p.history.length > 0) {
                 p.history.sort((a, b) => a.time - b.time);
                 let currentStreak = 0;
@@ -590,7 +853,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return { maxPointsTotal, maxWins, maxMatches, maxStreak, maxTB, maxSets, bestCourt };
     }
 
-    // --- YENİ EN'LER (THE BESTS) FONKSİYONU ---
+    // --- EN'LER (THE BESTS) FONKSİYONU ---
     async function loadTheBests(filterType = 'all') {
         if (!bestsContainer) return;
         bestsContainer.innerHTML = '<p style="width:100%; text-align:center; color:#777;">Veriler analiz ediliyor... 📊</p>';
@@ -600,7 +863,6 @@ document.addEventListener('DOMContentLoaded', function() {
             let matches = [];
             snapshot.forEach(doc => matches.push(doc.data()));
 
-            // Filtreleme
             if (filterType === 'month') {
                 const now = new Date();
                 const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -613,10 +875,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             const stats = analyzeStats(matches);
-
-            // Eğer filtre "Bu Ay" ise, "Ligin Efsanesi" (Toplam Puan) mantıklı değildir, 
-            // bunun yerine o ay en çok kazanan gösterilebilir veya gizlenebilir.
-            // Biz burada generic bir obje dönüyoruz.
             
             let legendTitle = "Ligin Efsanesi (Puan)";
             let legendVal = stats.maxPointsTotal.val;
@@ -653,172 +911,333 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // --- YENİ: GALERİ YÜKLEME SİSTEMİ ---
+    function loadGallery() {
+        if (!galleryGrid) return;
+        galleryGrid.innerHTML = '<p style="text-align:center; width:200%; color:#777;">Fotoğraflar yükleniyor...</p>';
+
+        if (galleryFilterCourt && galleryFilterCourt.options.length === 1) {
+            ['Toprak', 'Sert', 'Çim'].forEach(c => { 
+                const opt = document.createElement('option'); opt.value = c; opt.textContent = c; 
+                galleryFilterCourt.appendChild(opt); 
+            });
+        }
+
+        const filterDate = galleryFilterDate.value ? new Date(galleryFilterDate.value) : null;
+        const filterCrt = galleryFilterCourt.value;
+        const filterPlyr = galleryFilterPlayer.value;
+
+        db.collection('matches')
+            .where('durum', '==', 'Tamamlandı')
+            .orderBy('tarih', 'desc')
+            .limit(50)
+            .get()
+            .then(snapshot => {
+                let photos = [];
+                snapshot.forEach(doc => {
+                    const m = doc.data();
+                    if (m.macFotoURL) {
+                        const mDate = m.macZamani ? m.macZamani.toDate() : (m.tarih ? m.tarih.toDate() : null);
+                        
+                        let pass = true;
+                        if (filterDate) {
+                            if (!mDate || mDate.getDate() !== filterDate.getDate() || mDate.getMonth() !== filterDate.getMonth() || mDate.getFullYear() !== filterDate.getFullYear()) {
+                                pass = false;
+                            }
+                        }
+                        if (filterCrt && m.kortTipi !== filterCrt) pass = false;
+                        if (filterPlyr && (m.oyuncu1ID !== filterPlyr && m.oyuncu2ID !== filterPlyr)) pass = false;
+
+                        if (pass) {
+                            photos.push({ ...m, id: doc.id, dateObj: mDate });
+                        }
+                    }
+                });
+
+                renderGalleryGrid(photos, galleryGrid);
+            })
+            .catch(err => {
+                console.error("Galeri hatası:", err);
+                galleryGrid.innerHTML = '<p style="text-align:center; width:200%; color:red;">Yüklenemedi.</p>';
+            });
+    }
+
+    // --- YENİ: KULLANICI PROFİL FOTOĞRAFLARI ---
+    function loadUserPhotos() {
+        if (!myPhotosContainer) return;
+        myPhotosContainer.innerHTML = '<p style="text-align:center; width:200%; color:#777;">Yükleniyor...</p>';
+        const myUid = auth.currentUser.uid;
+
+        const q1 = db.collection('matches').where('oyuncu1ID', '==', myUid).where('durum', '==', 'Tamamlandı').get();
+        const q2 = db.collection('matches').where('oyuncu2ID', '==', myUid).where('durum', '==', 'Tamamlandı').get();
+
+        Promise.all([q1, q2]).then(snapshots => {
+            let photos = [];
+            snapshots.forEach(snap => {
+                snap.forEach(doc => {
+                    const m = doc.data();
+                    if (m.macFotoURL) {
+                        photos.push({ ...m, id: doc.id, dateObj: m.macZamani ? m.macZamani.toDate() : (m.tarih ? m.tarih.toDate() : new Date()) });
+                    }
+                });
+            });
+
+            photos = photos.filter((v,i,a)=>a.findIndex(t=>(t.id === v.id))===i);
+            photos.sort((a,b) => b.dateObj - a.dateObj);
+
+            renderGalleryGrid(photos, myPhotosContainer);
+        });
+    }
+
+    function renderGalleryGrid(items, container) {
+        container.innerHTML = '';
+        if (items.length === 0) {
+            container.innerHTML = '<p style="text-align:center; width:200%; color:#999; padding:20px;">Fotoğraf bulunamadı.</p>';
+            return;
+        }
+
+        items.forEach(item => {
+            const p1 = userMap[item.oyuncu1ID]?.isim.split(' ')[0] || '?';
+            const p2 = userMap[item.oyuncu2ID]?.isim.split(' ')[0] || '?';
+            const dateStr = item.dateObj ? item.dateObj.toLocaleString('tr-TR', { day: 'numeric', month: 'short' }) : '';
+            const kort = item.kortTipi || 'Kort';
+
+            const div = document.createElement('div');
+            div.className = 'gallery-item';
+            div.onclick = () => { returnToTab = (container === myPhotosContainer) ? 'tab-profile' : 'tab-gallery'; showMatchDetail(item.id); };
+            
+            div.innerHTML = `
+                <img src="${item.macFotoURL}" class="gallery-img" loading="lazy">
+                <div class="gallery-date-badge">${dateStr}</div>
+                <div class="gallery-overlay">
+                    <span style="font-weight:bold;">${p1} vs ${p2}</span>
+                    <span style="font-size:0.9em; opacity:0.9;">${kort}</span>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
     function loadOpponents() {
         if(!opponentSelect) return;
         opponentSelect.innerHTML = '<option value="">Rakip Seçin</option>';
         const currentUserID = auth.currentUser.uid;
-        db.collection('users').get().then(snapshot => {
-            snapshot.forEach(doc => {
-                if (doc.id !== currentUserID) { 
-                    const player = doc.data();
-                    const option = document.createElement('option'); option.value = doc.id; option.textContent = `${player.isim || player.email}`; opponentSelect.appendChild(option);
-                }
-            });
+        Object.values(userMap).forEach(player => {
+            if (player.uid !== currentUserID) { 
+                const option = document.createElement('option'); option.value = player.uid; option.textContent = `${player.isim || player.email}`; opponentSelect.appendChild(option);
+            }
         });
-    }
-
-    function generateAdvancedAIComment(matchData, p1Name, p2Name) {
-        const type = matchData.durum;
-        const wager = matchData.bahisPuani || 0;
-        const score = matchData.skor || {};
-        const winnerId = matchData.kayitliKazananID;
-        
-        let winnerName = "Biri";
-        let loserName = "Diğeri";
-        if (winnerId) {
-            winnerName = (winnerId === matchData.oyuncu1ID) ? p1Name : p2Name;
-            loserName = (winnerId === matchData.oyuncu1ID) ? p2Name : p1Name;
-        }
-
-        const comments = {
-            'Acik_Ilan': [`📢 <strong>${p1Name}</strong> kortlara meydan okuyor!`, `👀 <strong>${p1Name}</strong> dişli bir rakip arıyor.`, `🎾 Raketler konuşsun! <strong>${p1Name}</strong> partner arıyor.`],
-            'Acik_Ilan_HighWager': [`💰 <strong>${p1Name}</strong> masaya büyük koydu! <strong>${wager} Puan</strong>`, `🔥 Ligde bahisler yükseliyor!`],
-            'Bekliyor': [`⚔️ <strong>${p1Name}</strong>, <strong>${p2Name}</strong> kişisine meydan okudu!`, `📩 <strong>${p2Name}</strong>'in telefonuna bildirim düştü.`],
-            'Hazır': [`🤝 Ve anlaşma sağlandı! <strong>${p1Name}</strong> ile <strong>${p2Name}</strong> maçı kesinleşti.`, `📅 Randevu deftere yazıldı.`],
-            'Sonuç_Bekleniyor': [`📝 Maç bitti, skor onayı bekleniyor...`, `⏳ Nefesler tutuldu, maç sonucu sisteme girildi.`],
-            'Tamamlandı_Generic': [`🏆 Kazanan: <strong>${winnerName}</strong>!`, `✨ <strong>${winnerName}</strong> günü galibiyetle kapattı.`],
-            'Tamamlandı_Crushing': [`😱 Aman Allah'ım! <strong>${winnerName}</strong> rakibine kortu dar etti!`, `🌪️ Kortta fırtına vardı: <strong>${winnerName}</strong>!`],
-            'Tamamlandı_Tight': [`🥵 Ne maçtı ama! <strong>${winnerName}</strong> zor da olsa kazandı.`, `⚖️ Gitti geldi, sonunda <strong>${winnerName}</strong> güldü.`]
-        };
-
-        let selectedCategory = [];
-        if (type === 'Acik_Ilan') selectedCategory = (wager >= 500) ? comments['Acik_Ilan_HighWager'] : comments['Acik_Ilan'];
-        else if (type === 'Bekliyor') selectedCategory = comments['Bekliyor'];
-        else if (type === 'Hazır') selectedCategory = comments['Hazır'];
-        else if (type === 'Sonuç_Bekleniyor') selectedCategory = comments['Sonuç_Bekleniyor'];
-        else if (type === 'Tamamlandı') {
-            const s3 = (score.s3_me && score.s3_opp) ? 1 : 0;
-            const isCrushing = [score.s1_me, score.s1_opp, score.s2_me, score.s2_opp].some(val => val == 0 || val == 1);
-            if (s3) selectedCategory = comments['Tamamlandı_Tight'];
-            else if (isCrushing) selectedCategory = comments['Tamamlandı_Crushing'];
-            else selectedCategory = comments['Tamamlandı_Generic'];
-        }
-
-        if (!selectedCategory || selectedCategory.length === 0) return `🎾 <strong>${p1Name}</strong> vs <strong>${p2Name}</strong>`;
-        const randomIndex = Math.floor(Math.random() * selectedCategory.length);
-        return selectedCategory[randomIndex];
     }
 
     async function loadAnnouncements() {
         if(!announcementsContainer) return;
-        announcementsContainer.innerHTML = `<p style="text-align:center; color:#999; font-style:italic;">🤖 Veriler analiz ediliyor...</p>`;
+        announcementsContainer.innerHTML = `<p style="text-align:center; color:#999; font-style:italic;">🤖 Lig taranıyor...</p>`;
         
         try {
-            // 1. Önce Geçen Ayın En'lerini Hesapla ve Ekle
-            const now = new Date();
-            const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            const endOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-            
-            // Verimlilik için sadece tarih filtresi yapmadan tamamlananları çekip JS'de filtreliyoruz (Basitlik)
-            const snapAll = await db.collection('matches').where('durum', '==', 'Tamamlandı').get();
-            let prevMonthMatches = [];
-            snapAll.forEach(doc => {
-                const d = doc.data();
-                const date = d.macZamani ? d.macZamani.toDate() : (d.tarih ? d.tarih.toDate() : null);
-                if (date && date >= startOfPrevMonth && date <= endOfPrevMonth) {
-                    prevMonthMatches.push(d);
-                }
-            });
+            const matchSnap = await db.collection('matches').where('durum', '==', 'Tamamlandı').orderBy('tarih', 'desc').limit(10).get();
+            const adSnap = await db.collection('matches').where('durum', '==', 'Acik_Ilan').orderBy('tarih', 'desc').limit(5).get();
+            const scheduledSnap = await db.collection('matches').where('durum', '==', 'Hazır').orderBy('tarih', 'desc').limit(5).get();
+            const newsSnap = await db.collection('news').orderBy('timestamp', 'desc').limit(10).get();
 
-            let prevMonthHTML = '';
-            if (prevMonthMatches.length > 0) {
-                const stats = analyzeStats(prevMonthMatches);
-                const monthName = startOfPrevMonth.toLocaleString('tr-TR', { month: 'long' });
-                
-                if (stats.maxWins.p) {
-                    prevMonthHTML = `
-                        <div class="lobby-card" style="background: linear-gradient(135deg, #ffd700 0%, #fffbe0 100%); border-left: 4px solid #ffc107; margin-bottom:10px;">
-                            <h4 style="color:#b78900; margin-bottom:5px;">🏆 Geçen Ayın En'leri (${monthName})</h4>
-                            <div style="font-size:0.9em; color:#555;">
-                                👑 <strong>${stats.maxWins.p}</strong> (${stats.maxWins.val} Galibiyet)<br>
-                                🔥 <strong>${stats.maxStreak.p}</strong> (${stats.maxStreak.val} Seri)<br>
-                                🏃 <strong>${stats.maxMatches.p}</strong> (${stats.maxMatches.val} Maç)
-                            </div>
-                        </div>
-                    `;
-                }
-            } else {
-                // Geçen ay maç yoksa boş döndür
-                prevMonthHTML = '';
-            }
+            let allItems = [];
 
-            // 2. Normal Haber Akışını Çek
-            const snapshot = await db.collection('matches').orderBy('tarih', 'desc').limit(15).get();
-            
-            announcementsContainer.innerHTML = prevMonthHTML; // Önce özel kartı ekle
-            
-            let hasNews = false;
-            snapshot.forEach(doc => {
-                hasNews = true;
+            matchSnap.forEach(doc => {
                 const m = doc.data();
-                const p1 = userMap[m.oyuncu1ID]?.isim || 'Gizli Oyuncu';
-                const p2 = m.oyuncu2ID ? (userMap[m.oyuncu2ID]?.isim || 'Rakip') : '???';
-                const comment = generateAdvancedAIComment(m, p1, p2);
-                let icon = '🎾';
-                if (m.durum === 'Acik_Ilan') icon = '📢';
-                else if (m.durum === 'Tamamlandı') icon = '🏆';
-
-                let dateStr = '';
-                if (m.tarih) {
-                    const d = m.tarih.toDate();
-                    dateStr = d.toLocaleDateString('tr-TR');
+                const p1 = userMap[m.oyuncu1ID]?.isim || '???';
+                const p2 = m.oyuncu2ID ? (userMap[m.oyuncu2ID]?.isim||'???') : '???';
+                const winner = userMap[m.kayitliKazananID]?.isim || '???';
+                
+                let isCrushing = false, isTight = false, isComeback = false;
+                if(m.skor) {
+                    const s = m.skor;
+                    if((s.s1_me==0||s.s1_opp==0) || (s.s2_me==0||s.s2_opp==0)) isCrushing = true;
+                    if(s.s3_me || s.s3_opp) isTight = true;
                 }
-                const item = document.createElement('div');
-                item.style.cssText = 'padding:12px; border-bottom:1px solid #eee; font-size:0.95em; line-height:1.5; animation: fadeIn 0.5s;';
-                item.innerHTML = `<div style="margin-bottom:4px; display:flex; justify-content:space-between; align-items:center;"><span style="font-size:1.2em;">${icon}</span><span style="font-size:0.75em; color:#bbb;">${dateStr}</span></div><div style="color:#444;">${comment}</div>`;
+                
+                let scoreStr = "";
+                if(m.skor) { scoreStr = `${m.skor.s1_me}-${m.skor.s1_opp}, ${m.skor.s2_me}-${m.skor.s2_opp}` + (m.skor.s3_me?`, ${m.skor.s3_me}-${m.skor.s3_opp}`:''); }
+
+                const comment = generateAICommentary('match_result', {
+                    p1Name: p1, p2Name: p2, winnerName: winner,
+                    scoreStr: scoreStr, isCrushing: isCrushing, isTight: isTight, isComeback: isComeback
+                });
+
+                const div = document.createElement('div');
+                div.className = 'news-item';
+                div.innerHTML = `<div class="news-header"><span class="news-icon">🏆</span><span class="news-date">MAÇ SONUCU</span></div><div class="news-content">${comment}</div>`;
                 
                 const btnDiv = document.createElement('div'); btnDiv.style.marginTop = '8px';
-                const detailBtn = document.createElement('button'); detailBtn.textContent = 'İncele 🔍';
-                detailBtn.className = 'btn-chat-small'; detailBtn.style.cssText = 'padding: 5px 12px; font-size: 0.8em; width: auto; margin:0; background-color: #6c757d; border:none; border-radius:15px;';
-                detailBtn.onclick = function() { returnToTab = 'tab-lobby'; showMatchDetail(doc.id); };
-                btnDiv.appendChild(detailBtn); item.appendChild(btnDiv);
-                announcementsContainer.appendChild(item);
+                const btn = document.createElement('button');
+                btn.className = 'btn-chat-small'; btn.style.cssText = 'width: auto; padding: 5px 12px; font-size: 0.8em; background-color: #6c757d; border:none; border-radius:15px; margin:0;'; 
+                btn.textContent = 'İncele 🔍';
+                btn.onclick = function() { returnToTab='tab-lobby'; showMatchDetail(doc.id); };
+                btnDiv.appendChild(btn); div.appendChild(btnDiv);
+
+                allItems.push({
+                    date: m.macZamani ? m.macZamani.toDate() : (m.tarih ? m.tarih.toDate() : new Date()),
+                    element: div
+                });
+            });
+
+            adSnap.forEach(doc => {
+                const m = doc.data();
+                const p1 = userMap[m.oyuncu1ID]?.isim || '???';
+                const comment = generateAICommentary('open_ad', { p1Name: p1, wager: m.bahisPuani });
+                
+                const div = document.createElement('div');
+                div.className = 'news-item news-badge';
+                div.innerHTML = `<div class="news-header"><span class="news-icon">📢</span><span class="news-date">İLAN</span></div><div class="news-content">${comment}</div>`;
+                
+                const btnDiv = document.createElement('div'); btnDiv.style.marginTop = '8px';
+                const btn = document.createElement('button');
+                btn.className = 'btn-chat-small'; btn.style.cssText = 'width: auto; padding: 5px 12px; font-size: 0.8em; background-color: #28a745; border:none; border-radius:15px; margin:0;'; 
+                btn.textContent = 'İncele 🔍';
+                btn.onclick = function() { returnToTab='tab-lobby'; showMatchDetail(doc.id); };
+                btnDiv.appendChild(btn); div.appendChild(btnDiv);
+
+                allItems.push({
+                    date: m.tarih ? m.tarih.toDate() : new Date(),
+                    element: div
+                });
+            });
+
+            scheduledSnap.forEach(doc => {
+                const m = doc.data();
+                const p1 = userMap[m.oyuncu1ID]?.isim || '???';
+                const p2 = m.oyuncu2ID ? (userMap[m.oyuncu2ID]?.isim||'???') : '???';
+                
+                const comment = generateAICommentary('match_scheduled', { p1Name: p1, p2Name: p2 });
+                
+                const div = document.createElement('div');
+                div.className = 'news-item';
+                div.style.borderLeft = '4px solid #007bff';
+                div.innerHTML = `<div class="news-header"><span class="news-icon">📅</span><span class="news-date">MAÇ AYARLANDI</span></div><div class="news-content">${comment}</div>`;
+                
+                const btnDiv = document.createElement('div'); btnDiv.style.marginTop = '8px';
+                const btn = document.createElement('button');
+                btn.className = 'btn-chat-small'; btn.style.cssText = 'width: auto; padding: 5px 12px; font-size: 0.8em; background-color: #007bff; border:none; border-radius:15px; margin:0;'; 
+                btn.textContent = 'İncele 🔍';
+                btn.onclick = function() { returnToTab='tab-lobby'; showMatchDetail(doc.id); };
+                btnDiv.appendChild(btn); div.appendChild(btnDiv);
+
+                allItems.push({
+                    date: m.tarih ? m.tarih.toDate() : new Date(),
+                    element: div
+                });
+            });
+
+            newsSnap.forEach(doc => {
+                const n = doc.data();
+                const p1 = userMap[n.userId]?.isim || 'Bir oyuncu';
+                let comment = "";
+                let icon = "📰";
+                let cls = "";
+
+                if (n.type === 'new_player') {
+                    comment = generateAICommentary('new_player', { p1Name: p1 });
+                    icon = "👋"; cls = "news-newplayer";
+                } else if (n.type === 'badge_earned') {
+                    comment = generateAICommentary('badge_earned', { p1Name: p1, badgeName: n.badgeName });
+                    icon = "🎖️"; cls = "news-badge";
+                }
+
+                const div = document.createElement('div');
+                div.className = `news-item ${cls}`;
+                div.innerHTML = `<div class="news-header"><span class="news-icon">${icon}</span><span class="news-date">HABER</span></div><div class="news-content">${comment}</div>`;
+
+                allItems.push({
+                    date: n.timestamp ? n.timestamp.toDate() : new Date(),
+                    element: div
+                });
+            });
+
+            allItems.sort((a, b) => b.date - a.date);
+
+            announcementsContainer.innerHTML = '';
+            allItems.forEach(item => {
+                announcementsContainer.appendChild(item.element);
             });
             
-            if(!hasNews && prevMonthHTML === '') announcementsContainer.innerHTML = '<p style="text-align:center; color:#777;">Henüz dedikodu yok.</p>';
+            if(allItems.length === 0) announcementsContainer.innerHTML = '<p style="text-align:center;">Henüz haber yok.</p>';
 
-        } catch (error) {
-            console.error("Duyuru hatası:", error);
-            announcementsContainer.innerHTML = '<p style="text-align:center; color:red;">Haberler yüklenemedi.</p>';
+        } catch (e) {
+            console.error(e);
+            announcementsContainer.innerHTML = '<p style="color:red;">Haberler yüklenemedi.</p>';
         }
     }
 
-    function loadOpenRequests() {
-        if(!openRequestsContainer) return;
-        openRequestsContainer.innerHTML = '<p style="text-align:center;">Yükleniyor...</p>';
-        const currentUserID = auth.currentUser.uid;
-        db.collection('matches').where('durum', '==', 'Acik_Ilan').orderBy('tarih', 'desc').get().then(snapshot => {
-              openRequestsContainer.innerHTML = '';
-              let hasRequest = false;
-              snapshot.forEach(doc => {
-                  const data = doc.data();
-                  if(data.oyuncu1ID === currentUserID) return;
-                  hasRequest = true;
-                  const p1 = userMap[data.oyuncu1ID];
-                  const p1Name = p1?.isim || 'Bilinmiyor';
-                  const kort = p1?.kortTercihi || '-';
-                  const tarih = data.tarih ? data.tarih.toDate().toLocaleDateString('tr-TR') : '';
-                  const card = document.createElement('div');
-                  card.className = 'open-request-card';
-                  card.style.cssText = 'background:#fff; border:1px solid #28a745; border-radius:10px; padding:15px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 5px rgba(0,0,0,0.05);';
-                  let wagerInfo = data.macTipi === 'Meydan Okuma' ? `<span style="color:#d63384; font-weight:bold;">${data.bahisPuani} Puan</span>` : '<span style="color:#28a745; font-weight:bold;">Dostluk</span>';
-                  card.innerHTML = `<div><div style="font-weight:bold; font-size:1.1em;">${p1Name}</div><div style="font-size:0.9em; color:#555;">${wagerInfo} | ${kort}</div><div style="font-size:0.8em; color:#999;">${tarih}</div></div><button class="btn-accept-request" data-id="${doc.id}" style="width:auto; padding:8px 15px; font-size:0.9em; background-color:#28a745; color:white; border:none; border-radius:5px;">Kabul Et</button>`;
+  function loadOpenRequests() {
+    if(!openRequestsContainer) return;
+    openRequestsContainer.innerHTML = '<p style="text-align:center;">Yükleniyor...</p>';
+    
+    const currentUserID = auth.currentUser.uid;
+    const currentUserData = userMap[currentUserID];
+    // Kullanıcının mevcut ligini hesapla
+    const myLeague = getPlayerLeague(currentUserData ? currentUserData.toplamPuan : 0);
+
+    db.collection('matches').where('durum', '==', 'Acik_Ilan').orderBy('tarih', 'desc').get().then(snapshot => {
+          openRequestsContainer.innerHTML = '';
+          let hasRequest = false;
+          
+          snapshot.forEach(doc => {
+              const data = doc.data();
+              if(data.oyuncu1ID === currentUserID) return; // Kendi ilanını görme
+              
+              hasRequest = true;
+              const p1 = userMap[data.oyuncu1ID];
+              const p1Name = p1?.isim || 'Bilinmiyor';
+              const kort = p1?.kortTercihi || '-';
+              const tarih = data.tarih ? data.tarih.toDate().toLocaleDateString('tr-TR') : '';
+              
+              // İzin verilen ligleri kontrol et (Eski ilanlarda bu alan olmayabilir, varsayılan hepsi olsun)
+              const allowed = data.allowedLeagues || ['Bronz', 'Gümüş', 'Altın'];
+              const isEligible = allowed.includes(myLeague);
+
+              // Kart Tasarımı
+              const card = document.createElement('div');
+              card.className = 'open-request-card';
+              
+              // Stil: Eğer yetersiz lig ise biraz soluk görünsün
+              const opacity = isEligible ? '1' : '0.7';
+              card.style.cssText = `background:#fff; border:1px solid #28a745; border-radius:10px; padding:15px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 5px rgba(0,0,0,0.05); opacity:${opacity};`;
+
+              let wagerInfo = data.macTipi === 'Meydan Okuma' ? `<span style="color:#d63384; font-weight:bold;">${data.bahisPuani} Puan</span>` : '<span style="color:#28a745; font-weight:bold;">Dostluk</span>';
+              
+              // Hangi liglere açık olduğunu gösteren ikonlar
+              let leaguesBadge = '';
+              if(allowed.includes('Bronz')) leaguesBadge += '🟤 ';
+              if(allowed.includes('Gümüş')) leaguesBadge += '⚪ ';
+              if(allowed.includes('Altın')) leaguesBadge += '🟡 ';
+
+              // Buton Durumu
+              let buttonHTML = '';
+              if (isEligible) {
+                  buttonHTML = `<button class="btn-accept-request" data-id="${doc.id}" style="width:auto; padding:8px 15px; font-size:0.9em; background-color:#28a745; color:white; border:none; border-radius:5px;">Kabul Et</button>`;
+              } else {
+                  buttonHTML = `<button disabled style="width:auto; padding:8px 15px; font-size:0.8em; background-color:#ccc; color:#666; border:none; border-radius:5px; cursor:not-allowed;">Ligin Yetmiyor 🔒</button>`;
+              }
+
+              card.innerHTML = `
+                <div>
+                    <div style="font-weight:bold; font-size:1.1em;">${p1Name}</div>
+                    <div style="font-size:0.9em; color:#555;">${wagerInfo} | ${kort}</div>
+                    <div style="font-size:0.8em; color:#999; margin-top:2px;">Kabul: ${leaguesBadge}</div>
+                    <div style="font-size:0.75em; color:#bbb;">${tarih}</div>
+                </div>
+                ${buttonHTML}
+              `;
+              
+              // Sadece uygunsa tıklama özelliği ekle
+              if (isEligible) {
                   card.querySelector('.btn-accept-request').onclick = () => acceptOpenRequest(doc.id, data.bahisPuani, data.macTipi);
-                  openRequestsContainer.appendChild(card);
-              });
-              if(!hasRequest) openRequestsContainer.innerHTML = '<p style="text-align:center; color:#777; padding:15px;">Şu an açık ilan yok. 🎾</p>';
+              }
+
+              openRequestsContainer.appendChild(card);
           });
-    }
+          
+          if(!hasRequest) openRequestsContainer.innerHTML = '<p style="text-align:center; color:#777; padding:15px;">Şu an açık ilan yok. 🎾</p>';
+      });
+}
 
     function loadScheduledMatches() {
         if(!scheduledMatchesContainer) return;
@@ -835,7 +1254,7 @@ document.addEventListener('DOMContentLoaded', function() {
                   const p1Name = userMap[match.oyuncu1ID]?.isim || 'Bilinmiyor';
                   const p2Name = userMap[match.oyuncu2ID]?.isim || 'Bilinmiyor';
                   const kort = match.macYeri || 'Kort Belirlenmedi';
-                  // Kort Tipini de göster
+                  
                   const kortTipi = match.kortTipi ? ` (${match.kortTipi})` : ''; 
 
                   let timeStr = '<span style="color:#999; font-style:italic;">Zaman bekleniyor</span>';
@@ -873,7 +1292,6 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) { console.error(error); alert("Hata: Maç kabul edilemedi."); loadOpenRequests(); }
     }
 
-    // --- YENİLENMİŞ MAÇ YÜKLEME SİSTEMİ (MAÇLARIM) ---
     function loadMyMatchesOverview() {
         if(!myActiveMatchesContainer || !myPendingMatchesContainer || !myHistoryMatchesContainer) return;
 
@@ -885,9 +1303,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const q1 = db.collection('matches').where('oyuncu1ID', '==', currentUserID).get();
         const q2 = db.collection('matches').where('oyuncu2ID', '==', currentUserID).get();
 
-        // Geçmiş filtresi için kort listesini doldur
         if (histFilterCourt && histFilterCourt.options.length === 1) {
-            // Sadece Toprak, Sert, Çim ekle
             ['Toprak', 'Sert', 'Çim'].forEach(c => { 
                 const opt = document.createElement('option'); opt.value = c; opt.textContent = c; 
                 histFilterCourt.appendChild(opt); 
@@ -900,12 +1316,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 snap.forEach(doc => allMatches.push({ ...doc.data(), id: doc.id }));
             });
 
-            // Tekrarları temizle
             allMatches = allMatches.filter((match, index, self) =>
                 index === self.findIndex((t) => (t.id === match.id))
             );
 
-            // Tarihe göre sırala
             allMatches.sort((a, b) => { 
                 const dateA = a.tarih ? a.tarih.seconds : 0; 
                 const dateB = b.tarih ? b.tarih.seconds : 0; 
@@ -918,7 +1332,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
             renderMatchSection(activeMatches, myActiveMatchesContainer, 'active');
             renderMatchSection(pendingMatches, myPendingMatchesContainer, 'pending');
-            // Geçmiş için ilk 10 taneyi gösterelim, filtre ile hepsi taranır
             renderMatchSection(historyMatches.slice(0, 10), myHistoryMatchesContainer, 'history');
         });
     }
@@ -958,7 +1371,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 planInfo = `<div class="match-plan-info">📅 ${d} - ${match.macYeri}${courtType}</div>`;
             }
 
-            // Skor Gösterimi
             let scoreInfo = "";
             if (match.durum === 'Tamamlandı' && match.skor) {
                 const s = match.skor;
@@ -987,7 +1399,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const pName = histFilterPlayerName.value.toLowerCase().trim();
         const court = histFilterCourt.value;
 
-        // Basitlik için tüm geçmişi çekip JS ile filtreliyoruz
         const q1 = db.collection('matches').where('oyuncu1ID', '==', currentUserID).where('durum', '==', 'Tamamlandı').get();
         const q2 = db.collection('matches').where('oyuncu2ID', '==', currentUserID).where('durum', '==', 'Tamamlandı').get();
 
@@ -995,7 +1406,6 @@ document.addEventListener('DOMContentLoaded', function() {
             let matches = [];
             snapshots.forEach(snap => snap.forEach(doc => matches.push({ ...doc.data(), id: doc.id })));
             
-            // Tarih sıralaması
             matches.sort((a, b) => (b.tarih ? b.tarih.seconds : 0) - (a.tarih ? a.tarih.seconds : 0));
 
             const filtered = matches.filter(m => {
@@ -1005,7 +1415,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     const e = new Date(end); e.setHours(23,59,59);
                     if (!mDate || mDate > e) return false;
                 }
-                // Filtreleme, kort tipine göre yapılmalı, macYeri'ne göre değil.
                 if (court && m.kortTipi !== court) return false;
                 if (pName) {
                     const oid = m.oyuncu1ID === currentUserID ? m.oyuncu2ID : m.oyuncu1ID;
@@ -1019,16 +1428,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- FİKSTÜR YÜKLEME FONKSİYONU ---
     function loadMatchesForFixture() {
         isReadOnlyView = true;
         
-        // Containerları Temizle
         if(fixtureActiveContainer) fixtureActiveContainer.innerHTML = '<p style="text-align:center;">Yükleniyor...</p>';
         if(fixturePendingContainer) fixturePendingContainer.innerHTML = '<p style="text-align:center;">Yükleniyor...</p>';
         if(fixtureHistoryContainer) fixtureHistoryContainer.innerHTML = '<p style="text-align:center;">Yükleniyor...</p>';
 
-        // Kort filtresi dolumu (Sadece Toprak, Sert, Çim)
         if (filterCourt && filterCourt.options.length === 1) {
             ['Toprak', 'Sert', 'Çim'].forEach(c => { 
                 const opt = document.createElement('option'); opt.value = c; opt.textContent = c; 
@@ -1036,8 +1442,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // --- 1. SORGULA: AKTİF VE BEKLEYEN (FİLTRESİZ) ---
-        // 'Bekliyor', 'Hazır', 'Sonuç_Bekleniyor' olanları çek
         db.collection('matches').where('durum', 'in', ['Bekliyor', 'Hazır', 'Sonuç_Bekleniyor']).get().then(snapshot => {
             let activeMatches = [];
             let pendingMatches = [];
@@ -1051,7 +1455,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            // Sıralama
             const sortFn = (a, b) => { 
                 const dateA = a.macZamani ? a.macZamani.seconds : (a.tarih ? a.tarih.seconds : 0); 
                 const dateB = b.macZamani ? b.macZamani.seconds : (b.tarih ? b.tarih.seconds : 0); 
@@ -1060,39 +1463,33 @@ document.addEventListener('DOMContentLoaded', function() {
             activeMatches.sort(sortFn);
             pendingMatches.sort(sortFn);
 
-            // Render
             renderFixtureSection(activeMatches, fixtureActiveContainer);
             renderFixtureSection(pendingMatches, fixturePendingContainer);
         });
 
-        // --- 2. SORGULA: TAMAMLANAN (FİLTRELİ) ---
         db.collection('matches').where('durum', '==', 'Tamamlandı').get().then(snapshot => {
             let historyMatches = [];
             
             const fStart = filterDateStart.value ? new Date(filterDateStart.value) : null;
             const fEnd = filterDateEnd.value ? new Date(filterDateEnd.value) : null;
-            // fCourt artık kort tipini temsil ediyor
             const fCourt = filterCourt.value; 
             const fPlayer = filterPlayer.value;
 
             snapshot.forEach(doc => {
                 const match = doc.data();
                 
-                // --- FİLTRELEME MANTIĞI (Sadece Geçmiş İçin) ---
                 if (fStart || fEnd) {
                     const d = match.macZamani ? match.macZamani.toDate() : (match.tarih ? match.tarih.toDate() : null);
                     if (!d) return; 
                     if (fStart) { fStart.setHours(0,0,0,0); if (d < fStart) return; }
                     if (fEnd) { fEnd.setHours(23,59,59,999); if (d > fEnd) return; }
                 }
-                // Kort Tipi filtresi
                 if (fCourt && match.kortTipi !== fCourt) return;
                 if (fPlayer && match.oyuncu1ID !== fPlayer && match.oyuncu2ID !== fPlayer) return;
 
                 historyMatches.push({ ...match, id: doc.id });
             });
 
-            // Sıralama
             historyMatches.sort((a, b) => { 
                 const dateA = a.macZamani ? a.macZamani.seconds : (a.tarih ? a.tarih.seconds : 0); 
                 const dateB = b.macZamani ? b.macZamani.seconds : (b.tarih ? b.tarih.seconds : 0); 
@@ -1103,7 +1500,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Fikstür Kartlarını Oluşturan Yardımcı Fonksiyon
     function renderFixtureSection(matches, container) {
         if(!container) return;
         container.innerHTML = '';
@@ -1117,7 +1513,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const p1 = userMap[match.oyuncu1ID]?.isim || '???';
             const p2 = match.oyuncu2ID ? (userMap[match.oyuncu2ID]?.isim || '???') : 'Bekleniyor';
             
-            // Tarih Rozeti
             let dateBadge = `<div style="background:#f5f5f5; color:#999; padding:5px 10px; border-radius:8px; text-align:center; margin-right:10px; min-width:45px; display:flex; flex-direction:column; justify-content:center; align-items:center;">
                                 <div style="font-size:1.2em;">?</div>
                              </div>`;
@@ -1133,7 +1528,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 timeStr = `<span style="font-size:0.85em; color:#666; margin-left: 5px;">⏰ ${time}</span>`;
             }
 
-            // Durum Rengi
             let statusColor = '#666';
             let statusText = match.durum;
             if(match.durum === 'Hazır') { statusText = 'Oynanıyor / Hazır'; statusColor = '#28a745'; }
@@ -1141,7 +1535,6 @@ document.addEventListener('DOMContentLoaded', function() {
             else if(match.durum === 'Tamamlandı') { statusText = 'Tamamlandı'; statusColor = '#6c757d'; }
             else if(match.durum === 'Sonuç_Bekleniyor') { statusText = 'Sonuç Onayı'; statusColor = '#17a2b8'; }
 
-            // Skor HTML
             let scoreHTML = '';
             if(match.durum === 'Tamamlandı' && match.skor) {
                 const s = match.skor;
@@ -1151,7 +1544,6 @@ document.addEventListener('DOMContentLoaded', function() {
                              </div>`;
             }
 
-            // Kort Tipi ve Yeri
             const courtTypeInfo = match.kortTipi ? ` (${match.kortTipi})` : '';
             const courtInfo = match.macYeri ? `<div style="font-size:0.85em; color:#555; margin-top:2px;">📍 ${match.macYeri}${courtTypeInfo}</div>` : '';
 
@@ -1183,7 +1575,33 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- YENİ GELİŞMİŞ İSTATİSTİK HESAPLAMA SİSTEMİ ---
+    function renderBadges(userId, containerId) {
+        const container = document.getElementById(containerId);
+        if(!container) return;
+        container.innerHTML = '...';
+
+        const user = userMap[userId];
+        if(!user) { container.innerHTML = ''; return; }
+        
+        const userBadges = user.badges || [];
+        container.innerHTML = '';
+
+        Object.keys(BADGE_DEFINITIONS).forEach(key => {
+            const def = BADGE_DEFINITIONS[key];
+            const hasBadge = userBadges.includes(key);
+            
+            const badgeEl = document.createElement('div');
+            badgeEl.className = `badge-item ${hasBadge ? 'earned' : 'locked'}`;
+            badgeEl.setAttribute('data-desc', def.desc);
+            
+            badgeEl.innerHTML = `
+                <div class="badge-icon">${def.icon}</div>
+                <div class="badge-name">${def.name}</div>
+            `;
+            container.appendChild(badgeEl);
+        });
+    }
+
     async function calculateAdvancedStats(userId) {
         const q1 = db.collection('matches').where('oyuncu1ID', '==', userId).where('durum', '==', 'Tamamlandı').get();
         const q2 = db.collection('matches').where('oyuncu2ID', '==', userId).where('durum', '==', 'Tamamlandı').get();
@@ -1193,7 +1611,6 @@ document.addEventListener('DOMContentLoaded', function() {
         s1.forEach(d => allMatches.push({ ...d.data(), id: d.id })); 
         s2.forEach(d => allMatches.push({ ...d.data(), id: d.id }));
         
-        // Tarihe göre sırala (Form durumu için)
         allMatches.sort((a, b) => { 
             const tA = a.tarih ? a.tarih.seconds : 0; 
             const tB = b.tarih ? b.tarih.seconds : 0; 
@@ -1215,10 +1632,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const isWinner = m.kayitliKazananID === userId;
             if (isWinner) stats.won++;
 
-            // Form (W/L) - Son 5 maç
             if(stats.form.length < 5) stats.form.push(isWinner ? 'W' : 'L');
 
-            // Kort Tipi Analizi (macYeri yerine kortTipi kullanıldı)
             let surface = 'other';
             const courtType = (m.kortTipi || '').toLowerCase();
             if(courtType.includes('toprak')) surface = 'clay';
@@ -1230,12 +1645,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(isWinner) stats[surface].won++;
             }
 
-            // Set ve Oyun İstatistikleri
             if (m.skor) {
                 const s = m.skor; 
-                // Skoru veritabanına kaydeden kişiye göre (sonucuGirenID) bizim skorları ayırt et
-                const isMyInput = (m.sonucuGirenID === userId);
-                
                 const sets = [
                     {p1: s.s1_me, p2: s.s1_opp}, 
                     {p1: s.s2_me, p2: s.s2_opp}, 
@@ -1243,17 +1654,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 ];
 
                 sets.forEach(set => {
-                    // Eğer sonucu giren bizsek p1 bizim, p2 rakibin. Değilse tam tersi.
-                    // Fakat buradaki mantık daha basit: maçın oyuncuları içinde hangisiyiz?
-                    // Firebase skor yapısında sX_me her zaman sonucu girene aittir.
-                    // Bu yüzden şu kontrolü yapıyoruz:
                     let myG, opG;
                     
                     if (m.sonucuGirenID === userId) {
                         myG = parseInt(set.p1 || 0);
                         opG = parseInt(set.p2 || 0);
                     } else {
-                        // Sonucu rakip girdiyse, 'me' rakip, 'opp' biziz.
                         myG = parseInt(set.p2 || 0);
                         opG = parseInt(set.p1 || 0);
                     }
@@ -1262,7 +1668,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         stats.setsPlayed++;
                         if(myG > opG) stats.setsWon++;
                         
-                        if(!set.tb) { // Tie-break dışındaki oyunları say
+                        if(!set.tb) {
                             stats.gamesPlayed += (myG + opG);
                             stats.gamesWon += myG;
                         }
@@ -1277,18 +1683,15 @@ document.addEventListener('DOMContentLoaded', function() {
     async function updateStatsView(targetUserId) {
         if(!targetUserId) targetUserId = auth.currentUser.uid;
         
-        // UI Temizle / Yükleniyor
         statFormBadges.innerHTML = '...';
         
         const user = userMap[targetUserId];
         const stats = await calculateAdvancedStats(targetUserId);
 
-        // Özet Kartlar
         statTotalMatch.textContent = stats.played;
         statTotalWin.textContent = stats.won;
         statTotalPointsDisplay.textContent = user ? user.toplamPuan : 0;
 
-        // Dairesel Grafikler (CSS Variables Update)
         const winRate = stats.played > 0 ? Math.round((stats.won / stats.played) * 100) : 0;
         const setRate = stats.setsPlayed > 0 ? Math.round((stats.setsWon / stats.setsPlayed) * 100) : 0;
         const gameRate = stats.gamesPlayed > 0 ? Math.round((stats.gamesWon / stats.gamesPlayed) * 100) : 0;
@@ -1297,12 +1700,10 @@ document.addEventListener('DOMContentLoaded', function() {
         updateCircleChart(chartSetRate, setRate);
         updateCircleChart(chartGameRate, gameRate);
 
-        // Bar Grafikler (Kort Performansı)
         updateBarChart(barClay, valClay, stats.clay);
         updateBarChart(barHard, valHard, stats.hard);
         updateBarChart(barGrass, valGrass, stats.grass);
 
-        // Form Rozetleri
         statFormBadges.innerHTML = '';
         if(stats.form.length === 0) {
             statFormBadges.innerHTML = '<span style="font-size:0.8em; color:#999;">Veri yok</span>';
@@ -1334,19 +1735,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- ESKİ MODAL İSTATİSTİK GÖSTERİMİ (Korundu) ---
-    async function showPlayerStats(userId) {
+async function showPlayerStats(userId) {
         try {
             const u = userMap[userId]; if(!u) return;
             statsPlayerName.textContent = u.isim; statsTotalPoints.textContent = u.toplamPuan; statsCourtPref.textContent = u.kortTercihi || '-';
             if(statsPlayerPhoto) statsPlayerPhoto.src = u.fotoURL || 'https://via.placeholder.com/120';
+            
+            renderBadges(userId, 'stats-badges-grid');
+
             if(startChatBtn) {
                 if (userId === auth.currentUser.uid) { startChatBtn.style.display = 'none'; } 
                 else { startChatBtn.style.display = 'block'; startChatBtn.onclick = () => openChat(userId, u.isim); }
             }
             playerStatsModal.style.display = 'flex'; 
             
-            // Modal için de yeni gelişmiş hesaplamayı kullan
             const stats = await calculateAdvancedStats(userId);
             const matchRate = stats.played > 0 ? ((stats.won / stats.played) * 100).toFixed(0) : 0;
             const setRate = stats.setsPlayed > 0 ? ((stats.setsWon / stats.setsPlayed) * 100).toFixed(0) : 0;
@@ -1358,10 +1760,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const h2hBox = document.getElementById('stats-h2h-box');
             if (userId !== auth.currentUser.uid) {
-                // H2H hesaplaması modalda kalabilir
                 h2hBox.style.display = 'block'; h2hBox.innerHTML = 'Aramızdaki Maçlar Yükleniyor...';
-                // H2H fonksiyonu basitçe burada inline hesaplanabilir veya eski fonksiyon kullanılabilir.
-                // Veri tutarlılığı için basit bir sorgu:
                 const myId = auth.currentUser.uid;
                 const q1 = db.collection('matches').where('oyuncu1ID', '==', myId).where('oyuncu2ID', '==', userId).where('durum', '==', 'Tamamlandı').get();
                 const q2 = db.collection('matches').where('oyuncu1ID', '==', userId).where('oyuncu2ID', '==', myId).where('durum', '==', 'Tamamlandı').get();
@@ -1378,6 +1777,64 @@ document.addEventListener('DOMContentLoaded', function() {
             if (stats.form.length === 0) { formContainer.innerHTML = '<span style="font-size:0.8em; color:#999;">Henüz maç yok</span>'; } else {
                 stats.form.forEach(result => { const badge = document.createElement('div'); badge.className = `form-badge ${result === 'W' ? 'form-w' : 'form-l'}`; badge.textContent = result === 'W' ? 'G' : 'M'; formContainer.appendChild(badge); });
             }
+
+            // --- YENİ: MAÇ FOTOĞRAFLARI (GALERİ) KISMI ---
+            const statsContainer = document.querySelector('#player-stats-modal .stats-container');
+            let photosContainer = document.getElementById('player-stats-photos');
+            
+            // Eğer container yoksa oluştur
+            if (!photosContainer) {
+                photosContainer = document.createElement('div');
+                photosContainer.id = 'player-stats-photos';
+                photosContainer.style.marginTop = '20px';
+                photosContainer.style.borderTop = '1px solid #eee';
+                photosContainer.style.paddingTop = '15px';
+                statsContainer.appendChild(photosContainer);
+            }
+            
+            photosContainer.innerHTML = '<p style="text-align:center; color:#999; font-size:0.9em;">Fotoğraflar yükleniyor...</p>';
+
+            const pq1 = db.collection('matches').where('oyuncu1ID', '==', userId).where('durum', '==', 'Tamamlandı').get();
+            const pq2 = db.collection('matches').where('oyuncu2ID', '==', userId).where('durum', '==', 'Tamamlandı').get();
+
+            Promise.all([pq1, pq2]).then(snapshots => {
+                let photos = [];
+                snapshots.forEach(snap => {
+                    snap.forEach(doc => {
+                        const m = doc.data();
+                        if (m.macFotoURL) {
+                            photos.push({ ...m, id: doc.id, dateObj: m.macZamani ? m.macZamani.toDate() : (m.tarih ? m.tarih.toDate() : new Date()) });
+                        }
+                    });
+                });
+
+                // Tekrar edenleri temizle ve tarihe göre sırala
+                photos = photos.filter((v,i,a)=>a.findIndex(t=>(t.id === v.id))===i);
+                photos.sort((a,b) => b.dateObj - a.dateObj);
+
+                if (photos.length === 0) {
+                    photosContainer.innerHTML = '<div style="text-align:center; color:#ccc; font-size:0.8em; margin-top:10px;">Bu oyuncunun maç fotoğrafı yok. 📷</div>';
+                    return;
+                }
+
+                let galleryHTML = '<h4 style="color:#555; text-align:center; border:none; margin-bottom:10px; font-size:0.9em; text-transform:uppercase;">📸 Maç Kareleri</h4><div class="gallery-grid">';
+                
+                photos.forEach(item => {
+                    const dateStr = item.dateObj ? item.dateObj.toLocaleString('tr-TR', { day: 'numeric', month: 'short' }) : '';
+                    // Fotoğrafa tıklayınca modalı kapatıp maç detayına yönlendiriyoruz
+                    galleryHTML += `
+                        <div class="gallery-item" onclick="document.getElementById('player-stats-modal').style.display='none'; showMatchDetail('${item.id}')">
+                            <img src="${item.macFotoURL}" class="gallery-img" loading="lazy">
+                            <div class="gallery-date-badge">${dateStr}</div>
+                        </div>
+                    `;
+                });
+                galleryHTML += '</div>';
+                
+                photosContainer.innerHTML = galleryHTML;
+            });
+            // ------------------------------------------------
+
         } catch (error) { console.error("İstatistik hatası:", error); document.getElementById('stats-form-badges').innerHTML = '<span style="color:red; font-size:0.8em;">Veri alınamadı</span>'; }
     }
 
@@ -1385,6 +1842,11 @@ document.addEventListener('DOMContentLoaded', function() {
         tabSections.forEach(s => s.style.display = 'none');
         matchDetailView.style.display = 'block';
         currentMatchDocId = matchDocId;
+        
+        if(matchUploadPreview) { matchUploadPreview.style.display='none'; matchUploadPreview.src=''; }
+        if(matchResultPhotoInput) { matchResultPhotoInput.value = ''; }
+        if(detailMatchPhoto) { detailMatchPhoto.style.display='none'; detailMatchPhoto.src=''; }
+
         const currentUserID = auth.currentUser.uid;
         db.collection('matches').doc(matchDocId).get().then(doc => {
             const match = doc.data();
@@ -1403,9 +1865,18 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (match.kortTipi) {
                 infoHTML += `<div style="background-color:#e2e6ea; padding:8px; border-radius:5px; margin-top:5px;">Kort Tipi: <strong>${match.kortTipi}</strong></div>`;
             }
-
+            
+            if(match.macFotoURL && detailMatchPhoto) {
+                detailMatchPhoto.src = match.macFotoURL;
+                detailMatchPhoto.style.display = 'block';
+            }
 
             detailMatchInfo.innerHTML = infoHTML;
+
+
+            // [YENİ] Anket ve Yorumları Yükle
+            loadMatchInteractions(matchDocId, match);
+
             scoreInputSection.style.display = 'none'; scoreDisplaySection.style.display = 'none'; winnerSelect.style.display = 'none'; scheduleInputSection.style.display = 'none'; actionButtonsContainer.innerHTML = ''; document.getElementById('result-message').textContent = '';
             
             if (chatFromMatchBtn) {
@@ -1437,10 +1908,8 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (match.durum === 'Hazır') {
                 scheduleInputSection.style.display = 'block'; 
                 
-                // Kort Tipini Yükle
                 if(matchCourtTypeSelect) matchCourtTypeSelect.value = match.kortTipi || '';
                 
-                // Kort Yerlerini Yükle
                 matchVenueSelect.innerHTML = '<option value="">Kort Seç</option>';
                 COURT_LIST.forEach(c => { const o = document.createElement('option'); o.value=c; o.textContent=c; if(match.macYeri===c) o.selected=true; matchVenueSelect.appendChild(o); });
                 
@@ -1465,13 +1934,12 @@ document.addEventListener('DOMContentLoaded', function() {
     async function updateMatchStatus(id, st, msg) { await db.collection('matches').doc(id).update({durum:st}); alert(msg); goBackToList(); }
     async function deleteMatch(id, msg) { await db.collection('matches').doc(id).delete(); alert(msg); goBackToList(); }
     
-    // GÜNCELLENEN saveMatchSchedule FONKSİYONU
     async function saveMatchSchedule(id) { 
         const courtType = matchCourtTypeSelect ? matchCourtTypeSelect.value : '';
         if(!courtType || !matchVenueSelect.value || !matchTimeInput.value) { alert("Lütfen Kort Tipi, Kort Seçimi ve Tarih/Saat bilgilerini eksiksiz girin."); return; }
         
         await db.collection('matches').doc(id).update({ 
-            kortTipi: courtType, // YENİ: Kort Tipini kaydet
+            kortTipi: courtType,
             macYeri: matchVenueSelect.value, 
             macZamani: firebase.firestore.Timestamp.fromDate(new Date(matchTimeInput.value)) 
         });
@@ -1484,10 +1952,27 @@ document.addEventListener('DOMContentLoaded', function() {
         const s1m=parseInt(document.getElementById('s1-me').value)||0, s1o=parseInt(document.getElementById('s1-opp').value)||0;
         const s2m=parseInt(document.getElementById('s2-me').value)||0, s2o=parseInt(document.getElementById('s2-opp').value)||0;
         const s3m=parseInt(document.getElementById('s3-me').value)||0, s3o=parseInt(document.getElementById('s3-opp').value)||0;
-        if(s1m>7||s1o>7||s2m>7||s2o>7) { alert("Hata: Max 7 oyun."); return; }
-        await db.collection('matches').doc(id).update({ durum:'Sonuç_Bekleniyor', adayKazananID:winnerSelect.value, sonucuGirenID:auth.currentUser.uid, skor:{s1_me:s1m, s1_opp:s1o, s2_me:s2m, s2_opp:s2o, s3_me:s3m, s3_opp:s3o} });
+        
+        let photoUrl = null;
+        if (matchResultPhotoInput.files[0]) {
+             photoUrl = await compressAndConvertToBase64(matchResultPhotoInput.files[0], 1024, 0.8);
+        }
+
+        let updateData = {
+            durum: 'Sonuç_Bekleniyor',
+            adayKazananID: winnerSelect.value,
+            sonucuGirenID: auth.currentUser.uid,
+            skor: {s1_me:s1m, s1_opp:s1o, s2_me:s2m, s2_opp:s2o, s3_me:s3m, s3_opp:s3o}
+        };
+
+        if (photoUrl) {
+            updateData.macFotoURL = photoUrl;
+        }
+
+        await db.collection('matches').doc(id).update(updateData);
         alert("Girildi."); showMatchDetail(id);
     }
+
     async function finalizeMatch(id, m) {
         const wid = m.adayKazananID, lid = m.oyuncu1ID===wid?m.oyuncu2ID:m.oyuncu1ID;
         let wg=0, lg=0;
@@ -1506,10 +1991,18 @@ document.addEventListener('DOMContentLoaded', function() {
             await db.collection('users').doc(lid).update({ toplamPuan: firebase.firestore.FieldValue.increment(50+bonusL), macSayisi: firebase.firestore.FieldValue.increment(1) });
         }
         await db.collection('matches').doc(id).update({durum:'Tamamlandı', kayitliKazananID:wid});
-        alert("Onaylandı!"); goBackToList(); loadLeaderboard();
+        
+        await checkAndGrantBadges(wid);
+        await checkAndGrantBadges(lid);
+
+        alert("Onaylandı ve Rozetler Kontrol Edildi!"); goBackToList(); loadLeaderboard();
     }
 
     function goBackToList() {
+        // [YENİ] Etkileşim dinleyicilerini temizle
+        matchInteractionListeners.forEach(unsubscribe => unsubscribe());
+        matchInteractionListeners = [];
+
         matchDetailView.style.display='none';
         if (returnToTab) {
             tabSections.forEach(s => s.style.display = 'none');
@@ -1519,18 +2012,15 @@ document.addEventListener('DOMContentLoaded', function() {
             if(navItem) navItem.classList.add('active');
             if (returnToTab === 'tab-matches') loadMyMatchesOverview();
             if (returnToTab === 'tab-fixture') loadMatchesForFixture();
+            // YENİ: Galeri sekmesine dönüş
+            if (returnToTab === 'tab-gallery') loadGallery();
+            // YENİ: Profil sekmesine dönüş (fotoları da yükle)
+            if (returnToTab === 'tab-profile') loadUserPhotos();
+
             returnToTab = null;
         } else {
-            // matchDetailView gizlendikten sonra aktif sekmeyi gösterir.
-            // Bu blokta da matchDetailView'in gizli kalması garanti altına alınmıştır.
-            const activeTab = document.querySelector('.nav-item.active')?.getAttribute('data-target');
-            if (activeTab) {
-                document.getElementById(activeTab).style.display = 'block';
-            } else {
-                // Varsayılan olarak lobiye veya maçlarıma dön
-                document.getElementById('tab-lobby').style.display = 'block';
-                document.querySelector('[data-target="tab-lobby"]').classList.add('active');
-            }
+            document.getElementById('tab-lobby').style.display = 'block';
+            document.querySelector('[data-target="tab-lobby"]').classList.add('active');
         }
     }
 
@@ -1588,6 +2078,8 @@ document.addEventListener('DOMContentLoaded', function() {
             tabSections.forEach(s => s.style.display = 'none'); document.getElementById('tab-lobby').style.display = 'block';
             navItems.forEach(n => n.classList.remove('active')); document.querySelector('[data-target="tab-lobby"]').classList.add('active');
 
+            fetchWeather();
+
             fetchUserMap().then(() => { 
                 loadLeaderboard(); loadOpponents(); loadMyMatchesOverview(); loadOpenRequests();
                 loadScheduledMatches(); loadAnnouncements(); setupNotifications(user.uid); 
@@ -1602,7 +2094,6 @@ document.addEventListener('DOMContentLoaded', function() {
         item.addEventListener('click', () => {
             const targetId = item.getAttribute('data-target');
             
-            // HER NAVİGASYON TIKLAMASINDA DETAY EKRANINI GİZLE
             matchDetailView.style.display = 'none';
 
             tabSections.forEach(section => section.style.display = 'none');
@@ -1619,6 +2110,9 @@ document.addEventListener('DOMContentLoaded', function() {
             else if (targetId === 'tab-chat') { loadChatList(); }
             else if (targetId === 'tab-rankings') { loadLeaderboard(); }
             else if (targetId === 'tab-lobby') { loadOpenRequests(); loadScheduledMatches(); loadAnnouncements(); }
+            // YENİ: Galeri sekmesine tıklandığında
+            else if (targetId === 'tab-gallery') { setGalleryTodayFilters(); loadGallery(); }
+            // YENİ: Profil sekmesine tıklandığında
             else if (targetId === 'tab-profile') {
                 const u = userMap[auth.currentUser.uid];
                 if(u) {
@@ -1627,6 +2121,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     editCourtPreference.value = u.kortTercihi || 'Her İkisi'; 
                     if(editNotificationPreference) editNotificationPreference.value = u.bildirimTercihi || 'ses';
                     if(editProfilePreview) editProfilePreview.src = u.fotoURL || 'https://via.placeholder.com/100';
+                    renderBadges(auth.currentUser.uid, 'my-badges-container');
+                    loadUserPhotos(); // YENİ: Kullanıcı fotolarını yükle
                 }
             }
         });
@@ -1636,9 +2132,22 @@ document.addEventListener('DOMContentLoaded', function() {
     if(btnApplyHistoryFilter) btnApplyHistoryFilter.addEventListener('click', filterMyHistoryMatches);
     if(bestsFilterSelect) bestsFilterSelect.addEventListener('change', (e) => loadTheBests(e.target.value));
 
+    // YENİ: Galeri Buton Listener'ları
+    if(btnGalleryFilter) btnGalleryFilter.addEventListener('click', loadGallery);
+    if(btnGalleryClear) btnGalleryClear.addEventListener('click', () => {
+        galleryFilterDate.value = ''; 
+        galleryFilterCourt.value = ''; 
+        galleryFilterPlayer.value = ''; 
+        loadGallery(); 
+    });
+
     // Diğer Event Listenerlar
     if(saveProfileBtn) saveProfileBtn.addEventListener('click', async ()=>{ 
-        const f=editProfilePhotoInput.files[0]; let url=userMap[auth.currentUser.uid].fotoURL; if(f) url=await convertToBase64(f);
+        const f=editProfilePhotoInput.files[0]; 
+        let url=userMap[auth.currentUser.uid].fotoURL; 
+        
+        if(f) url = await compressAndConvertToBase64(f, 800, 0.8);
+        
         await db.collection('users').doc(auth.currentUser.uid).update({isim:editFullNameInput.value, telefon:editPhoneNumber.value, kortTercihi:editCourtPreference.value, bildirimTercihi:editNotificationPreference.value, fotoURL:url});
         alert("Güncellendi!"); location.reload(); 
     });
@@ -1647,7 +2156,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.onclick=e=>{if(e.target.classList.contains('modal'))e.target.style.display='none'};
     
     if(btnShowCreateAd) btnShowCreateAd.addEventListener('click', () => { createAdForm.style.display='block'; challengeForm.style.display='none'; });
-    if(btnShowSpecificChallenge) btnShowSpecificChallenge.addEventListener('click', () => { challengeForm.style.display='block'; createAdForm.style.display='none'; });
+    if(btnShowSpecificChallenge) btnShowSpecificChallenge.addEventListener('click', () => { challengeForm.style.display='block'; createAdForm.style.display='none'; loadOpponents(); });
     matchTypeSelect.addEventListener('change', e=>{wagerPointsInput.style.display=e.target.value==='Meydan Okuma'?'block':'none'});
     adMatchTypeSelect.addEventListener('change', e=>{adWagerPointsInput.style.display=e.target.value==='Meydan Okuma'?'block':'none'});
     backToListBtn.addEventListener('click', goBackToList);
@@ -1676,7 +2185,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 try {
                     const c = await auth.createUserWithEmailAndPassword(email, password);
                     let url = null;
-                    if(profilePhotoInput.files[0]) url = await convertToBase64(profilePhotoInput.files[0]);
+                    
+                    if(profilePhotoInput.files[0]) url = await compressAndConvertToBase64(profilePhotoInput.files[0], 800, 0.8);
                     
                     await db.collection('users').doc(c.user.uid).set({
                         email: email,
@@ -1688,8 +2198,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         bildirimTercihi: 'ses',
                         macSayisi: 0,
                         galibiyetSayisi: 0,
+                        badges: [],
                         kayitTari: firebase.firestore.FieldValue.serverTimestamp()
                     });
+                    
+                    await db.collection('news').add({
+                        type: 'new_player',
+                        userId: c.user.uid,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
                 } catch(e) {
                     authError.style.display = 'block';
                     authError.textContent = "Kayıt Hatası: " + e.message;
@@ -1704,24 +2222,237 @@ document.addEventListener('DOMContentLoaded', function() {
         if(mt==='Meydan Okuma' && (isNaN(wp)||wp<50||wp%50!==0)) return alert("Min 50 ve katları!");
         const me=userMap[auth.currentUser.uid], op=userMap[oid];
         if(mt==='Meydan Okuma' && (me.toplamPuan<0||op.toplamPuan<0||wp>me.toplamPuan*0.5||wp>op.toplamPuan*0.5)) return alert("Puan yetersiz.");
-        // Yeni bir meydan okumada kort tipi bilgisi henüz girilmez, bu Hazır duruma geçince girilir.
         await db.collection('matches').add({oyuncu1ID:auth.currentUser.uid, oyuncu2ID:oid, macTipi:mt, bahisPuani:wp||0, durum:'Bekliyor', tarih:firebase.firestore.FieldValue.serverTimestamp(), kayitliKazananID:null});
         alert("Teklif yollandı!"); challengeForm.style.display='none'; document.querySelector('[data-target="tab-matches"]').click();
     });
-    submitAdBtn.addEventListener('click', async () => {
-        const mt = adMatchTypeSelect.value; let wp = parseInt(adWagerPointsInput.value);
-        if(mt === 'Meydan Okuma' && (isNaN(wp)||wp<50||wp%50!==0)) return alert("Min 50 ve katları!");
-        const me = userMap[auth.currentUser.uid];
-        if (mt === 'Meydan Okuma') {
-            if (me.toplamPuan < 0) return alert("Puanın eksiye düştüğü için bahisli ilan açamazsın.");
-            if (wp > me.toplamPuan * 0.5) return alert("Maksimum bahis toplam puanının yarısı olabilir.");
-        }
-        await db.collection('matches').add({ oyuncu1ID: auth.currentUser.uid, oyuncu2ID: null, macTipi: mt, bahisPuani: wp || 0, durum: 'Acik_Ilan', tarih: firebase.firestore.FieldValue.serverTimestamp(), kayitliKazananID: null });
-        alert("İlan yayınlandı!"); createAdForm.style.display = 'none'; loadOpenRequests(); document.querySelector('[data-target="tab-lobby"]').click(); 
+submitAdBtn.addEventListener('click', async () => {
+    const mt = adMatchTypeSelect.value; 
+    let wp = parseInt(adWagerPointsInput.value);
+
+    // --- YENİ KOD BAŞLANGICI: Seçili ligleri al ---
+    const checkboxes = document.querySelectorAll('input[name="allowed-leagues"]:checked');
+    const allowedLeagues = Array.from(checkboxes).map(cb => cb.value);
+
+    if (allowedLeagues.length === 0) {
+        return alert("Lütfen bu ilanı kabul edebilecek en az bir lig seçin!");
+    }
+    // --- YENİ KOD BİTİŞİ ---
+
+    if(mt === 'Meydan Okuma' && (isNaN(wp)||wp<50||wp%50!==0)) return alert("Min 50 ve katları!");
+    
+    const me = userMap[auth.currentUser.uid];
+    if (mt === 'Meydan Okuma') {
+        if (me.toplamPuan < 0) return alert("Puanın eksiye düştüğü için bahisli ilan açamazsın.");
+        if (wp > me.toplamPuan * 0.5) return alert("Maksimum bahis toplam puanının yarısı olabilir.");
+    }
+
+    // allowedLeagues alanını veritabanına ekliyoruz
+    await db.collection('matches').add({ 
+        oyuncu1ID: auth.currentUser.uid, 
+        oyuncu2ID: null, 
+        macTipi: mt, 
+        bahisPuani: wp || 0, 
+        durum: 'Acik_Ilan', 
+        tarih: firebase.firestore.FieldValue.serverTimestamp(), 
+        kayitliKazananID: null,
+        allowedLeagues: allowedLeagues // <--- YENİ ALAN
     });
+
+    alert("İlan yayınlandı!"); 
+    createAdForm.style.display = 'none'; 
+    loadOpenRequests(); 
+    document.querySelector('[data-target="tab-lobby"]').click(); 
+});
     if(applyFiltersBtn) applyFiltersBtn.addEventListener('click', () => loadMatchesForFixture());
     if(clearFiltersBtn) clearFiltersBtn.addEventListener('click', () => { filterDateStart.value = ''; filterDateEnd.value = ''; filterCourt.value = ''; filterPlayer.value = ''; loadMatchesForFixture(); });
     if(logoutBtnProfile) logoutBtnProfile.addEventListener('click', ()=> { if(confirm("Çıkış yapmak istediğinize emin misiniz?")) { auth.signOut(); window.location.reload(); } });
-    if (profilePhotoInput) { profilePhotoInput.addEventListener('change', async (e) => { const file = e.target.files[0]; if(file) { const base64 = await convertToBase64(file); if(profilePreview) profilePreview.src = base64; } }); }
-    if (editProfilePhotoInput) { editProfilePhotoInput.addEventListener('change', async (e) => { const file = e.target.files[0]; if(file) { const base64 = await convertToBase64(file); if(editProfilePreview) editProfilePreview.src = base64; } }); }
+    
+    // --- ÖNİZLEME (Kayıt Ekranı) ---
+    if (profilePhotoInput) { 
+        profilePhotoInput.addEventListener('change', async (e) => { 
+            const file = e.target.files[0]; 
+            if(file) { 
+                const base64 = await compressAndConvertToBase64(file, 800, 0.8); 
+                if(profilePreview) profilePreview.src = base64; 
+            } 
+        }); 
+    }
+    
+    // --- ÖNİZLEME (Profil Düzenleme Ekranı) ---
+    if (editProfilePhotoInput) { 
+        editProfilePhotoInput.addEventListener('change', async (e) => { 
+            const file = e.target.files[0]; 
+            if(file) { 
+                const base64 = await compressAndConvertToBase64(file, 800, 0.8); 
+                if(editProfilePreview) editProfilePreview.src = base64; 
+            } 
+        }); 
+    }
+    
+    // --- MAÇ SONUCU FOTOĞRAF ÖNİZLEME ---
+    if(matchResultPhotoInput) {
+        matchResultPhotoInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if(file) {
+                const base64 = await compressAndConvertToBase64(file, 1024, 0.8);
+                if(matchUploadPreview) {
+                    matchUploadPreview.src = base64;
+                    matchUploadPreview.style.display = 'inline-block';
+                }
+            }
+        });
+    }
+    // --- YENİ: ANKET VE YORUM FONKSİYONLARI ---
+
+    function loadMatchInteractions(matchId, matchData) {
+        const container = document.getElementById('match-interactions-container');
+        const myUid = auth.currentUser.uid;
+        
+        // Eğer maç "Açık İlan" ise veya henüz oyuncu 2 yoksa etkileşimi gizle
+        if (matchData.durum === 'Acik_Ilan' || !matchData.oyuncu2ID) {
+            container.style.display = 'none';
+            return;
+        }
+        container.style.display = 'block';
+
+        // İsimleri al
+        const p1Name = userMap[matchData.oyuncu1ID]?.isim || 'Oyuncu 1';
+        const p2Name = userMap[matchData.oyuncu2ID]?.isim || 'Oyuncu 2';
+
+        // --- 1. ANKET SİSTEMİ ---
+        const pollLoading = document.getElementById('poll-loading');
+        const votingArea = document.getElementById('poll-voting-area');
+        const resultsArea = document.getElementById('poll-results-area');
+        const btnP1 = document.getElementById('btn-vote-p1');
+        const btnP2 = document.getElementById('btn-vote-p2');
+
+        // Buton isimlerini ayarla
+        btnP1.textContent = `Oy: ${p1Name}`;
+        btnP2.textContent = `Oy: ${p2Name}`;
+        
+        // Butonlara click event ekle (önce eskileri temizlemek için replaceNode yapılabilir ama basitçe onclick atayalım)
+        btnP1.onclick = () => castVote(matchId, 'p1', p1Name);
+        btnP2.onclick = () => castVote(matchId, 'p2', p2Name);
+
+        // Anket verisini dinle
+        const votesRef = db.collection('matches').doc(matchId).collection('votes');
+        
+        const voteUnsub = votesRef.onSnapshot(snapshot => {
+            pollLoading.style.display = 'none';
+            let p1Votes = 0;
+            let p2Votes = 0;
+            let iVoted = false;
+
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.choice === 'p1') p1Votes++;
+                else if (data.choice === 'p2') p2Votes++;
+                
+                if (doc.id === myUid) iVoted = true;
+            });
+
+            const total = p1Votes + p2Votes;
+            
+            // Eğer maç bitmişse veya ben oy vermişsem sonuçları göster
+            if (matchData.durum === 'Tamamlandı' || iVoted) {
+                votingArea.style.display = 'none';
+                resultsArea.style.display = 'block';
+
+                const p1Perc = total > 0 ? Math.round((p1Votes / total) * 100) : 0;
+                const p2Perc = total > 0 ? Math.round((p2Votes / total) * 100) : 0;
+
+                document.getElementById('poll-name-p1').textContent = p1Name;
+                document.getElementById('poll-name-p2').textContent = p2Name;
+                
+                document.getElementById('poll-perc-p1').textContent = `%${p1Perc} (${p1Votes})`;
+                document.getElementById('poll-perc-p2').textContent = `%${p2Perc} (${p2Votes})`;
+                
+                document.getElementById('poll-bar-p1').style.width = `${p1Perc}%`;
+                document.getElementById('poll-bar-p2').style.width = `${p2Perc}%`;
+                
+                document.getElementById('poll-total-votes').textContent = total;
+            } else {
+                // Oy vermediysem butonları göster
+                votingArea.style.display = 'block';
+                resultsArea.style.display = 'none';
+            }
+        });
+        matchInteractionListeners.push(voteUnsub);
+
+
+        // --- 2. YORUM SİSTEMİ ---
+        const commentsList = document.getElementById('match-comments-list');
+        const btnSend = document.getElementById('btn-send-match-comment');
+        const inputComment = document.getElementById('match-comment-input');
+
+        // Gönder butonu eventi
+        btnSend.onclick = () => sendMatchComment(matchId, inputComment);
+
+        // Yorumları dinle
+        const commentsRef = db.collection('matches').doc(matchId).collection('comments').orderBy('timestamp', 'asc');
+        
+        const commentUnsub = commentsRef.onSnapshot(snapshot => {
+            commentsList.innerHTML = '';
+            if (snapshot.empty) {
+                commentsList.innerHTML = '<p style="text-align:center; color:#999; font-size:0.9em;">İlk yorumu sen yap! 👇</p>';
+                return;
+            }
+
+            snapshot.forEach(doc => {
+                const c = doc.data();
+                const timeStr = c.timestamp ? c.timestamp.toDate().toLocaleString('tr-TR', { hour: '2-digit', minute: '2-digit', day:'numeric', month:'numeric' }) : '';
+                const isMe = c.userId === myUid;
+                
+                const div = document.createElement('div');
+                div.className = 'comment-item';
+                if(isMe) div.style.borderLeft = '3px solid #c06035'; // Kendi yorumumuzu belli edelim
+
+                div.innerHTML = `
+                    <div class="comment-header">
+                        <span class="comment-author">${c.userName}</span>
+                        <span>${timeStr}</span>
+                    </div>
+                    <div class="comment-text">${c.text}</div>
+                `;
+                commentsList.appendChild(div);
+            });
+            // En son yoruma kaydır
+            commentsList.scrollTop = commentsList.scrollHeight;
+        });
+        matchInteractionListeners.push(commentUnsub);
+    }
+
+    async function castVote(matchId, choice, playerName) {
+        try {
+            await db.collection('matches').doc(matchId).collection('votes').doc(auth.currentUser.uid).set({
+                choice: choice,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            // showNotification(`${playerName} için oy kullandın!`, 'success'); // İsteğe bağlı bildirim
+        } catch (error) {
+            console.error("Oy verme hatası:", error);
+            alert("Oy verirken bir hata oluştu.");
+        }
+    }
+
+    async function sendMatchComment(matchId, inputEl) {
+        const text = inputEl.value.trim();
+        if (!text) return;
+
+        const myUser = userMap[auth.currentUser.uid];
+        const userName = myUser ? myUser.isim : 'Bilinmeyen';
+
+        try {
+            inputEl.value = ''; // Inputu temizle
+            await db.collection('matches').doc(matchId).collection('comments').add({
+                text: text,
+                userId: auth.currentUser.uid,
+                userName: userName,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } catch (error) {
+            console.error("Yorum hatası:", error);
+            alert("Yorum gönderilemedi.");
+        }
+    }
 });
