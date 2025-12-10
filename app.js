@@ -1521,10 +1521,15 @@ document.addEventListener('DOMContentLoaded', function() {
             if (returnToTab === 'tab-fixture') loadMatchesForFixture();
             returnToTab = null;
         } else {
-            document.querySelector('.tab-section[style*="block"]').style.display = 'block'; 
-            if ([...tabSections].every(s => s.style.display === 'none')) {
-                document.getElementById('tab-matches').style.display = 'block';
-                loadMyMatchesOverview();
+            // matchDetailView gizlendikten sonra aktif sekmeyi gösterir.
+            // Bu blokta da matchDetailView'in gizli kalması garanti altına alınmıştır.
+            const activeTab = document.querySelector('.nav-item.active')?.getAttribute('data-target');
+            if (activeTab) {
+                document.getElementById(activeTab).style.display = 'block';
+            } else {
+                // Varsayılan olarak lobiye veya maçlarıma dön
+                document.getElementById('tab-lobby').style.display = 'block';
+                document.querySelector('[data-target="tab-lobby"]').classList.add('active');
             }
         }
     }
@@ -1596,6 +1601,10 @@ document.addEventListener('DOMContentLoaded', function() {
     navItems.forEach(item => {
         item.addEventListener('click', () => {
             const targetId = item.getAttribute('data-target');
+            
+            // HER NAVİGASYON TIKLAMASINDA DETAY EKRANINI GİZLE
+            matchDetailView.style.display = 'none';
+
             tabSections.forEach(section => section.style.display = 'none');
             document.getElementById(targetId).style.display = 'block';
             navItems.forEach(nav => nav.classList.remove('active'));
