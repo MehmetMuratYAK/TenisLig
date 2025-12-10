@@ -1,41 +1,15 @@
-// --- FIREBASE IMPORT ---
-importScripts('https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.6.1/firebase-messaging-compat.js');
-
-// --- FIREBASE INIT ---
-firebase.initializeApp({
-  apiKey: "AIzaSyCdrG3likzeKwv1YcMZe-9FAiaQxJoYMO8",
-  authDomain: "tenisligi-4672a.firebaseapp.com",
-  projectId: "tenisligi-4672a",
-  storageBucket: "tenisligi-4672a.firebasestorage.app",
-  messagingSenderId: "380772240660",
-  appId: "1:380772240660:web:39186d8fee6ff35d0c8601"
-});
-
-// Arka Plan Mesajlarını Yakalama
-const messaging = firebase.messaging();
-
-messaging.onBackgroundMessage(function(payload) {
-  console.log('[sw.js] Arka plan mesajı:', payload);
-  
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
-    icon: 'https://www.pwabuilder.com/assets/icons/icon_192.png', 
-    vibrate: [200, 100, 200]
-  };
-
-  self.registration.showNotification(notificationTitle, notificationOptions);
-});
-
 // --- CACHING ---
-const CACHE_NAME = 'tenis-ligi-v6-github-fix'; // Versiyonu yeniledik
+const CACHE_NAME = 'tenis-ligi-v7-no-push'; // Versiyonu güncelledik
 const urlsToCache = [
   './',
   './index.html',
   './style.css',
   './app.js',
-  './manifest.json'
+  './manifest.json',
+  // Yeni eklenen ikon dosyaları
+  './logo.png',
+  './logo-192.png',
+  './logo-512.png'
 ];
 
 self.addEventListener('install', function(event) {

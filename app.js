@@ -15,14 +15,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const auth = firebase.auth();
     const db = firebase.firestore();
     
-    // --- FCM BAŞLATMA ---
-    let messaging;
-    try {
-        messaging = firebase.messaging();
-    } catch (e) {
-        console.log("Messaging başlatılamadı:", e);
-    }
-
     // --- KORT LİSTESİ ---
     const COURT_LIST = [
         "Meşelipark Tenis Kulübü", "Evrensel Tenis", "Esas Tenis ve Spor Kulübü", "Podyum Tenis",
@@ -34,7 +26,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- DEĞİŞKENLER ---
     let userMap = {}; 
     let currentMatchDocId = null; 
-    let activeTabFilter = 'pending_to_me'; 
     let isLoginMode = true; 
     let listeners = [];
     let isReadOnlyView = false;
@@ -42,9 +33,17 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentChatUnsubscribe = null;
     let returnToTab = null; 
 
-    // --- DOM ELEMENTLERİ ---
+    // --- DOM ELEMENTLERİ (GENEL) ---
     const authScreen = document.getElementById('auth-screen');
     const mainApp = document.getElementById('main-app');
+    
+    // --- AUTH DOM ELEMENTLERİ ---
+    const tabLoginSwitch = document.getElementById('tab-login-switch');
+    const tabRegisterSwitch = document.getElementById('tab-register-switch');
+    const registerFields = document.getElementById('register-fields');
+    const authActionBtn = document.getElementById('auth-action-btn');
+    const authError = document.getElementById('auth-error');
+    const loginFooterLinks = document.getElementById('login-footer-links');
     
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
@@ -53,12 +52,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const phoneNumberInput = document.getElementById('phone-number');
     const profilePhotoInput = document.getElementById('profile-photo');
     const profilePreview = document.getElementById('profile-preview');
-    
-    const toggleAuthModeBtn = document.getElementById('toggle-auth-mode'); 
-    const loginBtn = document.getElementById('login-btn');
-    const registerBtn = document.getElementById('register-btn');
-    const authError = document.getElementById('auth-error');
 
+    // --- ŞİFRE SIFIRLAMA ELEMENTLERİ ---
+    const forgotPasswordLink = document.getElementById('forgot-password-link');
+    const forgotPasswordModal = document.getElementById('forgot-password-modal');
+    const resetEmailInput = document.getElementById('reset-email');
+    const btnSendResetLink = document.getElementById('btn-send-reset-link');
+    const resetMsg = document.getElementById('reset-msg');
+
+    // --- DİĞER DOM ELEMENTLERİ ---
     const challengeForm = document.getElementById('challenge-form');
     const createAdForm = document.getElementById('create-ad-form');
     const opponentSelect = document.getElementById('opponent-select');
@@ -78,19 +80,35 @@ document.addEventListener('DOMContentLoaded', function() {
     const announcementsContainer = document.getElementById('lobby-announcements-container'); 
     
     const leaderboardDiv = document.getElementById('leaderboard');
-    const userMatchListContainer = document.getElementById('user-match-list-container');
-    const programListContainer = document.getElementById('program-list-container');
     const chatListContainer = document.getElementById('chat-list-container');
-    const matchTabs = document.getElementById('match-tabs');
     
+    // --- MAÇ AKIŞI DOM ELEMENTLERİ ---
+    const myActiveMatchesContainer = document.getElementById('my-active-matches-container');
+    const myPendingMatchesContainer = document.getElementById('my-pending-matches-container');
+    const myHistoryMatchesContainer = document.getElementById('my-history-matches-container');
+    
+    const histFilterStart = document.getElementById('hist-filter-start');
+    const histFilterEnd = document.getElementById('hist-filter-end');
+    const histFilterPlayerName = document.getElementById('hist-filter-player-name');
+    const histFilterCourt = document.getElementById('hist-filter-court');
+    const btnApplyHistoryFilter = document.getElementById('btn-apply-history-filter');
+
+    // --- FİKSTÜR DOM ELEMENTLERİ ---
     const filtersContainer = document.getElementById('filters-container');
     const filterDateStart = document.getElementById('filter-date-start');
     const filterDateEnd = document.getElementById('filter-date-end');
     const filterCourt = document.getElementById('filter-court');
     const filterPlayer = document.getElementById('filter-player');
-    const filterStatus = document.getElementById('filter-status'); 
     const applyFiltersBtn = document.getElementById('apply-filters-btn');
     const clearFiltersBtn = document.getElementById('clear-filters-btn');
+
+    const fixtureActiveContainer = document.getElementById('fixture-active-container');
+    const fixturePendingContainer = document.getElementById('fixture-pending-container');
+    const fixtureHistoryContainer = document.getElementById('fixture-history-container');
+
+    // --- EN'LER (BESTS) DOM ELEMENTLERİ ---
+    const bestsContainer = document.getElementById('bests-container');
+    const bestsFilterSelect = document.getElementById('bests-filter-select');
 
     const matchDetailView = document.getElementById('match-detail-view');
     const detailMatchInfo = document.getElementById('detail-match-info');
@@ -122,6 +140,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeChatModal = document.getElementById('close-chat-window');
     const clearChatBtn = document.getElementById('clear-chat-btn'); 
 
+    // --- PROFİL EDİT DOM ---
     const editProfilePhotoInput = document.getElementById('edit-profile-photo');
     const editProfilePreview = document.getElementById('edit-profile-preview');
     const editFullNameInput = document.getElementById('edit-full-name');
@@ -129,8 +148,24 @@ document.addEventListener('DOMContentLoaded', function() {
     const editPhoneNumber = document.getElementById('edit-phone-number');
     const editNotificationPreference = document.getElementById('edit-notification-preference');
     const saveProfileBtn = document.getElementById('save-profile-btn');
-    const requestPermissionBtn = document.getElementById('request-permission-btn');
     const logoutBtnProfile = document.getElementById('logout-btn-profile');
+    
+    // --- YENİ İSTATİSTİK DOM ELEMENTLERİ ---
+    const statsViewPlayerSelect = document.getElementById('stats-view-player-select');
+    const statTotalMatch = document.getElementById('stat-total-match');
+    const statTotalWin = document.getElementById('stat-total-win');
+    const statTotalPointsDisplay = document.getElementById('stat-total-points'); 
+    const chartWinRate = document.getElementById('chart-win-rate');
+    const chartSetRate = document.getElementById('chart-set-rate');
+    const chartGameRate = document.getElementById('chart-game-rate');
+    const barClay = document.getElementById('bar-clay');
+    const valClay = document.getElementById('val-clay');
+    const barHard = document.getElementById('bar-hard');
+    const valHard = document.getElementById('val-hard');
+    const barGrass = document.getElementById('bar-grass');
+    const valGrass = document.getElementById('val-grass');
+    const statFormBadges = document.getElementById('stat-form-badges');
+
 
     const navItems = document.querySelectorAll('.nav-item');
     const tabSections = document.querySelectorAll('.tab-section');
@@ -145,6 +180,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     };
 
+    // Fikstür filtresi için
     const setTodayFilters = () => {
         const today = new Date();
         const yyyy = today.getFullYear();
@@ -155,57 +191,72 @@ document.addEventListener('DOMContentLoaded', function() {
         if(filterDateEnd) filterDateEnd.value = todayStr;
     };
 
-    // --- BİLDİRİM İZNİ VE TOKEN ALMA (DÜZELTİLMİŞ) ---
-    const requestNotificationPermission = async () => {
-        if (!("Notification" in window)) {
-            alert("Hata: Bu tarayıcı bildirimleri desteklemiyor.");
-            return;
-        }
-
-        try {
-            const permission = await Notification.requestPermission();
-            if (permission === 'granted') {
-                console.log('Bildirim izni verildi.');
-                
-                if (!messaging) {
-                    console.error("Messaging nesnesi yok!");
-                    return;
-                }
-
-                // Service Worker'ın hazır olmasını bekle
-                const registration = await navigator.serviceWorker.ready;
-
-                // Token iste (serviceWorkerRegistration parametresi ÖNEMLİ)
-                const currentToken = await messaging.getToken({ 
-                    vapidKey: 'BQPx7cufHZRDDD1mZLyogDwBERxzEwiUowktlBiSp3SHKFs0lm5lRhHAnigIQoT9bEFIHpNMDSjsnrm9RAn5RQ5iP-_nzzAfEk_dMOjof1_D7A', 
-                    serviceWorkerRegistration: registration 
-                });
-
-                if (currentToken) {
-                    console.log('FCM Token:', currentToken);
-                    if (auth.currentUser) {
-                        await db.collection('users').doc(auth.currentUser.uid).update({
-                            fcmToken: currentToken
-                        });
-                        console.log("Token kaydedildi.");
-                    }
-                } else {
-                    console.warn("Token oluşturulamadı.");
-                }
-
-            } else {
-                console.warn("Bildirim izni reddedildi.");
-            }
-        } catch (err) {
-            console.error('Token alma hatası:', err);
-        }
+    // Maçlarım Geçmişi filtresi için
+    const setHistoryTodayFilters = () => {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${yyyy}-${mm}-${dd}`;
+        if(histFilterStart) histFilterStart.value = todayStr;
+        if(histFilterEnd) histFilterEnd.value = todayStr;
     };
 
-    if (messaging) {
-        messaging.onMessage((payload) => {
-            console.log('Ön plan mesajı:', payload);
-            const { title, body } = payload.notification;
-            showNotification(`${title}: ${body}`, 'info');
+    // --- AUTH (GİRİŞ/KAYIT) MANTIĞI ---
+    function switchAuthTab(mode) {
+        isLoginMode = mode === 'login';
+        authError.style.display = 'none';
+        authError.textContent = '';
+        
+        if (isLoginMode) {
+            tabLoginSwitch.classList.add('active');
+            tabRegisterSwitch.classList.remove('active');
+            registerFields.style.display = 'none';
+            authActionBtn.textContent = 'Giriş Yap';
+            if(loginFooterLinks) loginFooterLinks.style.display = 'block';
+        } else {
+            tabRegisterSwitch.classList.add('active');
+            tabLoginSwitch.classList.remove('active');
+            registerFields.style.display = 'block';
+            authActionBtn.textContent = 'Kayıt Ol';
+            if(loginFooterLinks) loginFooterLinks.style.display = 'none';
+        }
+    }
+
+    if (tabLoginSwitch) {
+        tabLoginSwitch.addEventListener('click', () => switchAuthTab('login'));
+        tabRegisterSwitch.addEventListener('click', () => switchAuthTab('register'));
+    }
+
+    // Şifre Sıfırlama Modal İşlemleri
+    if (forgotPasswordLink) {
+        forgotPasswordLink.addEventListener('click', () => {
+            forgotPasswordModal.style.display = 'flex';
+            resetMsg.textContent = '';
+            resetEmailInput.value = emailInput.value || ''; 
+        });
+    }
+
+    if (btnSendResetLink) {
+        btnSendResetLink.addEventListener('click', () => {
+            const email = resetEmailInput.value.trim();
+            if (!email) {
+                resetMsg.textContent = "Lütfen e-posta adresinizi girin.";
+                resetMsg.style.color = "red";
+                return;
+            }
+            
+            auth.sendPasswordResetEmail(email)
+                .then(() => {
+                    resetMsg.textContent = "Sıfırlama bağlantısı gönderildi! E-postanızı kontrol edin.";
+                    resetMsg.style.color = "green";
+                    setTimeout(() => { forgotPasswordModal.style.display = 'none'; }, 3000);
+                })
+                .catch((error) => {
+                    console.error(error);
+                    resetMsg.textContent = "Hata: " + error.message;
+                    resetMsg.style.color = "red";
+                });
         });
     }
 
@@ -355,6 +406,14 @@ document.addEventListener('DOMContentLoaded', function() {
     function fetchUserMap() {
         return db.collection('users').get().then(snapshot => {
             if (filterPlayer) filterPlayer.innerHTML = '<option value="">Tüm Oyuncular</option>';
+            
+            // Stats dropdown temizliği ve tekrar doldurulması
+            if (statsViewPlayerSelect) {
+                 while(statsViewPlayerSelect.options.length > 1) {
+                    statsViewPlayerSelect.remove(1);
+                 }
+            }
+
             snapshot.forEach(doc => {
                 const player = doc.data();
                 userMap[doc.id] = { 
@@ -365,6 +424,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 };
                 if (filterPlayer) {
                     const option = document.createElement('option'); option.value = doc.id; option.textContent = player.isim || player.email; filterPlayer.appendChild(option);
+                }
+                
+                // İstatistik Dropdown'ını doldur (Kendisi hariç)
+                if (statsViewPlayerSelect && doc.id !== auth.currentUser?.uid) {
+                    const opt = document.createElement('option');
+                    opt.value = doc.id;
+                    opt.textContent = player.isim || player.email;
+                    statsViewPlayerSelect.appendChild(opt);
                 }
             });
         });
@@ -384,6 +451,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const playerCard = document.createElement('div');
                 playerCard.className = 'player-card';
+                // Sıralamada karta basınca yine modal açılabilir, hızlı önizleme için
                 playerCard.onclick = () => showPlayerStats(doc.id); 
                 
                 playerCard.innerHTML = `
@@ -406,6 +474,179 @@ document.addEventListener('DOMContentLoaded', function() {
                 rank++;
             });
         }).catch(err => console.log("Sıralama hatası:", err));
+    }
+
+    // --- ORTAK İSTATİSTİK HESAPLAMA MOTORU ---
+    // Bu fonksiyon verilen maç listesine göre en'leri hesaplar.
+    function analyzeStats(matches) {
+        let playerStats = {}; 
+        let courtStats = {};
+
+        // Kullanıcıları başlat
+        Object.keys(userMap).forEach(uid => {
+            playerStats[uid] = { 
+                id: uid, 
+                name: userMap[uid].isim, 
+                points: 0, // Bu maç listesi içindeki performans puanı (Basitçe galibiyet sayısı gibi düşünülebilir veya userMap'ten çekilmez çünkü aylık hesapta sıfırlanmalı)
+                wins: 0, 
+                matches: 0, 
+                setsPlayed: 0, 
+                tieBreakWins: 0,
+                history: [] 
+            };
+        });
+
+        matches.forEach(m => {
+            // Kort İstatistiği
+            if (m.macYeri) {
+                courtStats[m.macYeri] = (courtStats[m.macYeri] || 0) + 1;
+            }
+
+            // Oyuncu İstatistikleri
+            const p1 = m.oyuncu1ID;
+            const p2 = m.oyuncu2ID;
+            const winner = m.kayitliKazananID;
+            let time = m.macZamani ? m.macZamani.seconds : (m.tarih ? m.tarih.seconds : 0);
+
+            [p1, p2].forEach(pid => {
+                if (playerStats[pid]) {
+                    playerStats[pid].matches++;
+                    if (pid === winner) {
+                        playerStats[pid].wins++;
+                        // Aylık hesaplamada "Puan" yerine Galibiyet sayısı baz alınır, çünkü puan kümülatiftir.
+                    }
+                    playerStats[pid].history.push({ time: time, win: (pid === winner) });
+                }
+            });
+
+            // Set ve Tie-Break Analizi
+            if (m.skor) {
+                const s = m.skor;
+                const sets = [
+                    {p1: s.s1_me, p2: s.s1_opp}, {p1: s.s2_me, p2: s.s2_opp}, {p1: s.s3_me, p2: s.s3_opp}
+                ];
+                sets.forEach(set => {
+                    const s1 = parseInt(set.p1||0);
+                    const s2 = parseInt(set.p2||0);
+                    if (s1 + s2 > 0) {
+                        if (playerStats[m.sonucuGirenID]) playerStats[m.sonucuGirenID].setsPlayed++;
+                        const otherId = (m.sonucuGirenID === p1) ? p2 : p1;
+                        if (playerStats[otherId]) playerStats[otherId].setsPlayed++;
+
+                        if ((s1 === 7 && s2 === 6) || (s1 === 6 && s2 === 7)) {
+                            const tbWinner = (s1 === 7) ? m.sonucuGirenID : otherId;
+                            if(playerStats[tbWinner]) playerStats[tbWinner].tieBreakWins++;
+                        }
+                    }
+                });
+            }
+        });
+
+        // En'leri Bul
+        let maxWins = { val: 0, p: null };
+        let maxMatches = { val: 0, p: null };
+        let maxSets = { val: 0, p: null };
+        let maxTB = { val: 0, p: null };
+        let maxStreak = { val: 0, p: null };
+
+        // Puan Lideri: Eğer 'Tüm Zamanlar' ise userMap'teki toplam puan. Eğer aylıksa o ayki galibiyet sayısı.
+        // Ancak 'En'ler' ekranında genellikle 'Ligin Efsanesi' toplam puandır.
+        // Biz burada generic bir obje dönüyoruz.
+        let maxPointsTotal = { val: -99999, p: null };
+
+        // Tüm zamanlar puan liderini userMap'ten bulalım (Aylık filtrede kullanılmaz genelde ama dursun)
+        Object.values(userMap).forEach(u => {
+            if(u.toplamPuan > maxPointsTotal.val) maxPointsTotal = { val: u.toplamPuan, p: u.isim };
+        });
+
+        Object.values(playerStats).forEach(p => {
+            if (p.wins > maxWins.val) maxWins = { val: p.wins, p: p.name };
+            if (p.matches > maxMatches.val) maxMatches = { val: p.matches, p: p.name };
+            if (p.setsPlayed > maxSets.val) maxSets = { val: p.setsPlayed, p: p.name };
+            if (p.tieBreakWins > maxTB.val) maxTB = { val: p.tieBreakWins, p: p.name };
+
+            // Seri Hesaplama
+            if (p.history.length > 0) {
+                p.history.sort((a, b) => a.time - b.time);
+                let currentStreak = 0;
+                let bestStreak = 0;
+                p.history.forEach(h => {
+                    if (h.win) { currentStreak++; if (currentStreak > bestStreak) bestStreak = currentStreak; } 
+                    else { currentStreak = 0; }
+                });
+                if (bestStreak > maxStreak.val) maxStreak = { val: bestStreak, p: p.name };
+            }
+        });
+
+        let bestCourt = { val: 0, name: '-' };
+        Object.keys(courtStats).forEach(c => {
+            if(courtStats[c] > bestCourt.val) bestCourt = { val: courtStats[c], name: c };
+        });
+
+        return { maxPointsTotal, maxWins, maxMatches, maxStreak, maxTB, maxSets, bestCourt };
+    }
+
+    // --- YENİ EN'LER (THE BESTS) FONKSİYONU ---
+    async function loadTheBests(filterType = 'all') {
+        if (!bestsContainer) return;
+        bestsContainer.innerHTML = '<p style="width:100%; text-align:center; color:#777;">Veriler analiz ediliyor... 📊</p>';
+
+        try {
+            const snapshot = await db.collection('matches').where('durum', '==', 'Tamamlandı').get();
+            let matches = [];
+            snapshot.forEach(doc => matches.push(doc.data()));
+
+            // Filtreleme
+            if (filterType === 'month') {
+                const now = new Date();
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                
+                matches = matches.filter(m => {
+                    const d = m.macZamani ? m.macZamani.toDate() : (m.tarih ? m.tarih.toDate() : null);
+                    return d && d >= startOfMonth && d <= endOfMonth;
+                });
+            }
+
+            const stats = analyzeStats(matches);
+
+            // Eğer filtre "Bu Ay" ise, "Ligin Efsanesi" (Toplam Puan) mantıklı değildir, 
+            // bunun yerine o ay en çok kazanan gösterilebilir veya gizlenebilir.
+            // Ancak UI bütünlüğü için "Ligin Efsanesi"ni "Ayın Oyuncusu" (En çok kazanan) olarak değiştirelim.
+            
+            let legendTitle = "Ligin Efsanesi (Puan)";
+            let legendVal = stats.maxPointsTotal.val;
+            let legendName = stats.maxPointsTotal.p;
+
+            if (filterType === 'month') {
+                legendTitle = "Ayın Lideri (Galibiyet)";
+                legendVal = stats.maxWins.val + " Galibiyet";
+                legendName = stats.maxWins.p;
+            }
+
+            const createCard = (icon, title, value, player) => `
+                <div class="best-card">
+                    <span class="best-icon">${icon}</span>
+                    <div class="best-title">${title}</div>
+                    <div class="best-value">${value}</div>
+                    <div class="best-player">${player || '-'}</div>
+                </div>
+            `;
+
+            bestsContainer.innerHTML = `
+                ${createCard('👑', legendTitle, legendVal, legendName)}
+                ${createCard('🦾', 'Galibiyet Makinesi', stats.maxWins.val + " Galibiyet", stats.maxWins.p)}
+                ${createCard('🏃', 'Maratoncu (Maç Sayısı)', stats.maxMatches.val + " Maç", stats.maxMatches.p)}
+                ${createCard('🔥', 'Yenilmezlik Serisi', stats.maxStreak.val + " Maç Üst Üste", stats.maxStreak.p)}
+                ${createCard('🧱', 'Tie-Break Kralı', stats.maxTB.val + " TB Kazandı", stats.maxTB.p)}
+                ${createCard('🥵', 'Set Canavarı', stats.maxSets.val + " Set Oynadı", stats.maxSets.p)}
+                ${createCard('📍', 'En Popüler Kort', stats.bestCourt.val + " Maç", stats.bestCourt.name)}
+            `;
+
+        } catch (error) {
+            console.error("En'ler hatası:", error);
+            bestsContainer.innerHTML = '<p style="text-align:center; color:red;">Veriler yüklenemedi.</p>';
+        }
     }
 
     function loadOpponents() {
@@ -464,40 +705,88 @@ document.addEventListener('DOMContentLoaded', function() {
         return selectedCategory[randomIndex];
     }
 
-    function loadAnnouncements() {
+    async function loadAnnouncements() {
         if(!announcementsContainer) return;
         announcementsContainer.innerHTML = `<p style="text-align:center; color:#999; font-style:italic;">🤖 Veriler analiz ediliyor...</p>`;
-        db.collection('matches').orderBy('tarih', 'desc').limit(15).get().then(snapshot => {
-              announcementsContainer.innerHTML = '';
-              let hasNews = false;
-              snapshot.forEach(doc => {
-                  hasNews = true;
-                  const m = doc.data();
-                  const p1 = userMap[m.oyuncu1ID]?.isim || 'Gizli Oyuncu';
-                  const p2 = m.oyuncu2ID ? (userMap[m.oyuncu2ID]?.isim || 'Rakip') : '???';
-                  const comment = generateAdvancedAIComment(m, p1, p2);
-                  let icon = '🎾';
-                  if (m.durum === 'Acik_Ilan') icon = '📢';
-                  else if (m.durum === 'Tamamlandı') icon = '🏆';
+        
+        try {
+            // 1. Önce Geçen Ayın En'lerini Hesapla ve Ekle
+            const now = new Date();
+            const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const endOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+            
+            // Verimlilik için sadece tarih filtresi yapmadan tamamlananları çekip JS'de filtreliyoruz (Basitlik)
+            const snapAll = await db.collection('matches').where('durum', '==', 'Tamamlandı').get();
+            let prevMonthMatches = [];
+            snapAll.forEach(doc => {
+                const d = doc.data();
+                const date = d.macZamani ? d.macZamani.toDate() : (d.tarih ? d.tarih.toDate() : null);
+                if (date && date >= startOfPrevMonth && date <= endOfPrevMonth) {
+                    prevMonthMatches.push(d);
+                }
+            });
 
-                  let dateStr = '';
-                  if (m.tarih) {
-                      const d = m.tarih.toDate();
-                      dateStr = d.toLocaleDateString('tr-TR');
-                  }
-                  const item = document.createElement('div');
-                  item.style.cssText = 'padding:12px; border-bottom:1px solid #eee; font-size:0.95em; line-height:1.5; animation: fadeIn 0.5s;';
-                  item.innerHTML = `<div style="margin-bottom:4px; display:flex; justify-content:space-between; align-items:center;"><span style="font-size:1.2em;">${icon}</span><span style="font-size:0.75em; color:#bbb;">${dateStr}</span></div><div style="color:#444;">${comment}</div>`;
-                  
-                  const btnDiv = document.createElement('div'); btnDiv.style.marginTop = '8px';
-                  const detailBtn = document.createElement('button'); detailBtn.textContent = 'İncele 🔍';
-                  detailBtn.className = 'btn-chat-small'; detailBtn.style.cssText = 'padding: 5px 12px; font-size: 0.8em; width: auto; margin:0; background-color: #6c757d; border:none; border-radius:15px;';
-                  detailBtn.onclick = function() { returnToTab = 'tab-lobby'; showMatchDetail(doc.id); };
-                  btnDiv.appendChild(detailBtn); item.appendChild(btnDiv);
-                  announcementsContainer.appendChild(item);
-              });
-              if(!hasNews) announcementsContainer.innerHTML = '<p style="text-align:center; color:#777;">Henüz dedikodu yok.</p>';
-          });
+            let prevMonthHTML = '';
+            if (prevMonthMatches.length > 0) {
+                const stats = analyzeStats(prevMonthMatches);
+                const monthName = startOfPrevMonth.toLocaleString('tr-TR', { month: 'long' });
+                
+                if (stats.maxWins.p) {
+                    prevMonthHTML = `
+                        <div class="lobby-card" style="background: linear-gradient(135deg, #ffd700 0%, #fffbe0 100%); border-left: 4px solid #ffc107; margin-bottom:10px;">
+                            <h4 style="color:#b78900; margin-bottom:5px;">🏆 Geçen Ayın En'leri (${monthName})</h4>
+                            <div style="font-size:0.9em; color:#555;">
+                                👑 <strong>${stats.maxWins.p}</strong> (${stats.maxWins.val} Galibiyet)<br>
+                                🔥 <strong>${stats.maxStreak.p}</strong> (${stats.maxStreak.val} Seri)<br>
+                                🏃 <strong>${stats.maxMatches.p}</strong> (${stats.maxMatches.val} Maç)
+                            </div>
+                        </div>
+                    `;
+                }
+            } else {
+                // Geçen ay maç yoksa boş döndür
+                prevMonthHTML = '';
+            }
+
+            // 2. Normal Haber Akışını Çek
+            const snapshot = await db.collection('matches').orderBy('tarih', 'desc').limit(15).get();
+            
+            announcementsContainer.innerHTML = prevMonthHTML; // Önce özel kartı ekle
+            
+            let hasNews = false;
+            snapshot.forEach(doc => {
+                hasNews = true;
+                const m = doc.data();
+                const p1 = userMap[m.oyuncu1ID]?.isim || 'Gizli Oyuncu';
+                const p2 = m.oyuncu2ID ? (userMap[m.oyuncu2ID]?.isim || 'Rakip') : '???';
+                const comment = generateAdvancedAIComment(m, p1, p2);
+                let icon = '🎾';
+                if (m.durum === 'Acik_Ilan') icon = '📢';
+                else if (m.durum === 'Tamamlandı') icon = '🏆';
+
+                let dateStr = '';
+                if (m.tarih) {
+                    const d = m.tarih.toDate();
+                    dateStr = d.toLocaleDateString('tr-TR');
+                }
+                const item = document.createElement('div');
+                item.style.cssText = 'padding:12px; border-bottom:1px solid #eee; font-size:0.95em; line-height:1.5; animation: fadeIn 0.5s;';
+                item.innerHTML = `<div style="margin-bottom:4px; display:flex; justify-content:space-between; align-items:center;"><span style="font-size:1.2em;">${icon}</span><span style="font-size:0.75em; color:#bbb;">${dateStr}</span></div><div style="color:#444;">${comment}</div>`;
+                
+                const btnDiv = document.createElement('div'); btnDiv.style.marginTop = '8px';
+                const detailBtn = document.createElement('button'); detailBtn.textContent = 'İncele 🔍';
+                detailBtn.className = 'btn-chat-small'; detailBtn.style.cssText = 'padding: 5px 12px; font-size: 0.8em; width: auto; margin:0; background-color: #6c757d; border:none; border-radius:15px;';
+                detailBtn.onclick = function() { returnToTab = 'tab-lobby'; showMatchDetail(doc.id); };
+                btnDiv.appendChild(detailBtn); item.appendChild(btnDiv);
+                announcementsContainer.appendChild(item);
+            });
+            
+            if(!hasNews && prevMonthHTML === '') announcementsContainer.innerHTML = '<p style="text-align:center; color:#777;">Henüz dedikodu yok.</p>';
+
+        } catch (error) {
+            console.error("Duyuru hatası:", error);
+            announcementsContainer.innerHTML = '<p style="text-align:center; color:red;">Haberler yüklenemedi.</p>';
+        }
     }
 
     function loadOpenRequests() {
@@ -577,128 +866,461 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) { console.error(error); alert("Hata: Maç kabul edilemedi."); loadOpenRequests(); }
     }
 
-    function loadMatches(filterType) {
-        let targetContainer;
-        if (filterType === 'all_matches') {
-            targetContainer = programListContainer; isReadOnlyView = true;
-            if (filterCourt && filterCourt.options.length === 1) COURT_LIST.forEach(c => { const opt = document.createElement('option'); opt.value = c; opt.textContent = c; filterCourt.appendChild(opt); });
-        } else {
-            targetContainer = userMatchListContainer; activeTabFilter = filterType; isReadOnlyView = false;
-            if (matchTabs) matchTabs.querySelectorAll('.tab-btn').forEach(btn => {
-                    if (btn.getAttribute('data-status') === filterType) { btn.style.backgroundColor = '#333'; btn.style.color = '#fff'; } 
-                    else { btn.style.backgroundColor = ''; btn.style.color = ''; }
-                });
-        }
+    // --- YENİLENMİŞ MAÇ YÜKLEME SİSTEMİ (MAÇLARIM) ---
+    function loadMyMatchesOverview() {
+        if(!myActiveMatchesContainer || !myPendingMatchesContainer || !myHistoryMatchesContainer) return;
+
+        myActiveMatchesContainer.innerHTML = '<p style="text-align:center;">Yükleniyor...</p>';
+        myPendingMatchesContainer.innerHTML = '<p style="text-align:center;">Yükleniyor...</p>';
+        myHistoryMatchesContainer.innerHTML = '<p style="text-align:center;">Yükleniyor...</p>';
+
         const currentUserID = auth.currentUser.uid;
-        let query;
-        switch (filterType) {
-            case 'pending_to_me': query = db.collection('matches').where('oyuncu2ID', '==', currentUserID).where('durum', '==', 'Bekliyor'); break;
-            case 'pending_from_me': query = db.collection('matches').where('oyuncu1ID', '==', currentUserID).where('durum', 'in', ['Bekliyor', 'Acik_Ilan']); break;
-            case 'active': query = db.collection('matches').where('durum', 'in', ['Hazır', 'Sonuç_Bekleniyor']); break;
-            case 'completed': query = db.collection('matches').where('durum', '==', 'Tamamlandı'); break;
-            case 'all_matches': query = db.collection('matches').where('durum', 'in', ['Bekliyor', 'Hazır', 'Sonuç_Bekleniyor', 'Tamamlandı']); break; 
-            default: return;
+        const q1 = db.collection('matches').where('oyuncu1ID', '==', currentUserID).get();
+        const q2 = db.collection('matches').where('oyuncu2ID', '==', currentUserID).get();
+
+        // Geçmiş filtresi için kort listesini doldur
+        if (histFilterCourt && histFilterCourt.options.length === 1) {
+            COURT_LIST.forEach(c => { 
+                const opt = document.createElement('option'); opt.value = c; opt.textContent = c; 
+                histFilterCourt.appendChild(opt); 
+            });
         }
-        query.get().then(snapshot => {
-            if(!targetContainer) return;
-            targetContainer.innerHTML = '';
-            let matchesData = [];
-            snapshot.forEach(doc => {
-                const match = doc.data();
-                if (filterType !== 'all_matches' && (filterType === 'active' || filterType === 'completed')) {
-                    if (match.oyuncu1ID !== currentUserID && match.oyuncu2ID !== currentUserID) return;
-                }
-                if (filterType === 'all_matches') {
-                    const fStart = filterDateStart.value ? new Date(filterDateStart.value) : null;
-                    const fEnd = filterDateEnd.value ? new Date(filterDateEnd.value) : null;
-                    const fCourt = filterCourt.value;
-                    const fPlayer = filterPlayer.value;
-                    const fStatus = filterStatus ? filterStatus.value : '';
-                    if (fStart || fEnd) {
-                        if (!match.macZamani) return;
-                        const d = match.macZamani.toDate();
-                        if (fStart) { fStart.setHours(0,0,0,0); if (d < fStart) return; }
-                        if (fEnd) { fEnd.setHours(23,59,59,999); if (d > fEnd) return; }
-                    }
-                    if (fCourt && match.macYeri !== fCourt) return;
-                    if (fPlayer && match.oyuncu1ID !== fPlayer && match.oyuncu2ID !== fPlayer) return;
-                    if (fStatus && match.durum !== fStatus) return;
-                }
-                matchesData.push({ ...match, id: doc.id });
+
+        Promise.all([q1, q2]).then(snapshots => {
+            let allMatches = [];
+            snapshots.forEach(snap => {
+                snap.forEach(doc => allMatches.push({ ...doc.data(), id: doc.id }));
             });
-            matchesData.sort((a, b) => { const dateA = a.tarih ? a.tarih.seconds : 0; const dateB = b.tarih ? b.tarih.seconds : 0; return dateB - dateA; });
-            if (matchesData.length === 0) { targetContainer.innerHTML = '<p style="text-align:center; color:#777;">Maç bulunamadı.</p>'; return; }
-            matchesData.forEach(match => {
-                let titleHTML = '';
-                if (filterType === 'all_matches') {
-                    const p1 = userMap[match.oyuncu1ID]?.isim || '???'; const p2 = userMap[match.oyuncu2ID]?.isim || '???';
-                    titleHTML = `<strong>${p1}</strong> vs <strong>${p2}</strong>`;
-                } else {
-                    if (match.durum === 'Acik_Ilan') { titleHTML = `<strong>AÇIK İLAN</strong> (Henüz rakip yok)`; } 
-                    else {
-                        const oid = match.oyuncu1ID === currentUserID ? match.oyuncu2ID : match.oyuncu1ID;
-                        const oname = userMap[oid]?.isim || 'Bilinmiyor';
-                        titleHTML = `Rakip: <strong>${oname}</strong>`;
-                    }
-                }
-                let dm = match.durum;
-                let planInfo = "";
-                if (match.macZamani && match.macYeri) {
-                    const d = match.macZamani.toDate().toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit' });
-                    planInfo = `<div class="match-plan-info">📅 ${d} - ${match.macYeri}</div>`;
-                }
-                const card = document.createElement('div'); card.className = 'match-card';
-                card.innerHTML = `<p><strong>${match.macTipi}</strong> | ${dm}</p><p>${titleHTML}</p><p>Bahis: ${match.bahisPuani}</p>${planInfo}<button class="match-action-btn" data-id="${match.id}">Detay</button>`;
-                card.querySelector('.match-action-btn').addEventListener('click', () => { if (filterType === 'all_matches') returnToTab = 'tab-fixture'; else returnToTab = 'tab-matches'; });
-                targetContainer.appendChild(card);
+
+            // Tekrarları temizle
+            allMatches = allMatches.filter((match, index, self) =>
+                index === self.findIndex((t) => (t.id === match.id))
+            );
+
+            // Tarihe göre sırala
+            allMatches.sort((a, b) => { 
+                const dateA = a.tarih ? a.tarih.seconds : 0; 
+                const dateB = b.tarih ? b.tarih.seconds : 0; 
+                return dateB - dateA; 
             });
+
+            const activeMatches = allMatches.filter(m => ['Hazır', 'Sonuç_Bekleniyor'].includes(m.durum));
+            const pendingMatches = allMatches.filter(m => ['Bekliyor', 'Acik_Ilan'].includes(m.durum));
+            const historyMatches = allMatches.filter(m => m.durum === 'Tamamlandı');
+
+            renderMatchSection(activeMatches, myActiveMatchesContainer, 'active');
+            renderMatchSection(pendingMatches, myPendingMatchesContainer, 'pending');
+            // Geçmiş için ilk 10 taneyi gösterelim, filtre ile hepsi taranır
+            renderMatchSection(historyMatches.slice(0, 10), myHistoryMatchesContainer, 'history');
         });
     }
 
-    async function calculatePlayerStats(userId) {
+    function renderMatchSection(matches, container, type) {
+        container.innerHTML = '';
+        if (matches.length === 0) {
+            let msg = 'Maç bulunamadı.';
+            if(type === 'active') msg = '<span style="color:#777; font-style:italic;">Aktif maçınız yok.</span>';
+            if(type === 'pending') msg = '<span style="color:#777; font-style:italic;">Bekleyen teklif yok.</span>';
+            if(type === 'history') msg = '<span style="color:#777; font-style:italic;">Geçmiş maç bulunamadı.</span>';
+            container.innerHTML = `<p style="text-align:center;">${msg}</p>`;
+            return;
+        }
+
+        matches.forEach(match => {
+            const currentUserID = auth.currentUser.uid;
+            let titleHTML = '';
+            
+            if (match.durum === 'Acik_Ilan') { 
+                titleHTML = `<strong>AÇIK İLAN</strong> (Henüz rakip yok)`; 
+            } else {
+                const oid = match.oyuncu1ID === currentUserID ? match.oyuncu2ID : match.oyuncu1ID;
+                const oname = userMap[oid]?.isim || 'Bilinmiyor';
+                titleHTML = `Rakip: <strong>${oname}</strong>`;
+            }
+
+            let dm = match.durum;
+            if(dm === 'Sonuç_Bekleniyor') dm = 'Sonuç Onayı 📝';
+            else if(dm === 'Hazır') dm = 'Oynanıyor/Hazır 🎾';
+            else if(dm === 'Bekliyor') dm = 'Cevap Bekleniyor ⏳';
+
+            let planInfo = "";
+            if (match.macZamani && match.macYeri) {
+                const d = match.macZamani.toDate().toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit' });
+                planInfo = `<div class="match-plan-info">📅 ${d} - ${match.macYeri}</div>`;
+            }
+
+            // Skor Gösterimi
+            let scoreInfo = "";
+            if (match.durum === 'Tamamlandı' && match.skor) {
+                const s = match.skor;
+                scoreInfo = `<div style="font-size:0.85em; color:#333; margin-top:3px;">Skor: ${s.s1_me}-${s.s1_opp}, ${s.s2_me}-${s.s2_opp}</div>`;
+            }
+
+            const card = document.createElement('div'); 
+            card.className = 'match-card';
+            card.innerHTML = `<p><strong>${match.macTipi}</strong> | ${dm}</p><p>${titleHTML}</p>${scoreInfo}<p>Bahis: ${match.bahisPuani}</p>${planInfo}<button class="match-action-btn" data-id="${match.id}">Detay</button>`;
+            
+            card.querySelector('.match-action-btn').addEventListener('click', () => { 
+                returnToTab = 'tab-matches';
+                isReadOnlyView = false;
+                showMatchDetail(match.id); 
+            });
+            container.appendChild(card);
+        });
+    }
+
+    function filterMyHistoryMatches() {
+        const currentUserID = auth.currentUser.uid;
+        myHistoryMatchesContainer.innerHTML = '<p style="text-align:center;">Filtreleniyor...</p>';
+
+        const start = histFilterStart.value ? new Date(histFilterStart.value) : null;
+        const end = histFilterEnd.value ? new Date(histFilterEnd.value) : null;
+        const pName = histFilterPlayerName.value.toLowerCase().trim();
+        const court = histFilterCourt.value;
+
+        // Basitlik için tüm geçmişi çekip JS ile filtreliyoruz
+        const q1 = db.collection('matches').where('oyuncu1ID', '==', currentUserID).where('durum', '==', 'Tamamlandı').get();
+        const q2 = db.collection('matches').where('oyuncu2ID', '==', currentUserID).where('durum', '==', 'Tamamlandı').get();
+
+        Promise.all([q1, q2]).then(snapshots => {
+            let matches = [];
+            snapshots.forEach(snap => snap.forEach(doc => matches.push({ ...doc.data(), id: doc.id })));
+            
+            // Tarih sıralaması
+            matches.sort((a, b) => (b.tarih ? b.tarih.seconds : 0) - (a.tarih ? a.tarih.seconds : 0));
+
+            const filtered = matches.filter(m => {
+                const mDate = m.macZamani ? m.macZamani.toDate() : (m.tarih ? m.tarih.toDate() : null);
+                if (start && (!mDate || mDate < start)) return false;
+                if (end) {
+                    const e = new Date(end); e.setHours(23,59,59);
+                    if (!mDate || mDate > e) return false;
+                }
+                if (court && m.macYeri !== court) return false;
+                if (pName) {
+                    const oid = m.oyuncu1ID === currentUserID ? m.oyuncu2ID : m.oyuncu1ID;
+                    const oname = (userMap[oid]?.isim || '').toLowerCase();
+                    if (!oname.includes(pName)) return false;
+                }
+                return true;
+            });
+
+            renderMatchSection(filtered, myHistoryMatchesContainer, 'history');
+        });
+    }
+
+    // --- FİKSTÜR YÜKLEME FONKSİYONU ---
+    function loadMatchesForFixture() {
+        isReadOnlyView = true;
+        
+        // Containerları Temizle
+        if(fixtureActiveContainer) fixtureActiveContainer.innerHTML = '<p style="text-align:center;">Yükleniyor...</p>';
+        if(fixturePendingContainer) fixturePendingContainer.innerHTML = '<p style="text-align:center;">Yükleniyor...</p>';
+        if(fixtureHistoryContainer) fixtureHistoryContainer.innerHTML = '<p style="text-align:center;">Yükleniyor...</p>';
+
+        // Kort filtresi dolumu
+        if (filterCourt && filterCourt.options.length === 1) {
+            COURT_LIST.forEach(c => { 
+                const opt = document.createElement('option'); opt.value = c; opt.textContent = c; 
+                filterCourt.appendChild(opt); 
+            });
+        }
+
+        // --- 1. SORGULA: AKTİF VE BEKLEYEN (FİLTRESİZ) ---
+        // 'Bekliyor', 'Hazır', 'Sonuç_Bekleniyor' olanları çek
+        db.collection('matches').where('durum', 'in', ['Bekliyor', 'Hazır', 'Sonuç_Bekleniyor']).get().then(snapshot => {
+            let activeMatches = [];
+            let pendingMatches = [];
+
+            snapshot.forEach(doc => {
+                const match = { ...doc.data(), id: doc.id };
+                if (['Hazır', 'Sonuç_Bekleniyor'].includes(match.durum)) {
+                    activeMatches.push(match);
+                } else if (match.durum === 'Bekliyor') {
+                    pendingMatches.push(match);
+                }
+            });
+
+            // Sıralama
+            const sortFn = (a, b) => { 
+                const dateA = a.macZamani ? a.macZamani.seconds : (a.tarih ? a.tarih.seconds : 0); 
+                const dateB = b.macZamani ? b.macZamani.seconds : (b.tarih ? b.tarih.seconds : 0); 
+                return dateB - dateA; 
+            };
+            activeMatches.sort(sortFn);
+            pendingMatches.sort(sortFn);
+
+            // Render
+            renderFixtureSection(activeMatches, fixtureActiveContainer);
+            renderFixtureSection(pendingMatches, fixturePendingContainer);
+        });
+
+        // --- 2. SORGULA: TAMAMLANAN (FİLTRELİ) ---
+        db.collection('matches').where('durum', '==', 'Tamamlandı').get().then(snapshot => {
+            let historyMatches = [];
+            
+            const fStart = filterDateStart.value ? new Date(filterDateStart.value) : null;
+            const fEnd = filterDateEnd.value ? new Date(filterDateEnd.value) : null;
+            const fCourt = filterCourt.value;
+            const fPlayer = filterPlayer.value;
+
+            snapshot.forEach(doc => {
+                const match = doc.data();
+                
+                // --- FİLTRELEME MANTIĞI (Sadece Geçmiş İçin) ---
+                if (fStart || fEnd) {
+                    const d = match.macZamani ? match.macZamani.toDate() : (match.tarih ? match.tarih.toDate() : null);
+                    if (!d) return; 
+                    if (fStart) { fStart.setHours(0,0,0,0); if (d < fStart) return; }
+                    if (fEnd) { fEnd.setHours(23,59,59,999); if (d > fEnd) return; }
+                }
+                if (fCourt && match.macYeri !== fCourt) return;
+                if (fPlayer && match.oyuncu1ID !== fPlayer && match.oyuncu2ID !== fPlayer) return;
+
+                historyMatches.push({ ...match, id: doc.id });
+            });
+
+            // Sıralama
+            historyMatches.sort((a, b) => { 
+                const dateA = a.macZamani ? a.macZamani.seconds : (a.tarih ? a.tarih.seconds : 0); 
+                const dateB = b.macZamani ? b.macZamani.seconds : (b.tarih ? b.tarih.seconds : 0); 
+                return dateB - dateA; 
+            });
+
+            renderFixtureSection(historyMatches, fixtureHistoryContainer);
+        });
+    }
+
+    // Fikstür Kartlarını Oluşturan Yardımcı Fonksiyon
+    function renderFixtureSection(matches, container) {
+        if(!container) return;
+        container.innerHTML = '';
+        
+        if (matches.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:#777; font-size:0.9em; padding:10px;">Veri yok.</p>';
+            return;
+        }
+
+        matches.forEach(match => {
+            const p1 = userMap[match.oyuncu1ID]?.isim || '???';
+            const p2 = match.oyuncu2ID ? (userMap[match.oyuncu2ID]?.isim || '???') : 'Bekleniyor';
+            
+            // Tarih Rozeti
+            let dateBadge = `<div style="background:#f5f5f5; color:#999; padding:5px 10px; border-radius:8px; text-align:center; margin-right:10px; min-width:45px; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                                <div style="font-size:1.2em;">?</div>
+                             </div>`;
+            let timeStr = '';
+
+            if (match.macZamani) {
+                const date = match.macZamani.toDate();
+                const day = date.getDate();
+                const month = date.toLocaleString('tr-TR', { month: 'short' });
+                const time = date.toLocaleString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+                
+                dateBadge = `<div style="background:#e3f2fd; color:#0d47a1; padding:5px 10px; border-radius:8px; text-align:center; margin-right:10px; min-width:45px;"><div style="font-size:0.9em; font-weight:bold;">${day}</div><div style="font-size:0.7em;">${month}</div></div>`;
+                timeStr = `<span style="font-size:0.85em; color:#666; margin-left: 5px;">⏰ ${time}</span>`;
+            }
+
+            // Durum Rengi
+            let statusColor = '#666';
+            let statusText = match.durum;
+            if(match.durum === 'Hazır') { statusText = 'Oynanıyor / Hazır'; statusColor = '#28a745'; }
+            else if(match.durum === 'Bekliyor') { statusText = 'Yanıt Bekliyor'; statusColor = '#ffc107'; }
+            else if(match.durum === 'Tamamlandı') { statusText = 'Tamamlandı'; statusColor = '#6c757d'; }
+            else if(match.durum === 'Sonuç_Bekleniyor') { statusText = 'Sonuç Onayı'; statusColor = '#17a2b8'; }
+
+            // Skor HTML
+            let scoreHTML = '';
+            if(match.durum === 'Tamamlandı' && match.skor) {
+                const s = match.skor;
+                let s3Txt = (s.s3_me || s.s3_opp) ? `, ${s.s3_me}-${s.s3_opp}` : '';
+                scoreHTML = `<div style="margin-top:5px; font-size:0.85em; color:#333; font-weight:bold; background:#f8f9fa; padding:2px 5px; border-radius:4px; display:inline-block;">
+                                🏁 ${s.s1_me}-${s.s1_opp}, ${s.s2_me}-${s.s2_opp}${s3Txt}
+                             </div>`;
+            }
+
+            const courtInfo = match.macYeri ? `<div style="font-size:0.85em; color:#555; margin-top:2px;">📍 ${match.macYeri}</div>` : '';
+
+            const card = document.createElement('div');
+            card.className = 'match-card';
+            card.style.display = 'flex';
+            card.style.alignItems = 'center';
+            
+            card.innerHTML = `
+                ${dateBadge}
+                <div style="flex:1;">
+                    <div style="font-size:0.75em; color:${statusColor}; font-weight:bold; text-transform:uppercase; margin-bottom:2px;">${statusText}</div>
+                    <div style="font-weight:600; font-size:0.95em; color:#333; line-height:1.2;">
+                        ${p1} <span style="color:#999; font-weight:normal;">vs</span> ${p2}
+                    </div>
+                    ${scoreHTML}
+                    ${courtInfo}
+                    ${timeStr}
+                </div>
+                <button class="match-action-btn" data-id="${match.id}">Detay</button>
+            `;
+
+            card.querySelector('.match-action-btn').addEventListener('click', () => { 
+                returnToTab = 'tab-fixture'; 
+                showMatchDetail(match.id); 
+            });
+
+            container.appendChild(card);
+        });
+    }
+
+    // --- YENİ GELİŞMİŞ İSTATİSTİK HESAPLAMA SİSTEMİ ---
+    async function calculateAdvancedStats(userId) {
         const q1 = db.collection('matches').where('oyuncu1ID', '==', userId).where('durum', '==', 'Tamamlandı').get();
         const q2 = db.collection('matches').where('oyuncu2ID', '==', userId).where('durum', '==', 'Tamamlandı').get();
         const [s1, s2] = await Promise.all([q1, q2]);
-        let matches = []; s1.forEach(d=>matches.push(d.data())); s2.forEach(d=>matches.push(d.data()));
-        let stats = { matchesPlayed: 0, matchesWon: 0, setsPlayed: 0, setsWon: 0, gamesPlayed: 0, gamesWon: 0 };
-        matches.forEach(m => {
-            stats.matchesPlayed++; if (m.kayitliKazananID === userId) stats.matchesWon++;
+        
+        let allMatches = []; 
+        s1.forEach(d => allMatches.push({ ...d.data(), id: d.id })); 
+        s2.forEach(d => allMatches.push({ ...d.data(), id: d.id }));
+        
+        // Tarihe göre sırala (Form durumu için)
+        allMatches.sort((a, b) => { 
+            const tA = a.tarih ? a.tarih.seconds : 0; 
+            const tB = b.tarih ? b.tarih.seconds : 0; 
+            return tB - tA; 
+        });
+
+        let stats = {
+            played: 0, won: 0,
+            setsPlayed: 0, setsWon: 0,
+            gamesPlayed: 0, gamesWon: 0,
+            clay: { played: 0, won: 0 },
+            hard: { played: 0, won: 0 },
+            grass: { played: 0, won: 0 },
+            form: []
+        };
+
+        allMatches.forEach(m => {
+            stats.played++;
+            const isWinner = m.kayitliKazananID === userId;
+            if (isWinner) stats.won++;
+
+            // Form (W/L) - Son 5 maç
+            if(stats.form.length < 5) stats.form.push(isWinner ? 'W' : 'L');
+
+            // Kort Tipi Analizi
+            let surface = 'other';
+            const venue = (m.macYeri || '').toLowerCase();
+            if(venue.includes('meşeli') || venue.includes('podyum') || venue.includes('toprak')) surface = 'clay';
+            else if(venue.includes('sert') || venue.includes('esas') || venue.includes('hard') || venue.includes('akademi')) surface = 'hard';
+            else if(venue.includes('çim') || venue.includes('grass')) surface = 'grass';
+            
+            if(surface !== 'other') {
+                stats[surface].played++;
+                if(isWinner) stats[surface].won++;
+            }
+
+            // Set ve Oyun İstatistikleri
             if (m.skor) {
-                const s = m.skor; const isRep = m.sonucuGirenID === userId;
-                const sets = [{p1:s.s1_me, p2:s.s1_opp}, {p1:s.s2_me, p2:s.s2_opp}, {p1:s.s3_me, p2:s.s3_opp, tb:true}];
+                const s = m.skor; 
+                // Skoru veritabanına kaydeden kişiye göre (sonucuGirenID) bizim skorları ayırt et
+                const isMyInput = (m.sonucuGirenID === userId);
+                
+                const sets = [
+                    {p1: s.s1_me, p2: s.s1_opp}, 
+                    {p1: s.s2_me, p2: s.s2_opp}, 
+                    {p1: s.s3_me, p2: s.s3_opp, tb: true}
+                ];
+
                 sets.forEach(set => {
-                    let mg = isRep ? parseInt(set.p1||0) : parseInt(set.p2||0);
-                    let og = isRep ? parseInt(set.p2||0) : parseInt(set.p1||0);
-                    if(mg+og > 0) {
-                        stats.setsPlayed++; if(mg > og) stats.setsWon++;
-                        if(!set.tb) { stats.gamesPlayed += mg+og; stats.gamesWon += mg; }
+                    // Eğer sonucu giren bizsek p1 bizim, p2 rakibin. Değilse tam tersi.
+                    // Fakat buradaki mantık daha basit: maçın oyuncuları içinde hangisiyiz?
+                    // Firebase skor yapısında sX_me her zaman sonucu girene aittir.
+                    // Bu yüzden şu kontrolü yapıyoruz:
+                    let myG, opG;
+                    
+                    if (m.sonucuGirenID === userId) {
+                        myG = parseInt(set.p1 || 0);
+                        opG = parseInt(set.p2 || 0);
+                    } else {
+                        // Sonucu rakip girdiyse, 'me' rakip, 'opp' biziz.
+                        myG = parseInt(set.p2 || 0);
+                        opG = parseInt(set.p1 || 0);
+                    }
+                    
+                    if(myG + opG > 0) {
+                        stats.setsPlayed++;
+                        if(myG > opG) stats.setsWon++;
+                        
+                        if(!set.tb) { // Tie-break dışındaki oyunları say
+                            stats.gamesPlayed += (myG + opG);
+                            stats.gamesWon += myG;
+                        }
                     }
                 });
             }
         });
+
         return stats;
     }
 
-    async function calculateHeadToHead(myId, opponentId) {
-        if (myId === opponentId) return null;
-        const q1 = db.collection('matches').where('oyuncu1ID', '==', myId).where('oyuncu2ID', '==', opponentId).where('durum', '==', 'Tamamlandı').get();
-        const q2 = db.collection('matches').where('oyuncu1ID', '==', opponentId).where('oyuncu2ID', '==', myId).where('durum', '==', 'Tamamlandı').get();
-        const [snap1, snap2] = await Promise.all([q1, q2]);
-        let myWins = 0; let oppWins = 0;
-        const processMatch = (doc) => { const m = doc.data(); if (m.kayitliKazananID === myId) myWins++; else if (m.kayitliKazananID === opponentId) oppWins++; };
-        snap1.forEach(processMatch); snap2.forEach(processMatch);
-        return { myWins, oppWins };
+    async function updateStatsView(targetUserId) {
+        if(!targetUserId) targetUserId = auth.currentUser.uid;
+        
+        // UI Temizle / Yükleniyor
+        statFormBadges.innerHTML = '...';
+        
+        const user = userMap[targetUserId];
+        const stats = await calculateAdvancedStats(targetUserId);
+
+        // Özet Kartlar
+        statTotalMatch.textContent = stats.played;
+        statTotalWin.textContent = stats.won;
+        statTotalPointsDisplay.textContent = user ? user.toplamPuan : 0;
+
+        // Dairesel Grafikler (CSS Variables Update)
+        const winRate = stats.played > 0 ? Math.round((stats.won / stats.played) * 100) : 0;
+        const setRate = stats.setsPlayed > 0 ? Math.round((stats.setsWon / stats.setsPlayed) * 100) : 0;
+        const gameRate = stats.gamesPlayed > 0 ? Math.round((stats.gamesWon / stats.gamesPlayed) * 100) : 0;
+
+        updateCircleChart(chartWinRate, winRate);
+        updateCircleChart(chartSetRate, setRate);
+        updateCircleChart(chartGameRate, gameRate);
+
+        // Bar Grafikler (Kort Performansı)
+        updateBarChart(barClay, valClay, stats.clay);
+        updateBarChart(barHard, valHard, stats.hard);
+        updateBarChart(barGrass, valGrass, stats.grass);
+
+        // Form Rozetleri
+        statFormBadges.innerHTML = '';
+        if(stats.form.length === 0) {
+            statFormBadges.innerHTML = '<span style="font-size:0.8em; color:#999;">Veri yok</span>';
+        } else {
+            stats.form.forEach(res => {
+                const b = document.createElement('div');
+                b.className = `form-badge ${res==='W'?'form-w':'form-l'}`;
+                b.textContent = res === 'W' ? 'G' : 'M';
+                statFormBadges.appendChild(b);
+            });
+        }
     }
 
-    async function getPlayerForm(userId) {
-        const q1 = db.collection('matches').where('oyuncu1ID', '==', userId).where('durum', '==', 'Tamamlandı').get();
-        const q2 = db.collection('matches').where('oyuncu2ID', '==', userId).where('durum', '==', 'Tamamlandı').get();
-        const [s1, s2] = await Promise.all([q1, q2]);
-        let allMatches = []; s1.forEach(d => allMatches.push({ ...d.data(), id: d.id })); s2.forEach(d => allMatches.push({ ...d.data(), id: d.id }));
-        allMatches.sort((a, b) => { const tA = a.tarih ? a.tarih.seconds : 0; const tB = b.tarih ? b.tarih.seconds : 0; return tB - tA; });
-        return allMatches.slice(0, 5).map(m => { return m.kayitliKazananID === userId ? 'G' : 'M'; });
+    function updateCircleChart(el, percent) {
+        el.style.setProperty('--p', percent);
+        el.querySelector('span').textContent = `%${percent}`;
     }
 
+    function updateBarChart(barEl, valEl, data) {
+        const rate = data.played > 0 ? Math.round((data.won / data.played) * 100) : 0;
+        barEl.style.width = `${rate}%`;
+        valEl.textContent = `%${rate}`;
+    }
+
+    if(statsViewPlayerSelect) {
+        statsViewPlayerSelect.addEventListener('change', (e) => {
+            const val = e.target.value;
+            updateStatsView(val === 'me' ? auth.currentUser.uid : val);
+        });
+    }
+
+    // --- ESKİ MODAL İSTATİSTİK GÖSTERİMİ (Korundu) ---
     async function showPlayerStats(userId) {
         try {
             const u = userMap[userId]; if(!u) return;
@@ -709,24 +1331,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 else { startChatBtn.style.display = 'block'; startChatBtn.onclick = () => openChat(userId, u.isim); }
             }
             playerStatsModal.style.display = 'flex'; 
-            const stats = await calculatePlayerStats(userId);
-            const matchRate = stats.matchesPlayed > 0 ? ((stats.matchesWon / stats.matchesPlayed) * 100).toFixed(0) : 0;
+            
+            // Modal için de yeni gelişmiş hesaplamayı kullan
+            const stats = await calculateAdvancedStats(userId);
+            const matchRate = stats.played > 0 ? ((stats.won / stats.played) * 100).toFixed(0) : 0;
             const setRate = stats.setsPlayed > 0 ? ((stats.setsWon / stats.setsPlayed) * 100).toFixed(0) : 0;
             const gameRate = stats.gamesPlayed > 0 ? ((stats.gamesWon / stats.gamesPlayed) * 100).toFixed(0) : 0;
+            
             document.getElementById('pie-match-chart').style.setProperty('--p', matchRate); document.getElementById('text-match-rate').textContent = `%${matchRate}`;
             document.getElementById('pie-set-chart').style.setProperty('--p', setRate); document.getElementById('text-set-rate').textContent = `%${setRate}`;
             document.getElementById('pie-game-chart').style.setProperty('--p', gameRate); document.getElementById('text-game-rate').textContent = `%${gameRate}`;
+            
             const h2hBox = document.getElementById('stats-h2h-box');
             if (userId !== auth.currentUser.uid) {
-                h2hBox.style.display = 'block'; h2hBox.innerHTML = 'H2H Hesaplanıyor...';
-                const h2h = await calculateHeadToHead(auth.currentUser.uid, userId);
-                h2hBox.innerHTML = `🆚 Aramızdaki Maçlar: <span style="color:#28a745">Sen ${h2h.myWins}</span> - <span style="color:#dc3545">${h2h.oppWins} Rakip</span>`;
+                // H2H hesaplaması modalda kalabilir
+                h2hBox.style.display = 'block'; h2hBox.innerHTML = 'Aramızdaki Maçlar Yükleniyor...';
+                // H2H fonksiyonu basitçe burada inline hesaplanabilir veya eski fonksiyon kullanılabilir.
+                // Veri tutarlılığı için basit bir sorgu:
+                const myId = auth.currentUser.uid;
+                const q1 = db.collection('matches').where('oyuncu1ID', '==', myId).where('oyuncu2ID', '==', userId).where('durum', '==', 'Tamamlandı').get();
+                const q2 = db.collection('matches').where('oyuncu1ID', '==', userId).where('oyuncu2ID', '==', myId).where('durum', '==', 'Tamamlandı').get();
+                Promise.all([q1, q2]).then(([s1, s2]) => {
+                    let myWins = 0, oppWins = 0;
+                    const proc = (d) => { if(d.data().kayitliKazananID === myId) myWins++; else oppWins++; };
+                    s1.forEach(proc); s2.forEach(proc);
+                    h2hBox.innerHTML = `🆚 Aramızdaki Maçlar: <span style="color:#28a745">Sen ${myWins}</span> - <span style="color:#dc3545">${oppWins} Rakip</span>`;
+                });
             } else { h2hBox.style.display = 'none'; }
-            const formContainer = document.getElementById('stats-form-badges'); formContainer.innerHTML = '<span style="color:#999;">Yükleniyor...</span>';
-            const last5Form = await getPlayerForm(userId);
+
+            const formContainer = document.getElementById('stats-form-badges'); 
             formContainer.innerHTML = '';
-            if (last5Form.length === 0) { formContainer.innerHTML = '<span style="font-size:0.8em; color:#999;">Henüz maç yok</span>'; } else {
-                last5Form.forEach(result => { const badge = document.createElement('div'); badge.className = `form-badge ${result === 'G' ? 'form-w' : 'form-l'}`; badge.textContent = result; formContainer.appendChild(badge); });
+            if (stats.form.length === 0) { formContainer.innerHTML = '<span style="font-size:0.8em; color:#999;">Henüz maç yok</span>'; } else {
+                stats.form.forEach(result => { const badge = document.createElement('div'); badge.className = `form-badge ${result === 'W' ? 'form-w' : 'form-l'}`; badge.textContent = result === 'W' ? 'G' : 'M'; formContainer.appendChild(badge); });
             }
         } catch (error) { console.error("İstatistik hatası:", error); document.getElementById('stats-form-badges').innerHTML = '<span style="color:red; font-size:0.8em;">Veri alınamadı</span>'; }
     }
@@ -839,14 +1475,14 @@ document.addEventListener('DOMContentLoaded', function() {
             navItems.forEach(n => n.classList.remove('active'));
             const navItem = document.querySelector(`.nav-item[data-target="${returnToTab}"]`);
             if(navItem) navItem.classList.add('active');
-            if (returnToTab === 'tab-matches') loadMatches(activeTabFilter);
-            if (returnToTab === 'tab-fixture') loadMatches('all_matches');
+            if (returnToTab === 'tab-matches') loadMyMatchesOverview();
+            if (returnToTab === 'tab-fixture') loadMatchesForFixture();
             returnToTab = null;
         } else {
             document.querySelector('.tab-section[style*="block"]').style.display = 'block'; 
             if ([...tabSections].every(s => s.style.display === 'none')) {
                 document.getElementById('tab-matches').style.display = 'block';
-                loadMatches(activeTabFilter);
+                loadMyMatchesOverview();
             }
         }
     }
@@ -906,11 +1542,13 @@ document.addEventListener('DOMContentLoaded', function() {
             navItems.forEach(n => n.classList.remove('active')); document.querySelector('[data-target="tab-lobby"]').classList.add('active');
 
             fetchUserMap().then(() => { 
-                loadLeaderboard(); loadOpponents(); loadMatches('pending_to_me'); loadOpenRequests();
+                loadLeaderboard(); loadOpponents(); loadMyMatchesOverview(); loadOpenRequests();
                 loadScheduledMatches(); loadAnnouncements(); setupNotifications(user.uid); 
-                requestNotificationPermission(); // Token alma işlemi
             });
-        } else { authScreen.style.display = 'flex'; mainApp.style.display = 'none'; listeners.forEach(u=>u()); }
+        } else { 
+            authScreen.style.display = 'flex'; mainApp.style.display = 'none'; listeners.forEach(u=>u());
+            switchAuthTab('login');
+        }
     });
 
     navItems.forEach(item => {
@@ -920,56 +1558,95 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById(targetId).style.display = 'block';
             navItems.forEach(nav => nav.classList.remove('active'));
             item.classList.add('active');
-            if (targetId === 'tab-fixture') { setTodayFilters(); loadMatches('all_matches'); }
-            else if (targetId === 'tab-matches') { loadMatches(activeTabFilter); }
+
+            if (targetId === 'tab-stats') {
+                updateStatsView(auth.currentUser.uid);
+            }
+            else if (targetId === 'tab-fixture') { setTodayFilters(); loadMatchesForFixture(); }
+            else if (targetId === 'tab-matches') { setHistoryTodayFilters(); loadMyMatchesOverview(); }
+            else if (targetId === 'tab-bests') { loadTheBests(bestsFilterSelect.value); }
             else if (targetId === 'tab-chat') { loadChatList(); }
             else if (targetId === 'tab-rankings') { loadLeaderboard(); }
             else if (targetId === 'tab-lobby') { loadOpenRequests(); loadScheduledMatches(); loadAnnouncements(); }
             else if (targetId === 'tab-profile') {
                 const u = userMap[auth.currentUser.uid];
                 if(u) {
-                    document.getElementById('edit-full-name').value = u.isim || ''; 
-                    document.getElementById('edit-phone-number').value = u.telefon || ''; 
-                    document.getElementById('edit-court-preference').value = u.kortTercihi || 'Her İkisi'; 
+                    editFullNameInput.value = u.isim || ''; 
+                    editPhoneNumber.value = u.telefon || ''; 
+                    editCourtPreference.value = u.kortTercihi || 'Her İkisi'; 
                     if(editNotificationPreference) editNotificationPreference.value = u.bildirimTercihi || 'ses';
-                    if(document.getElementById('edit-profile-preview')) document.getElementById('edit-profile-preview').src = u.fotoURL || 'https://via.placeholder.com/100';
-                    (async () => {
-                       const stats = await calculatePlayerStats(auth.currentUser.uid);
-                       const matchRate = stats.matchesPlayed > 0 ? ((stats.matchesWon / stats.matchesPlayed) * 100).toFixed(0) : 0;
-                       const setRate = stats.setsPlayed > 0 ? ((stats.setsWon / stats.setsPlayed) * 100).toFixed(0) : 0;
-                       const gameRate = stats.gamesPlayed > 0 ? ((stats.gamesWon / stats.gamesPlayed) * 100).toFixed(0) : 0;
-                       document.getElementById('my-stats-points').textContent = u.toplamPuan; document.getElementById('my-stats-matches').textContent = stats.matchesPlayed;
-                       document.getElementById('my-stats-winrate').textContent = `%${matchRate}`; document.getElementById('my-stats-setrate').textContent = `%${setRate}`;
-                       document.getElementById('my-stats-gamerate').textContent = `%${gameRate}`;
-                    })();
+                    if(editProfilePreview) editProfilePreview.src = u.fotoURL || 'https://via.placeholder.com/100';
                 }
             }
         });
     });
 
-    if(toggleAuthModeBtn) toggleAuthModeBtn.addEventListener('click', ()=>{ isLoginMode=!isLoginMode; document.getElementById('register-fields').style.display=isLoginMode?'none':'block'; loginBtn.style.display=isLoginMode?'block':'none'; registerBtn.style.display=isLoginMode?'none':'block'; });
-    if(userMatchListContainer) userMatchListContainer.addEventListener('click', e => { if (e.target.classList.contains('match-action-btn')) showMatchDetail(e.target.getAttribute('data-id')); });
-    if(programListContainer) programListContainer.addEventListener('click', e => { if (e.target.classList.contains('match-action-btn')) showMatchDetail(e.target.getAttribute('data-id')); });
-    if(matchTabs) matchTabs.addEventListener('click', e=>{ if(e.target.classList.contains('tab-btn')) loadMatches(e.target.getAttribute('data-status')); });
-    if(requestPermissionBtn) requestPermissionBtn.addEventListener('click', requestNotificationPermission);
+    // --- GÜNCELLENEN EVENT LISTENERLAR ---
+    if(btnApplyHistoryFilter) btnApplyHistoryFilter.addEventListener('click', filterMyHistoryMatches);
+    if(bestsFilterSelect) bestsFilterSelect.addEventListener('change', (e) => loadTheBests(e.target.value));
+
+    // Diğer Event Listenerlar
     if(saveProfileBtn) saveProfileBtn.addEventListener('click', async ()=>{ 
         const f=editProfilePhotoInput.files[0]; let url=userMap[auth.currentUser.uid].fotoURL; if(f) url=await convertToBase64(f);
         await db.collection('users').doc(auth.currentUser.uid).update({isim:editFullNameInput.value, telefon:editPhoneNumber.value, kortTercihi:editCourtPreference.value, bildirimTercihi:editNotificationPreference.value, fotoURL:url});
         alert("Güncellendi!"); location.reload(); 
     });
+    
     document.querySelectorAll('.close-modal').forEach(b=>b.onclick=function(){this.closest('.modal').style.display='none'});
     window.onclick=e=>{if(e.target.classList.contains('modal'))e.target.style.display='none'};
+    
     if(btnShowCreateAd) btnShowCreateAd.addEventListener('click', () => { createAdForm.style.display='block'; challengeForm.style.display='none'; });
     if(btnShowSpecificChallenge) btnShowSpecificChallenge.addEventListener('click', () => { challengeForm.style.display='block'; createAdForm.style.display='none'; });
     matchTypeSelect.addEventListener('change', e=>{wagerPointsInput.style.display=e.target.value==='Meydan Okuma'?'block':'none'});
     adMatchTypeSelect.addEventListener('change', e=>{adWagerPointsInput.style.display=e.target.value==='Meydan Okuma'?'block':'none'});
     backToListBtn.addEventListener('click', goBackToList);
-    if(loginBtn) loginBtn.addEventListener('click', ()=>{auth.signInWithEmailAndPassword(emailInput.value, passwordInput.value).catch(e=>authError.textContent=e.message)});
-    if(registerBtn) registerBtn.addEventListener('click', async ()=>{ 
-        try { const c = await auth.createUserWithEmailAndPassword(emailInput.value, passwordInput.value); 
-        let url=null; if(profilePhotoInput.files[0]) url=await convertToBase64(profilePhotoInput.files[0]);
-        await db.collection('users').doc(c.user.uid).set({email:emailInput.value, isim:fullNameInput.value, kortTercihi:courtPreferenceSelect.value, telefon:phoneNumberInput.value, fotoURL:url, toplamPuan:1000, bildirimTercihi:'ses', macSayisi:0, galibiyetSayisi:0, kayitTari:firebase.firestore.FieldValue.serverTimestamp()}); } catch(e){authError.textContent=e.message;} 
-    });
+
+    // --- ANA GİRİŞ/KAYIT BUTONU ---
+    if (authActionBtn) {
+        authActionBtn.addEventListener('click', async () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            
+            if (!email || !password) {
+                authError.textContent = "E-posta ve şifre zorunludur.";
+                authError.style.display = 'block';
+                return;
+            }
+
+            if (isLoginMode) {
+                // GİRİŞ YAP
+                auth.signInWithEmailAndPassword(email, password)
+                    .catch(e => {
+                        authError.style.display = 'block';
+                        authError.textContent = "Giriş Hatası: " + e.message;
+                    });
+            } else {
+                // KAYIT OL
+                try {
+                    const c = await auth.createUserWithEmailAndPassword(email, password);
+                    let url = null;
+                    if(profilePhotoInput.files[0]) url = await convertToBase64(profilePhotoInput.files[0]);
+                    
+                    await db.collection('users').doc(c.user.uid).set({
+                        email: email,
+                        isim: fullNameInput.value || email.split('@')[0],
+                        kortTercihi: courtPreferenceSelect.value || 'Farketmez',
+                        telefon: phoneNumberInput.value || '',
+                        fotoURL: url,
+                        toplamPuan: 1000,
+                        bildirimTercihi: 'ses',
+                        macSayisi: 0,
+                        galibiyetSayisi: 0,
+                        kayitTari: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                } catch(e) {
+                    authError.style.display = 'block';
+                    authError.textContent = "Kayıt Hatası: " + e.message;
+                }
+            }
+        });
+    }
+
     submitChallengeBtn.addEventListener('click', async ()=>{ 
         const oid=opponentSelect.value, mt=matchTypeSelect.value; let wp=parseInt(wagerPointsInput.value);
         if(!oid) return alert("Rakip seç!");
@@ -990,8 +1667,8 @@ document.addEventListener('DOMContentLoaded', function() {
         await db.collection('matches').add({ oyuncu1ID: auth.currentUser.uid, oyuncu2ID: null, macTipi: mt, bahisPuani: wp || 0, durum: 'Acik_Ilan', tarih: firebase.firestore.FieldValue.serverTimestamp(), kayitliKazananID: null });
         alert("İlan yayınlandı!"); createAdForm.style.display = 'none'; loadOpenRequests(); document.querySelector('[data-target="tab-lobby"]').click(); 
     });
-    if(applyFiltersBtn) applyFiltersBtn.addEventListener('click', () => loadMatches('all_matches'));
-    if(clearFiltersBtn) clearFiltersBtn.addEventListener('click', () => { filterDateStart.value = ''; filterDateEnd.value = ''; filterCourt.value = ''; filterPlayer.value = ''; if(filterStatus) filterStatus.value = ''; loadMatches('all_matches'); });
+    if(applyFiltersBtn) applyFiltersBtn.addEventListener('click', () => loadMatchesForFixture());
+    if(clearFiltersBtn) clearFiltersBtn.addEventListener('click', () => { filterDateStart.value = ''; filterDateEnd.value = ''; filterCourt.value = ''; filterPlayer.value = ''; loadMatchesForFixture(); });
     if(logoutBtnProfile) logoutBtnProfile.addEventListener('click', ()=> { if(confirm("Çıkış yapmak istediğinize emin misiniz?")) { auth.signOut(); window.location.reload(); } });
     if (profilePhotoInput) { profilePhotoInput.addEventListener('change', async (e) => { const file = e.target.files[0]; if(file) { const base64 = await convertToBase64(file); if(profilePreview) profilePreview.src = base64; } }); }
     if (editProfilePhotoInput) { editProfilePhotoInput.addEventListener('change', async (e) => { const file = e.target.files[0]; if(file) { const base64 = await convertToBase64(file); if(editProfilePreview) editProfilePreview.src = base64; } }); }
