@@ -494,6 +494,22 @@
             <div id="schedule-input-section" style="display:none;">...</div>
             <div id="score-input-section" style="display:none;">...</div>
             <div id="score-display-section" style="display:none;"></div>
+            <div id="photo-upload-area" style="display:none; background:#f1f3f5; padding:15px; margin-top:15px; border-radius:10px; border:1px solid #e9ecef;">
+    <h4 style="margin-top:0; margin-bottom:10px; font-size:0.95em; color:#444;">📸 Maç Fotoğrafı</h4>
+    
+    <img id="current-match-photo-display" src="" style="width:100%; max-height:200px; object-fit:cover; border-radius:8px; display:none; margin-bottom:10px;">
+
+    <div style="display:flex; flex-direction:column; gap:10px;">
+        <label for="standalone-photo-input" style="cursor:pointer; color:#007bff; font-weight:bold; font-size:0.9em;">
+            + Fotoğraf Seç / Değiştir
+        </label>
+        <input type="file" id="standalone-photo-input" accept="image/*" style="display:none;">
+        
+        <img id="standalone-photo-preview" style="width:100px; height:100px; object-fit:cover; border-radius:5px; display:none; border:2px solid #ddd;">
+        
+        <button id="btn-save-photo-only" class="btn-save" style="width:100%; margin-top:5px; background-color:#17a2b8;">Fotoğrafı Kaydet 💾</button>
+    </div>
+</div>
 
             <div id="match-interactions-container" style="margin-top: 20px; display:none;">
                 
