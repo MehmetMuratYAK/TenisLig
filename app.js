@@ -237,61 +237,78 @@ const getPlayerLeague = (points) => {
 
     // --- YARDIMCI FONKSİYONLAR ---
 
-    // SIKIŞTIRMA VE CONVERT FONKSİYONU
-  // SIKIŞTIRMA VE CONVERT FONKSİYONU (GÜNCELLENMİŞ VERSİYON)
-    const compressAndConvertToBase64 = (file, maxWidth = 800, quality = 0.8) => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
+// --- YENİ VE GELİŞMİŞ SIKIŞTIRMA FONKSİYONU ---
+// Bu fonksiyon fotoğrafı alır, yeniden boyutlandırır ve 
+// 1 MB (Firestore sınırı) altına inene kadar sıkıştırır.
+const compressAndConvertToBase64 = (file, targetWidth = 1000) => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
             
-            reader.onload = (event) => {
-                const img = new Image();
-                img.src = event.target.result;
-                
-                img.onload = () => {
-                    try {
-                        const elem = document.createElement('canvas');
-                        let width = img.width;
-                        let height = img.height;
-                        
-                        // Boyut Hesaplama
-                        if (width > maxWidth) {
-                            height = height * (maxWidth / width);
-                            width = maxWidth;
-                        }
-                        
-                        elem.width = width;
-                        elem.height = height;
-                        
-                        const ctx = elem.getContext('2d');
-                        if (!ctx) {
-                            reject(new Error("Canvas context oluşturulamadı. Tarayıcı desteklemiyor olabilir."));
-                            return;
-                        }
-
-                        ctx.drawImage(img, 0, 0, width, height);
-                        
-                        // Data URL oluşturma
-                        const data = ctx.toDataURL('image/jpeg', quality);
-                        resolve(data);
-                    } catch (error) {
-                        console.error("Görsel işleme hatası:", error);
-                        reject(error);
+            img.onload = () => {
+                try {
+                    const elem = document.createElement('canvas');
+                    
+                    // Boyut Orantılama (Aspect Ratio koruma)
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    // Eğer resim çok devasa ise önce genişliğini targetWidth'e (örn: 1000px) çekiyoruz.
+                    // 1000px mobil cihazlarda tam ekran görüntüleme için gayet yeterli ve nettir.
+                    if (width > targetWidth) {
+                        height = height * (targetWidth / width);
+                        width = targetWidth;
                     }
-                };
-                
-                img.onerror = (error) => {
-                    console.error("Görsel yükleme hatası:", error);
+                    
+                    elem.width = width;
+                    elem.height = height;
+                    
+                    const ctx = elem.getContext('2d');
+                    if (!ctx) {
+                        reject(new Error("Canvas oluşturulamadı."));
+                        return;
+                    }
+
+                    // Yumuşatma ayarı (daha iyi görüntü için)
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // --- AKILLI SIKIŞTIRMA DÖNGÜSÜ ---
+                    let quality = 0.9; // %90 kalite ile başla
+                    let dataUrl = ctx.toDataURL('image/jpeg', quality);
+                    
+                    // Firestore sınırı yaklaşık 1.048.576 byte'tır. 
+                    // Base64 string uzunluğu kabaca byte boyutuna yakındır.
+                    // Güvenli bölge olarak 950.000 karakter (yaklaşık 950KB) sınırını koyuyoruz.
+                    const MAX_SIZE = 950000; 
+
+                    while (dataUrl.length > MAX_SIZE && quality > 0.1) {
+                        // Eğer dosya hala büyükse kaliteyi %10 düşür ve tekrar dene
+                        quality -= 0.1;
+                        console.log(`Dosya büyük (${(dataUrl.length/1024).toFixed(0)} KB), sıkıştırılıyor... Yeni Kalite: ${quality.toFixed(1)}`);
+                        dataUrl = ctx.toDataURL('image/jpeg', quality);
+                    }
+                    
+                    console.log(`Sonuç: ${(dataUrl.length/1024).toFixed(0)} KB, Kalite: ${quality.toFixed(1)}`);
+                    resolve(dataUrl);
+
+                } catch (error) {
+                    console.error("Görsel işleme hatası:", error);
                     reject(error);
-                };
+                }
             };
             
-            reader.onerror = (error) => {
-                console.error("Dosya okuma hatası:", error);
-                reject(error);
-            };
-        });
-    };
+            img.onerror = (error) => reject(error);
+        };
+        
+        reader.onerror = (error) => reject(error);
+    });
+};
     
     // HAVA DURUMU FONKSİYONU
     function fetchWeather() {
@@ -2493,15 +2510,36 @@ async function updateAndResubmitScore(matchId) {
     });
 
     // Diğer Event Listenerlar
-    if(saveProfileBtn) saveProfileBtn.addEventListener('click', async ()=>{ 
-        const f=editProfilePhotoInput.files[0]; 
-        let url=userMap[auth.currentUser.uid].fotoURL; 
+  if(saveProfileBtn) saveProfileBtn.addEventListener('click', async ()=>{ 
+    const btn = saveProfileBtn;
+    btn.disabled = true;
+    btn.textContent = "İşleniyor...";
+
+    try {
+        const f = editProfilePhotoInput.files[0]; 
+        let url = userMap[auth.currentUser.uid].fotoURL; 
         
-        if(f) url = await compressAndConvertToBase64(f, 800, 0.8);
+        // Profil için 600px genişlik yeterli, döngü bunu KB seviyesine indirir.
+        if(f) url = await compressAndConvertToBase64(f, 600);
         
-        await db.collection('users').doc(auth.currentUser.uid).update({isim:editFullNameInput.value, telefon:editPhoneNumber.value, kortTercihi:editCourtPreference.value, bildirimTercihi:editNotificationPreference.value, fotoURL:url});
-        alert("Güncellendi!"); location.reload(); 
-    });
+        await db.collection('users').doc(auth.currentUser.uid).update({
+            isim: editFullNameInput.value, 
+            telefon: editPhoneNumber.value, 
+            kortTercihi: editCourtPreference.value, 
+            bildirimTercihi: editNotificationPreference.value, 
+            fotoURL: url
+        });
+        
+        alert("Profil güncellendi! ✅"); 
+        location.reload(); 
+
+    } catch (error) {
+        console.error("Hata:", error);
+        alert("Hata: " + error.message);
+        btn.disabled = false;
+        btn.textContent = "Kaydet ve Güncelle";
+    }
+});
     
     document.querySelectorAll('.close-modal').forEach(b=>b.onclick=function(){this.closest('.modal').style.display='none'});
     window.onclick=e=>{if(e.target.classList.contains('modal'))e.target.style.display='none'};
