@@ -449,21 +449,30 @@
                 </select>
                 <label class="input-label">Telefon:</label>
                 <input type="tel" id="edit-phone-number" placeholder="Telefon">
-                <label class="input-label">Bildirim Tercihi:</label>
-                <select id="edit-notification-preference">
-                    <option value="ses">Ses 🔊</option>
-                    <option value="titresim">Titreşim 📳</option>
-                    <option value="sessiz">İstemiyorum 🔕</option>
-                </select>
-                <button id="save-profile-btn" class="btn-save-profile">Kaydet ve Güncelle</button>
-                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
-                
-                <div style="margin-bottom: 20px;">
-                    <h4 style="color:#6c757d; text-align:center; border:none; margin-bottom:10px;">📸 Maç Fotoğraflarım</h4>
-                    <div id="my-photos-container" class="gallery-grid">
-                        <p style="text-align:center; width:200%; color:#999; font-size:0.9em;">Fotoğraflar yükleniyor...</p>
-                    </div>
-                </div>
+            <label class="input-label">Bildirim Tercihi (Uygulama İçi):</label>
+<select id="edit-notification-preference">
+    <option value="ses">Ses 🔊</option>
+    <option value="titresim">Titreşim 📳</option>
+    <option value="sessiz">İstemiyorum 🔕</option>
+</select>
+
+<div style="margin-top:15px; margin-bottom:15px; display:flex; align-items:center; gap:10px; background-color:#f9f9f9; padding:10px; border-radius:8px; border:1px solid #eee;">
+    <input type="checkbox" id="edit-email-notify" style="width:20px; height:20px; margin:0;">
+    <label for="edit-email-notify" style="margin:0; font-size:0.95em; color:#333; cursor:pointer;">
+        E-posta ile bilgilendirilmek istiyorum 📧
+    </label>
+</div>
+
+<button id="save-profile-btn" class="btn-save-profile">Kaydet ve Güncelle</button>
+<hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+
+<div style="margin-top: 30px; border-top: 2px dashed #ddd; padding-top: 20px;">
+    <h4 style="color:#333; text-align:center; margin-bottom:10px;">Tehlikeli Bölge 💀</h4>
+    <p style="font-size:0.8em; color:#666; text-align:center; margin-bottom:10px;">
+        Hesabını sildiğinde tüm verilerin (maçların, puanların) kalıcı olarak silinir.
+    </p>
+    <button id="btn-delete-account" style="background-color: #333; color: white;">Hesabımı Kalıcı Olarak Sil</button>
+</div>
 
             </div>
         </div>

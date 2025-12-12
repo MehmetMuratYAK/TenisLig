@@ -24,6 +24,60 @@ document.addEventListener('DOMContentLoaded', function() {
         "Gd Academy Bursa", "Uni+ Sport Club Tenis Kortları", "Aslanlar Tenis Akademisi"
     ];
 
+    // --- GOOGLE APPS SCRIPT İLE MAİL GÖNDERME ---
+// Kopyaladığın uzun linki tırnak içine yapıştır:
+const MAIL_API_URL = "https://script.google.com/macros/s/AKfycbxHcYdbhFkkm9PK4i8x3Fj3MaNStwPauO4LvJHZHlZqIvgcsWqO_c3naNv3lYIY1eRs/exec"; 
+
+async function sendNotificationEmail(targetUserId, subject, messageHTML) {
+    const targetUser = userMap[targetUserId];
+    
+    // 1. Temel Kontroller: Kullanıcı veya e-posta adresi var mı?
+    if (!targetUser || !targetUser.email) {
+        console.log("Mail gönderilmedi: Kullanıcı veya e-posta adresi bulunamadı.");
+        return;
+    }
+
+    // 2. Tercih Kontrolü: Kullanıcı e-posta bildirimini özellikle kapattı mı?
+    // Veritabanında bu alan henüz yoksa (undefined) varsayılan olarak gönderim yapılır.
+    // Sadece 'false' ise engellenir.
+    if (targetUser.emailNotifications === false) {
+        console.log(`Mail engellendi: ${targetUser.isim} e-posta bildirimi almak istemiyor.`);
+        return;
+    }
+
+    const emailData = {
+        to: targetUser.email,
+        subject: subject,
+        body: `
+            <div style="font-family: Arial, sans-serif; color: #333;">
+                <h2 style="color: #c06035;">Tenis Ligi Bildirimi 🎾</h2>
+                <p>Merhaba <strong>${targetUser.isim}</strong>,</p>
+                <div style="background: #f9f9f9; padding: 15px; border-left: 4px solid #c06035; margin: 10px 0;">
+                    ${messageHTML}
+                </div>
+                <p style="font-size: 12px; color: #999;">
+                    Bu otomatik bir bildirimdir. 
+                    <br>Bildirim ayarlarınızı profil sayfasından yönetebilirsiniz.
+                </p>
+            </div>
+        `
+    };
+
+    try {
+        // "no-cors" modu, tarayıcının Google'dan dönen yanıtı bloklamasını engeller.
+        // Yanıtın içeriğini (ok/fail) okuyamayız ama isteği göndermiş oluruz.
+        await fetch(MAIL_API_URL, {
+            method: "POST",
+            mode: "no-cors", 
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(emailData)
+        });
+        console.log(`Mail isteği gönderildi: ${targetUser.isim}`);
+    } catch (error) {
+        console.error("Mail gönderme hatası:", error);
+    }
+}
+
     // --- ROZET TANIMLARI (GAMIFICATION) ---
     const BADGE_DEFINITIONS = {
         'newbie': { icon: '🐣', name: 'Çaylak', desc: 'Ligdeki ilk maçına çıktın.' },
@@ -621,25 +675,60 @@ const compressAndConvertToBase64 = (file, targetWidth = 1000) => {
         });
     }
 
-    async function sendMessage() {
-        const text = chatInput.value.trim();
-        if (!text || !currentChatId) return;
-        try {
-            await db.collection('chats').doc(currentChatId).collection('messages').add({
-                text: text, senderId: auth.currentUser.uid, timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-            await db.collection('chats').doc(currentChatId).set({
-                lastMessage: text,
-                lastMessageSenderId: auth.currentUser.uid,
-                lastMessageTime: firebase.firestore.FieldValue.serverTimestamp(),
-                participants: currentChatId.split('_'),
-                deletedBy: [] 
-            }, { merge: true });
+  async function sendMessage() {
+    const text = chatInput.value.trim();
+    if (!text || !currentChatId) return;
 
-            chatInput.value = '';
-        } catch (error) { console.error("Hata:", error); alert("Mesaj gönderilemedi."); }
+    try {
+        // 1. Mesajı Veritabanına Kaydet
+        await db.collection('chats').doc(currentChatId).collection('messages').add({
+            text: text, 
+            senderId: auth.currentUser.uid, 
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // 2. Sohbet Üst Bilgisini Güncelle (Son mesaj, zaman vb.)
+        await db.collection('chats').doc(currentChatId).set({
+            lastMessage: text,
+            lastMessageSenderId: auth.currentUser.uid,
+            lastMessageTime: firebase.firestore.FieldValue.serverTimestamp(),
+            participants: currentChatId.split('_'),
+            deletedBy: [] // Yeni mesaj gelince silenlerin listesini sıfırla ki sohbet tekrar görünsün
+        }, { merge: true });
+
+        // --- 3. MAİL BİLDİRİMİ (YENİ EKLENEN KISIM) ---
+        const parts = currentChatId.split('_');
+        const myUid = auth.currentUser.uid;
+        
+        // Sohbet ID'si "uid1_uid2" şeklindedir. Ben olmayan ID'yi buluyoruz:
+        const targetId = parts.find(id => id !== myUid);
+        const myName = userMap[myUid]?.isim || 'Bir Oyuncu';
+
+        if (targetId) {
+            const subject = "💬 Yeni Mesajın Var";
+            const body = `
+                <p><strong>${myName}</strong> sana bir mesaj gönderdi:</p>
+                <blockquote style="border-left: 4px solid #ccc; margin: 10px 0; padding-left: 10px; color: #555; background-color: #f9f9f9; padding: 10px;">
+                    "${text}"
+                </blockquote>
+                <p>Cevap vermek için uygulamaya giriş yap.</p>
+                <br>
+                <a href="https://tenisligi-4672a.web.app" style="background-color:#17a2b8; color:white; padding:8px 12px; text-decoration:none; border-radius:4px; font-weight:bold;">Sohbete Git</a>
+            `;
+
+            // Maili Gönder
+            // Not: Sohbet çok hızlı akarsa bu işlem kotayı (günlük 500) hızlı doldurabilir.
+            sendNotificationEmail(targetId, subject, body);
+        }
+        // ---------------------------------------------
+
+        chatInput.value = ''; // Mesaj kutusunu temizle
+
+    } catch (error) {
+        console.error("Mesaj gönderme hatası:", error);
+        alert("Mesaj gönderilemedi.");
     }
+}
 
     async function deleteChat(chatId, e) {
         e.stopPropagation();
@@ -726,12 +815,23 @@ const compressAndConvertToBase64 = (file, targetWidth = 1000) => {
             snapshot.forEach(doc => {
                 const player = doc.data();
                 userMap[doc.id] = { 
-                    isim: player.isim || player.email, email: player.email, uid: doc.id,
-                    toplamPuan: player.toplamPuan, kortTercihi: player.kortTercihi, telefon: player.telefon,
-                    fotoURL: player.fotoURL, bildirimTercihi: player.bildirimTercihi || 'ses',
-                    macSayisi: player.macSayisi || 0, galibiyetSayisi: player.galibiyetSayisi || 0,
-                    badges: player.badges || []
-                };
+    isim: player.isim || player.email, 
+    email: player.email, 
+    uid: doc.id,
+    toplamPuan: player.toplamPuan, 
+    kortTercihi: player.kortTercihi, 
+    telefon: player.telefon,
+    fotoURL: player.fotoURL, 
+    bildirimTercihi: player.bildirimTercihi || 'ses',
+    
+    // --- YENİ SATIR ---
+    emailNotifications: (player.emailNotifications !== false), // Varsayılan: true (undefined ise true kabul et)
+    // ------------------
+
+    macSayisi: player.macSayisi || 0, 
+    galibiyetSayisi: player.galibiyetSayisi || 0,
+    badges: player.badges || []
+};
                 if (filterPlayer) {
                     const option = document.createElement('option'); option.value = doc.id; option.textContent = player.isim || player.email; filterPlayer.appendChild(option);
                 }
@@ -2256,36 +2356,77 @@ function showMatchDetail(matchDocId) {
         }
     }
     
- async function saveMatchResult(id) {
-        if(!winnerSelect.value) { alert("Lütfen kazananı seçin!"); return; }
-        
-        // Dinamik inputlardan değerleri al
-        const s1m=parseInt(document.getElementById('s1-me').value)||0;
-        const s1o=parseInt(document.getElementById('s1-opp').value)||0;
-        const s2m=parseInt(document.getElementById('s2-me').value)||0;
-        const s2o=parseInt(document.getElementById('s2-opp').value)||0;
-        const s3m=parseInt(document.getElementById('s3-me').value)||0;
-        const s3o=parseInt(document.getElementById('s3-opp').value)||0;
-        
-        // FOTOĞRAF KODLARI KALDIRILDI (Çünkü ayrı bir alan var)
+async function saveMatchResult(id) {
+    // 1. Validasyon: Kazanan seçili mi?
+    if (!winnerSelect.value) { 
+        alert("Lütfen kazananı seçin!"); 
+        return; 
+    }
 
-        let updateData = {
+    // 2. Skor Inputlarından Değerleri Al
+    const s1m = parseInt(document.getElementById('s1-me').value) || 0;
+    const s1o = parseInt(document.getElementById('s1-opp').value) || 0;
+    const s2m = parseInt(document.getElementById('s2-me').value) || 0;
+    const s2o = parseInt(document.getElementById('s2-opp').value) || 0;
+    const s3m = parseInt(document.getElementById('s3-me').value) || 0;
+    const s3o = parseInt(document.getElementById('s3-opp').value) || 0;
+
+    // 3. Veritabanı Güncelleme Objesi Hazırla
+    let updateData = {
         durum: 'Sonuç_Bekleniyor',
         adayKazananID: winnerSelect.value,
         sonucuGirenID: auth.currentUser.uid,
-        skor: {s1_me:s1m, s1_opp:s1o, s2_me:s2m, s2_opp:s2o, s3_me:s3m, s3_opp:s3o},
-        skorTarihi: firebase.firestore.FieldValue.serverTimestamp() // <-- BU SATIRI EKLEYİN
+        skor: {
+            s1_me: s1m, s1_opp: s1o, 
+            s2_me: s2m, s2_opp: s2o, 
+            s3_me: s3m, s3_opp: s3o
+        },
+        skorTarihi: firebase.firestore.FieldValue.serverTimestamp()
     };
 
-        try {
-            await db.collection('matches').doc(id).update(updateData);
-            alert("Sonuç girildi, onay bekleniyor. ⏳"); 
-            showMatchDetail(id);
-        } catch(e) {
-            console.error(e);
-            alert("Sonuç kaydedilemedi.");
+    try {
+        // 4. Veritabanını Güncelle
+        await db.collection('matches').doc(id).update(updateData);
+
+        // --- 5. MAİL BİLDİRİMİ (YENİ EKLENEN KISIM) ---
+        // Maç verisini çekip rakibi bulmamız gerekiyor
+        const docSnap = await db.collection('matches').doc(id).get();
+        if (docSnap.exists) {
+            const matchData = docSnap.data();
+            const myUid = auth.currentUser.uid;
+            
+            // Rakip kim? (Ben P1 isem rakip P2, değilsem tam tersi)
+            const targetId = (matchData.oyuncu1ID === myUid) ? matchData.oyuncu2ID : matchData.oyuncu1ID;
+            const myName = userMap[myUid]?.isim || 'Rakibin';
+
+            // Mail İçeriği
+            const subject = "📝 Maç Sonucu Girildi - Onay Bekliyor";
+            const body = `
+                <p><strong>${myName}</strong> oynadığınız maçın skorunu sisteme girdi.</p>
+                <div style="background-color:#e3f2fd; padding:10px; border-radius:5px; border:1px solid #bbdefb; margin:10px 0;">
+                    <p style="font-size:16px; font-weight:bold; margin:0;">
+                        Girilen Skor: ${s1m}-${s1o}, ${s2m}-${s2o} ${s3m + s3o > 0 ? ', ' + s3m + '-' + s3o : ''}
+                    </p>
+                    <p style="margin:5px 0 0 0; font-size:12px; color:#555;">(Not: Skorlar girilen kişinin bakış açısındandır)</p>
+                </div>
+                <p>Skoru onaylamak veya itiraz etmek (değiştirmek) için lütfen uygulamaya giriş yap.</p>
+                <br>
+                <a href="https://tenisligi-4672a.web.app" style="background-color:#007bff; color:white; padding:10px 15px; text-decoration:none; border-radius:5px; font-weight:bold;">Uygulamaya Git ve Onayla</a>
+            `;
+
+            // Maili Gönder
+            sendNotificationEmail(targetId, subject, body);
         }
+        // ---------------------------------------------
+
+        alert("Sonuç girildi, onay bekleniyor. ⏳ Rakibine bildirim gönderildi.");
+        showMatchDetail(id);
+
+    } catch (e) {
+        console.error("Sonuç kaydetme hatası:", e);
+        alert("Sonuç kaydedilemedi: " + e.message);
     }
+}
     // --- EKSİK OLAN FONKSİYON ---
 async function updateAndResubmitScore(matchId) {
     const winnerSelect = document.getElementById('change-winner-select');
@@ -2489,6 +2630,10 @@ async function updateAndResubmitScore(matchId) {
                     editCourtPreference.value = u.kortTercihi || 'Her İkisi'; 
                     if(editNotificationPreference) editNotificationPreference.value = u.bildirimTercihi || 'ses';
                     if(editProfilePreview) editProfilePreview.src = u.fotoURL || 'https://via.placeholder.com/100';
+                    const emailCheckbox = document.getElementById('edit-email-notify');
+        if(emailCheckbox) {
+            emailCheckbox.checked = (u.emailNotifications !== false);
+        }
                     renderBadges(auth.currentUser.uid, 'my-badges-container');
                     loadUserPhotos(); // YENİ: Kullanıcı fotolarını yükle
                 }
@@ -2526,7 +2671,8 @@ async function updateAndResubmitScore(matchId) {
             isim: editFullNameInput.value, 
             telefon: editPhoneNumber.value, 
             kortTercihi: editCourtPreference.value, 
-            bildirimTercihi: editNotificationPreference.value, 
+            bildirimTercihi: editNotificationPreference.value,
+            emailNotifications: document.getElementById('edit-email-notify').checked,
             fotoURL: url
         });
         
@@ -2605,53 +2751,158 @@ async function updateAndResubmitScore(matchId) {
         });
     }
 
-    submitChallengeBtn.addEventListener('click', async ()=>{ 
-        const oid=opponentSelect.value, mt=matchTypeSelect.value; let wp=parseInt(wagerPointsInput.value);
-        if(!oid) return alert("Rakip seç!");
-        if(mt==='Meydan Okuma' && (isNaN(wp)||wp<50||wp%50!==0)) return alert("Min 50 ve katları!");
-        const me=userMap[auth.currentUser.uid], op=userMap[oid];
-        if(mt==='Meydan Okuma' && (me.toplamPuan<0||op.toplamPuan<0||wp>me.toplamPuan*0.5||wp>op.toplamPuan*0.5)) return alert("Puan yetersiz.");
-        await db.collection('matches').add({oyuncu1ID:auth.currentUser.uid, oyuncu2ID:oid, macTipi:mt, bahisPuani:wp||0, durum:'Bekliyor', tarih:firebase.firestore.FieldValue.serverTimestamp(), kayitliKazananID:null});
-        alert("Teklif yollandı!"); challengeForm.style.display='none'; document.querySelector('[data-target="tab-matches"]').click();
+submitChallengeBtn.addEventListener('click', async () => {
+        // 1. Form verilerini al
+        const oid = opponentSelect.value;
+        const mt = matchTypeSelect.value;
+        let wp = parseInt(wagerPointsInput.value);
+
+        // 2. Kontroller (Validasyon)
+        if (!oid) return alert("Lütfen bir rakip seçin!");
+        
+        // Bahis kontrolü
+        if (mt === 'Meydan Okuma' && (isNaN(wp) || wp < 50 || wp % 50 !== 0)) {
+            return alert("Bahis puanı en az 50 olmalı ve 50'nin katları olmalıdır!");
+        }
+
+        const me = userMap[auth.currentUser.uid];
+        const op = userMap[oid]; // Rakip bilgisi
+
+        // Puan yetersizliği kontrolü
+        if (mt === 'Meydan Okuma') {
+            if (me.toplamPuan < 0) return alert("Puanın eksiye düştüğü için bahisli maç teklif edemezsin.");
+            if (op.toplamPuan < 0) return alert("Rakibin puanı eksi olduğu için bahisli maç kabul edemez.");
+            if (wp > me.toplamPuan * 0.5) return alert("Maksimum bahis, toplam puanının yarısı olabilir.");
+            if (wp > op.toplamPuan * 0.5) return alert("Bu bahis miktarı rakibin puan limitini aşıyor.");
+        }
+
+        try {
+            // 3. Veritabanına Ekle
+            await db.collection('matches').add({
+                oyuncu1ID: auth.currentUser.uid,
+                oyuncu2ID: oid,
+                macTipi: mt,
+                bahisPuani: wp || 0,
+                durum: 'Bekliyor',
+                tarih: firebase.firestore.FieldValue.serverTimestamp(),
+                kayitliKazananID: null
+            });
+
+            // --- 4. MAİL BİLDİRİMİ (YENİ KISIM) ---
+            const senderName = me.isim || 'Bir oyuncu';
+            const mailSubject = "⚔️ Meydan Okuma Geldi!";
+            
+            // Mail içeriği (HTML)
+            const mailBody = `
+                <p><strong>${senderName}</strong> sana özel bir maç teklifi gönderdi.</p>
+                <div style="background-color:#fff3cd; padding:10px; border-radius:5px; border:1px solid #ffeeba; margin:10px 0;">
+                    <p><strong>Maç Tipi:</strong> ${mt}</p>
+                    <p><strong>Bahis:</strong> ${wp || 0} Puan</p>
+                </div>
+                <p>Teklifi kabul etmek veya reddetmek için uygulamaya girip <strong>"Maçlarım"</strong> veya <strong>"Meydan"</strong> sekmesine bakabilirsin.</p>
+                <br>
+                <a href="https://tenisligi-4672a.web.app" style="background-color:#c06035; color:white; padding:10px 15px; text-decoration:none; border-radius:5px; font-weight:bold;">Uygulamaya Git</a>
+            `;
+
+            // Daha önce eklediğimiz Google Apps Script fonksiyonunu çağırıyoruz
+            sendNotificationEmail(oid, mailSubject, mailBody);
+            // -------------------------------------
+
+            // 5. Başarılı İşlem Sonrası
+            alert("Teklif başarıyla gönderildi! Rakibine mail ile haber verildi. 📨");
+            challengeForm.style.display = 'none';
+            
+            // Maçlarım sekmesine yönlendir
+            document.querySelector('[data-target="tab-matches"]').click();
+
+        } catch (error) {
+            console.error("Teklif gönderme hatası:", error);
+            alert("Bir hata oluştu: " + error.message);
+        }
     });
 submitAdBtn.addEventListener('click', async () => {
-    const mt = adMatchTypeSelect.value; 
-    let wp = parseInt(adWagerPointsInput.value);
+        // 1. Verileri Al
+        const mt = adMatchTypeSelect.value; 
+        let wp = parseInt(adWagerPointsInput.value);
 
-    // --- YENİ KOD BAŞLANGICI: Seçili ligleri al ---
-    const checkboxes = document.querySelectorAll('input[name="allowed-leagues"]:checked');
-    const allowedLeagues = Array.from(checkboxes).map(cb => cb.value);
+        // Lig Seçimlerini Al (Checkboxlar)
+        const checkboxes = document.querySelectorAll('input[name="allowed-leagues"]:checked');
+        const allowedLeagues = Array.from(checkboxes).map(cb => cb.value);
 
-    if (allowedLeagues.length === 0) {
-        return alert("Lütfen bu ilanı kabul edebilecek en az bir lig seçin!");
-    }
-    // --- YENİ KOD BİTİŞİ ---
+        // 2. Validasyonlar (Kontroller)
+        if (allowedLeagues.length === 0) {
+            return alert("Lütfen bu ilanı kabul edebilecek en az bir lig seçin!");
+        }
 
-    if(mt === 'Meydan Okuma' && (isNaN(wp)||wp<50||wp%50!==0)) return alert("Min 50 ve katları!");
-    
-    const me = userMap[auth.currentUser.uid];
-    if (mt === 'Meydan Okuma') {
-        if (me.toplamPuan < 0) return alert("Puanın eksiye düştüğü için bahisli ilan açamazsın.");
-        if (wp > me.toplamPuan * 0.5) return alert("Maksimum bahis toplam puanının yarısı olabilir.");
-    }
+        if(mt === 'Meydan Okuma' && (isNaN(wp)||wp<50||wp%50!==0)) {
+            return alert("Bahis puanı en az 50 ve 50'nin katları olmalıdır!");
+        }
+        
+        const me = userMap[auth.currentUser.uid];
+        
+        // Puan Kontrolü
+        if (mt === 'Meydan Okuma') {
+            if (me.toplamPuan < 0) return alert("Puanın eksiye düştüğü için bahisli ilan açamazsın.");
+            if (wp > me.toplamPuan * 0.5) return alert("Maksimum bahis toplam puanının yarısı olabilir.");
+        }
 
-    // allowedLeagues alanını veritabanına ekliyoruz
-    await db.collection('matches').add({ 
-        oyuncu1ID: auth.currentUser.uid, 
-        oyuncu2ID: null, 
-        macTipi: mt, 
-        bahisPuani: wp || 0, 
-        durum: 'Acik_Ilan', 
-        tarih: firebase.firestore.FieldValue.serverTimestamp(), 
-        kayitliKazananID: null,
-        allowedLeagues: allowedLeagues // <--- YENİ ALAN
+        try {
+            // 3. Veritabanına Kaydet
+            await db.collection('matches').add({ 
+                oyuncu1ID: auth.currentUser.uid, 
+                oyuncu2ID: null, // Açık ilan olduğu için rakip henüz yok
+                macTipi: mt, 
+                bahisPuani: wp || 0, 
+                durum: 'Acik_Ilan', 
+                tarih: firebase.firestore.FieldValue.serverTimestamp(), 
+                kayitliKazananID: null,
+                allowedLeagues: allowedLeagues
+            });
+
+            // --- 4. TOPLU MAİL BİLDİRİMİ (YENİ KISIM) ---
+            const myName = me.isim || 'Bir oyuncu';
+            const leagueText = allowedLeagues.join(', ');
+            
+            const subject = "📢 Yeni Kort İlanı!";
+            const body = `
+                <p><strong>${myName}</strong> herkese açık bir maç ilanı oluşturdu!</p>
+                <div style="background-color:#f8f9fa; padding:10px; border-left:4px solid #28a745; margin:10px 0;">
+                    <p><strong>Maç Tipi:</strong> ${mt}</p>
+                    <p><strong>Bahis:</strong> ${wp || 0} Puan</p>
+                    <p><strong>Kabul Edebilen Ligler:</strong> ${leagueText}</p>
+                </div>
+                <p>Kendine güveniyorsan hemen uygulamaya gir ve "Lobi" sekmesinden ilanı kabul et!</p>
+                <br>
+                <a href="https://tenisligi-4672a.web.app" style="background-color:#28a745; color:white; padding:10px 15px; text-decoration:none; border-radius:5px; font-weight:bold;">İlanı Gör ve Kabul Et</a>
+            `;
+
+            // Döngü: Sistemdeki herkesi gez ve mail at (Kendin hariç)
+            const allUserIds = Object.keys(userMap);
+            console.log(`Toplam ${allUserIds.length - 1} kişiye mail gönderimi başlıyor...`);
+
+            allUserIds.forEach(uid => {
+                if (uid !== auth.currentUser.uid) {
+                    // Her kullanıcıya mail fonksiyonunu tetikle
+                    // Not: Google Script tarafında "no-cors" kullandığımız için 
+                    // burası "fire and forget" (gönder ve unut) mantığıyla çalışır, uygulamayı dondurmaz.
+                    sendNotificationEmail(uid, subject, body);
+                }
+            });
+            // ---------------------------------------------
+
+            // 5. Arayüzü Temizle ve Yönlendir
+            alert("İlan başarıyla yayınlandı ve oyunculara mail gönderildi! 📢"); 
+            createAdForm.style.display = 'none'; 
+            
+            // Lobiye dönüp ilanları yenile
+            loadOpenRequests(); 
+            document.querySelector('[data-target="tab-lobby"]').click(); 
+
+        } catch (error) {
+            console.error("İlan oluşturma hatası:", error);
+            alert("Hata oluştu: " + error.message);
+        }
     });
-
-    alert("İlan yayınlandı!"); 
-    createAdForm.style.display = 'none'; 
-    loadOpenRequests(); 
-    document.querySelector('[data-target="tab-lobby"]').click(); 
-});
     if(applyFiltersBtn) applyFiltersBtn.addEventListener('click', () => loadMatchesForFixture());
     if(clearFiltersBtn) clearFiltersBtn.addEventListener('click', () => { filterDateStart.value = ''; filterDateEnd.value = ''; filterCourt.value = ''; filterPlayer.value = ''; loadMatchesForFixture(); });
     if(logoutBtnProfile) logoutBtnProfile.addEventListener('click', ()=> { if(confirm("Çıkış yapmak istediğinize emin misiniz?")) { auth.signOut(); window.location.reload(); } });
@@ -3039,7 +3290,56 @@ async function runLeagueMaintenance() {
     }
 }
 
+// --- YENİ HESAP SİLME FONKSİYONU ---
+async function deleteAccount() {
+    // 1. Güvenlik Onayı
+    if(!confirm("⚠️ DİKKAT: Hesabınızı silmek üzeresiniz!\n\nBu işlem geri alınamaz. Tüm maç geçmişiniz, puanlarınız ve fotoğraflarınız silinecektir.\n\nDevam etmek istiyor musunuz?")) return;
+    
+    // 2. İkinci Onay (Yanlışlıkla basmaları önlemek için)
+    const verification = prompt("Silme işlemini onaylamak için lütfen aşağıya 'SİL' yazın:");
+    if (verification !== 'SİL') {
+        alert("İşlem iptal edildi. Doğru kelimeyi girmediniz.");
+        return;
+    }
 
+    const user = auth.currentUser;
+    const uid = user.uid;
+    const btn = document.getElementById('btn-delete-account');
+    
+    try {
+        btn.disabled = true;
+        btn.textContent = "Siliniyor...";
+
+        // A) Firestore'dan Kullanıcı Verisini Sil
+        await db.collection('users').doc(uid).delete();
+
+        // B) Firebase Authentication'dan Kullanıcıyı Sil
+        // Not: Eğer kullanıcı uzun süredir giriş yapmadıysa Firebase güvenlik gereği
+        // yeniden giriş yapmasını isteyebilir. Bu durumda catch bloğu çalışır.
+        await user.delete();
+
+        alert("Hesabınız başarıyla silindi. Sizi özleyeceğiz! 👋");
+        window.location.reload(); // Giriş ekranına atar
+
+    } catch (error) {
+        console.error("Hesap silme hatası:", error);
+        
+        if (error.code === 'auth/requires-recent-login') {
+            alert("Güvenlik gereği, hesabınızı silmek için oturumunuzu tazelemeniz gerekiyor. Lütfen Çıkış Yapıp tekrar giriş yapın ve tekrar deneyin.");
+        } else {
+            alert("Bir hata oluştu: " + error.message);
+        }
+        
+        btn.disabled = false;
+        btn.textContent = "Hesabımı Kalıcı Olarak Sil";
+    }
+}
+
+// Listener'ı Tanımla (app.js'in alt kısmındaki listener bloklarına ekleyin)
+const btnDeleteAccount = document.getElementById('btn-delete-account');
+if(btnDeleteAccount) {
+    btnDeleteAccount.addEventListener('click', deleteAccount);
+}
 
 
 
