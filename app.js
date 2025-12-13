@@ -705,16 +705,17 @@ const compressAndConvertToBase64 = (file, targetWidth = 1000) => {
         const myName = userMap[myUid]?.isim || 'Bir Oyuncu';
 
         if (targetId) {
-            const subject = "💬 Yeni Mesajın Var";
-            const body = `
-                <p><strong>${myName}</strong> sana bir mesaj gönderdi:</p>
-                <blockquote style="border-left: 4px solid #ccc; margin: 10px 0; padding-left: 10px; color: #555; background-color: #f9f9f9; padding: 10px;">
-                    "${text}"
-                </blockquote>
-                <p>Cevap vermek için uygulamaya giriş yap.</p>
-                <br>
-                <a href="https://tenisligi-4672a.web.app" style="background-color:#17a2b8; color:white; padding:8px 12px; text-decoration:none; border-radius:4px; font-weight:bold;">Sohbete Git</a>
-            `;
+  const subject = "💬 Yeni Mesajın Var";
+const body = `
+    <p><strong>${myName}</strong> sana bir mesaj gönderdi:</p>
+    <blockquote style="border-left: 4px solid #ccc; margin: 10px 0; padding-left: 10px; color: #555; background-color: #f9f9f9; padding: 10px;">
+        "${text}"
+    </blockquote>
+    <p>Cevap vermek için uygulamaya aşağıdaki linkten giriş yapabilirsin:</p>
+    <p>
+        <a href="https://mehmetmuratyak.github.io/TenisLig/">https://mehmetmuratyak.github.io/TenisLig/</a>
+    </p>
+`;
 
             // Maili Gönder
             // Not: Sohbet çok hızlı akarsa bu işlem kotayı (günlük 500) hızlı doldurabilir.
@@ -2400,19 +2401,22 @@ async function saveMatchResult(id) {
             const myName = userMap[myUid]?.isim || 'Rakibin';
 
             // Mail İçeriği
-            const subject = "📝 Maç Sonucu Girildi - Onay Bekliyor";
-            const body = `
-                <p><strong>${myName}</strong> oynadığınız maçın skorunu sisteme girdi.</p>
-                <div style="background-color:#e3f2fd; padding:10px; border-radius:5px; border:1px solid #bbdefb; margin:10px 0;">
-                    <p style="font-size:16px; font-weight:bold; margin:0;">
-                        Girilen Skor: ${s1m}-${s1o}, ${s2m}-${s2o} ${s3m + s3o > 0 ? ', ' + s3m + '-' + s3o : ''}
-                    </p>
-                    <p style="margin:5px 0 0 0; font-size:12px; color:#555;">(Not: Skorlar girilen kişinin bakış açısındandır)</p>
-                </div>
-                <p>Skoru onaylamak veya itiraz etmek (değiştirmek) için lütfen uygulamaya giriş yap.</p>
-                <br>
-                <a href="https://tenisligi-4672a.web.app" style="background-color:#007bff; color:white; padding:10px 15px; text-decoration:none; border-radius:5px; font-weight:bold;">Uygulamaya Git ve Onayla</a>
-            `;
+// app.js içinde saveMatchResult fonksiyonunu bul ve 'body' kısmını değiştir:
+
+const subject = "📝 Maç Sonucu Girildi - Onay Bekliyor";
+const body = `
+    <p><strong>${myName}</strong> oynadığınız maçın skorunu sisteme girdi.</p>
+    <div style="background-color:#e3f2fd; padding:10px; border-radius:5px; border:1px solid #bbdefb; margin:10px 0;">
+        <p style="font-size:16px; font-weight:bold; margin:0;">
+            Girilen Skor: ${s1m}-${s1o}, ${s2m}-${s2o} ${s3m + s3o > 0 ? ', ' + s3m + '-' + s3o : ''}
+        </p>
+        <p style="margin:5px 0 0 0; font-size:12px; color:#555;">(Not: Skorlar girilen kişinin bakış açısındandır)</p>
+    </div>
+    <p>Skoru onaylamak veya itiraz etmek (değiştirmek) için aşağıdaki linke tıkla:</p>
+    <p>
+        <a href="https://mehmetmuratyak.github.io/TenisLig/">https://mehmetmuratyak.github.io/TenisLig/</a>
+    </p>
+`;
 
             // Maili Gönder
             sendNotificationEmail(targetId, subject, body);
@@ -2793,16 +2797,19 @@ submitChallengeBtn.addEventListener('click', async () => {
             const mailSubject = "⚔️ Meydan Okuma Geldi!";
             
             // Mail içeriği (HTML)
-            const mailBody = `
-                <p><strong>${senderName}</strong> sana özel bir maç teklifi gönderdi.</p>
-                <div style="background-color:#fff3cd; padding:10px; border-radius:5px; border:1px solid #ffeeba; margin:10px 0;">
-                    <p><strong>Maç Tipi:</strong> ${mt}</p>
-                    <p><strong>Bahis:</strong> ${wp || 0} Puan</p>
-                </div>
-                <p>Teklifi kabul etmek veya reddetmek için uygulamaya girip <strong>"Maçlarım"</strong> veya <strong>"Meydan"</strong> sekmesine bakabilirsin.</p>
-                <br>
-                <a href="https://tenisligi-4672a.web.app" style="background-color:#c06035; color:white; padding:10px 15px; text-decoration:none; border-radius:5px; font-weight:bold;">Uygulamaya Git</a>
-            `;
+// app.js içinde submitChallengeBtn listener'ını bul ve 'mailBody' kısmını değiştir:
+
+const mailBody = `
+    <p><strong>${senderName}</strong> sana özel bir maç teklifi gönderdi.</p>
+    <div style="background-color:#fff3cd; padding:10px; border-radius:5px; border:1px solid #ffeeba; margin:10px 0;">
+        <p><strong>Maç Tipi:</strong> ${mt}</p>
+        <p><strong>Bahis:</strong> ${wp || 0} Puan</p>
+    </div>
+    <p>Teklifi kabul etmek veya reddetmek için uygulamaya aşağıdaki adresten gidebilirsin:</p>
+    <p>
+        <a href="https://mehmetmuratyak.github.io/TenisLig/">https://mehmetmuratyak.github.io/TenisLig/</a>
+    </p>
+`;
 
             // Daha önce eklediğimiz Google Apps Script fonksiyonunu çağırıyoruz
             sendNotificationEmail(oid, mailSubject, mailBody);
@@ -2863,18 +2870,21 @@ submitAdBtn.addEventListener('click', async () => {
             const myName = me.isim || 'Bir oyuncu';
             const leagueText = allowedLeagues.join(', ');
             
-            const subject = "📢 Yeni Kort İlanı!";
-            const body = `
-                <p><strong>${myName}</strong> herkese açık bir maç ilanı oluşturdu!</p>
-                <div style="background-color:#f8f9fa; padding:10px; border-left:4px solid #28a745; margin:10px 0;">
-                    <p><strong>Maç Tipi:</strong> ${mt}</p>
-                    <p><strong>Bahis:</strong> ${wp || 0} Puan</p>
-                    <p><strong>Kabul Edebilen Ligler:</strong> ${leagueText}</p>
-                </div>
-                <p>Kendine güveniyorsan hemen uygulamaya gir ve "Lobi" sekmesinden ilanı kabul et!</p>
-                <br>
-                <a href="https://tenisligi-4672a.web.app" style="background-color:#28a745; color:white; padding:10px 15px; text-decoration:none; border-radius:5px; font-weight:bold;">İlanı Gör ve Kabul Et</a>
-            `;
+// app.js içinde submitAdBtn listener'ını bul ve 'body' kısmını değiştir:
+
+const subject = "📢 Yeni Kort İlanı!";
+const body = `
+    <p><strong>${myName}</strong> herkese açık bir maç ilanı oluşturdu!</p>
+    <div style="background-color:#f8f9fa; padding:10px; border-left:4px solid #28a745; margin:10px 0;">
+        <p><strong>Maç Tipi:</strong> ${mt}</p>
+        <p><strong>Bahis:</strong> ${wp || 0} Puan</p>
+        <p><strong>Kabul Edebilen Ligler:</strong> ${leagueText}</p>
+    </div>
+    <p>Kendine güveniyorsan hemen uygulamaya girip ilanı kabul et:</p>
+    <p>
+        <a href="https://mehmetmuratyak.github.io/TenisLig/">https://mehmetmuratyak.github.io/TenisLig/</a>
+    </p>
+`;
 
             // Döngü: Sistemdeki herkesi gez ve mail at (Kendin hariç)
             const allUserIds = Object.keys(userMap);
