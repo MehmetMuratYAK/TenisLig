@@ -2526,30 +2526,71 @@ async function updateAndResubmitScore(matchId) {
     }
 }
 
-    async function finalizeMatch(id, m) {
-        const wid = m.adayKazananID, lid = m.oyuncu1ID===wid?m.oyuncu2ID:m.oyuncu1ID;
-        let wg=0, lg=0;
-        if(m.skor) {
-            const s=m.skor, isRW = m.sonucuGirenID===wid;
-            const s1w = isRW?parseInt(s.s1_me):parseInt(s.s1_opp); const s1l = isRW?parseInt(s.s1_opp):parseInt(s.s1_me);
-            const s2w = isRW?parseInt(s.s2_me):parseInt(s.s2_opp); const s2l = isRW?parseInt(s.s2_opp):parseInt(s.s2_me);
-            wg = s1w+s2w; lg = s1l+s2l;
-        }
-        const bonusW = wg*5, bonusL = lg*5;
-        if(m.macTipi==='Meydan Okuma') {
-            await db.collection('users').doc(wid).update({ toplamPuan: firebase.firestore.FieldValue.increment(m.bahisPuani+bonusW), galibiyetSayisi: firebase.firestore.FieldValue.increment(1), macSayisi: firebase.firestore.FieldValue.increment(1) });
-            await db.collection('users').doc(lid).update({ toplamPuan: firebase.firestore.FieldValue.increment(-m.bahisPuani+bonusL), macSayisi: firebase.firestore.FieldValue.increment(1) });
-        } else {
-            await db.collection('users').doc(wid).update({ toplamPuan: firebase.firestore.FieldValue.increment(50+bonusW), galibiyetSayisi: firebase.firestore.FieldValue.increment(1), macSayisi: firebase.firestore.FieldValue.increment(1) });
-            await db.collection('users').doc(lid).update({ toplamPuan: firebase.firestore.FieldValue.increment(50+bonusL), macSayisi: firebase.firestore.FieldValue.increment(1) });
-        }
-        await db.collection('matches').doc(id).update({durum:'Tamamlandı', kayitliKazananID:wid});
+// GÜNCELLENMİŞ GÜVENLİ FİNALİZE FONKSİYONU (Node.js gerektirmez)
+async function finalizeMatch(id, m) {
+    const batch = db.batch(); // Tüm işlemleri tek pakette yap
+
+    const wid = m.adayKazananID;
+    const lid = (m.oyuncu1ID === wid) ? m.oyuncu2ID : m.oyuncu1ID;
+    
+    // Skor Hesaplama (Mevcut mantık)
+    let wg = 0, lg = 0;
+    if(m.skor) {
+        const s = m.skor;
+        const isEntryByWinner = m.sonucuGirenID === wid;
+        const s1w = isEntryByWinner ? parseInt(s.s1_me) : parseInt(s.s1_opp);
+        const s1l = isEntryByWinner ? parseInt(s.s1_opp) : parseInt(s.s1_me);
+        const s2w = isEntryByWinner ? parseInt(s.s2_me) : parseInt(s.s2_opp);
+        const s2l = isEntryByWinner ? parseInt(s.s2_opp) : parseInt(s.s2_me);
+        wg = s1w + s2w; 
+        lg = s1l + s2l;
+    }
+    const bonusW = wg * 5; 
+    const bonusL = lg * 5;
+
+    // 1. Kazananın Puanını Güncelle
+    const winnerRef = db.collection('users').doc(wid);
+    let winPoints = 50 + bonusW;
+    if(m.macTipi === 'Meydan Okuma') winPoints = m.bahisPuani + bonusW;
+
+    batch.update(winnerRef, { 
+        toplamPuan: firebase.firestore.FieldValue.increment(winPoints), 
+        galibiyetSayisi: firebase.firestore.FieldValue.increment(1), 
+        macSayisi: firebase.firestore.FieldValue.increment(1) 
+    });
+
+    // 2. Kaybedenin Puanını Güncelle
+    const loserRef = db.collection('users').doc(lid);
+    let losePoints = 50 + bonusL;
+    if(m.macTipi === 'Meydan Okuma') losePoints = -m.bahisPuani + bonusL;
+
+    batch.update(loserRef, { 
+        toplamPuan: firebase.firestore.FieldValue.increment(losePoints), 
+        macSayisi: firebase.firestore.FieldValue.increment(1) 
+    });
+
+    // 3. Maçı Kapat (Tamamlandı Yap)
+    const matchRef = db.collection('matches').doc(id);
+    batch.update(matchRef, {
+        durum: 'Tamamlandı', 
+        kayitliKazananID: wid
+    });
+
+    try {
+        await batch.commit(); // Hepsini aynı anda gönder
         
+        // Rozet Kontrolü (Ayrı çalışabilir, kritik değil)
         await checkAndGrantBadges(wid);
         await checkAndGrantBadges(lid);
 
-        alert("Onaylandı ve Rozetler Kontrol Edildi!"); goBackToList(); loadLeaderboard();
+        alert("✅ Maç onaylandı ve puanlar işlendi!"); 
+        goBackToList(); 
+        loadLeaderboard();
+    } catch (error) {
+        console.error("Onay Hatası:", error);
+        alert("Hata oluştu: " + error.message);
     }
+}
 
     function goBackToList() {
         // [YENİ] Etkileşim dinleyicilerini temizle
@@ -2845,6 +2886,7 @@ auth.onAuthStateChanged(user => {
                 
                 initSpamWarning();
                 initOnboarding(); // <--- Bunu ekle
+                checkProfileCompleteness();
             });
         }else { 
             authScreen.style.display = 'flex'; mainApp.style.display = 'none'; listeners.forEach(u=>u());
@@ -3497,6 +3539,64 @@ function initSpamWarning() {
             localStorage.setItem('tenisLigi_spamAlertDismissed', 'true');
         });
     }
+}
+
+// --- PROFİL TAMAMLAMA HATIRLATICISI ---
+function checkProfileCompleteness() {
+    const userId = firebase.auth().currentUser.uid;
+    const user = userMap[userId];
+    const alertBox = document.getElementById('profile-incomplete-alert');
+    
+    if (!user || !alertBox) return;
+
+    // 1. Eksiklik Kontrolü
+    // Fotoğraf yoksa, 'placeholder' içeriyorsa veya kulüp bilgisi yoksa eksik sayalım.
+    const isPhotoMissing = !user.fotoURL || user.fotoURL.includes('placeholder') || user.fotoURL.includes('via.placeholder.com');
+    const isClubMissing = !user.kulup || user.kulup === 'Belirtilmemiş';
+    
+    // Eğer her şey tamsa fonksiyonu durdur
+    if (!isPhotoMissing && !isClubMissing) return;
+
+    // 2. Zamanlama Kontrolü (Periyodik Hatırlatma)
+    // Kullanıcı daha önce kapatmış mı? Kapattıysa üzerinden 3 gün (72 saat) geçmiş mi?
+    const lastDismissed = localStorage.getItem('tenisLigi_profileAlertDismissedTime');
+    const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+
+    if (lastDismissed && (now - parseInt(lastDismissed) < THREE_DAYS_MS)) {
+        return; // Henüz 3 gün geçmemiş, gösterme.
+    }
+
+    // 3. Uyarıyı Göster
+    alertBox.style.display = 'flex';
+
+    // Mesajı Duruma Göre Özelleştir (Opsiyonel)
+    const msgTitle = alertBox.querySelector('strong');
+    const msgText = alertBox.querySelector('p');
+    
+    if (isPhotoMissing && !isClubMissing) {
+        msgTitle.textContent = "Hayalet Oyuncu Olma! 👻";
+        msgText.textContent = "Kortlarda tanınmak için bir profil fotoğrafı yüklemelisin.";
+    } else if (!isPhotoMissing && isClubMissing) {
+        msgTitle.textContent = "Hangi Kulüptesin? 🏟️";
+        msgText.textContent = "Profiline kulüp bilgisini ekleyerek rakiplerini bilgilendir.";
+    }
+
+    // 4. Buton İşlevleri
+    
+    // "Hemen Düzenle" butonu
+    document.getElementById('btn-fix-profile').onclick = () => {
+        alertBox.style.display = 'none';
+        // Profil sekmesine yönlendir
+        document.querySelector('[data-target="tab-profile"]').click();
+    };
+
+    // "Kapat (X)" butonu
+    document.getElementById('btn-close-profile-alert').onclick = () => {
+        alertBox.style.display = 'none';
+        // Şu anki zamanı kaydet (3 gün sonra tekrar hatırlatmak için)
+        localStorage.setItem('tenisLigi_profileAlertDismissedTime', Date.now().toString());
+    };
 }
 
 // Bu fonksiyonu uygulama başlarken çalıştırın.

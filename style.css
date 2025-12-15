@@ -867,3 +867,16 @@ button:hover { opacity: 0.9; }
     background-color: #c06035;
     transform: scale(1.2);
 }
+/* --- PROFİL UYARISI İÇİN MAVİ TEMA --- */
+.warning-banner.info-banner {
+    background: linear-gradient(to right, #e3f2fd, #f1f8ff);
+    border-left: 5px solid #0d47a1;
+}
+
+.warning-banner.info-banner .warning-icon {
+    font-size: 1.8em; /* İkonu biraz büyüttük */
+}
+
+.warning-banner.info-banner strong {
+    color: #0d47a1;
+}
