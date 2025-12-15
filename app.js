@@ -2584,6 +2584,16 @@ async function finalizeMatch(id, m) {
         await checkAndGrantBadges(lid);
 
         alert("✅ Maç onaylandı ve puanlar işlendi!"); 
+
+        // app.js içinde, başarı mesajının (alert) hemen altına:
+
+// Konfeti Patlat! 🎉
+confetti({
+    particleCount: 150,
+    spread: 70,
+    origin: { y: 0.6 },
+    colors: ['#c06035', '#ffffff', '#28a745'] // Toprak, Beyaz ve Yeşil renkleri
+});
         goBackToList(); 
         loadLeaderboard();
     } catch (error) {

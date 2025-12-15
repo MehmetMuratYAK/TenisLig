@@ -880,3 +880,84 @@ button:hover { opacity: 0.9; }
 .warning-banner.info-banner strong {
     color: #0d47a1;
 }
+/* Modern Font ve Arka Plan */
+body {
+    font-family: 'Poppins', sans-serif !important; /* Yeni font */
+    background-color: #f4f6f8; /* Daha yumuşak bir gri-beyaz tonu */
+    /* Toprak rengi arka planı sadece üst kısımda tutabiliriz, 
+       ama modern app'lerde temiz beyaz/gri arka plan daha ferah durur. */
+}
+
+h1, h2, h3, h4 {
+    letter-spacing: -0.5px; /* Başlıkları modernleştirir */
+    color: #1a1a1a;
+}
+/* Kartları Modernleştirme */
+.lobby-card, .match-card, .player-card, .stat-card, .section-container {
+    border: none !important; /* Çizgileri kaldır */
+    border-radius: 20px !important; /* Daha yuvarlak köşeler */
+    background: #ffffff;
+    /* Apple stili yumuşak gölge */
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Karta dokununca hafifçe yukarı kalksın */
+.match-card:active, .player-card:active {
+    transform: scale(0.98);
+}
+/* Modern Yüzen Navigasyon */
+.bottom-nav {
+    position: fixed;
+    bottom: 20px; /* Alttan boşluk bırak */
+    left: 50%;
+    transform: translateX(-50%); /* Ortala */
+    width: 90%; /* Ekranın %90'ını kaplasın */
+    max-width: 400px;
+    height: 70px;
+    background: rgba(255, 255, 255, 0.95); /* Hafif şeffaf */
+    backdrop-filter: blur(10px); /* Buzlu cam efekti */
+    border-radius: 25px; /* Tam yuvarlak köşeler */
+    box-shadow: 0 15px 35px rgba(0,0,0,0.15); /* Derin gölge */
+    border: 1px solid rgba(255,255,255,0.5);
+    padding: 0 10px;
+    box-sizing: border-box;
+    z-index: 1000;
+}
+
+.nav-item {
+    color: #b0b0b0; /* Pasif ikon rengi */
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Yaylanma efekti */
+}
+
+.nav-item.active {
+    color: #c06035;
+    transform: translateY(-5px); /* Seçilince yukarı zıplasın */
+}
+
+.nav-item.active .nav-icon {
+    font-size: 24px;
+    filter: drop-shadow(0 4px 6px rgba(192, 96, 53, 0.3)); /* İkona gölge ver */
+}
+/* Modern Butonlar */
+button {
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-size: 14px !important;
+    padding: 16px !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s;
+}
+
+/* Ana Buton (Giriş vb.) */
+.btn-main, .btn-save, .btn-save-profile {
+    background: linear-gradient(135deg, #c06035 0%, #ff8c61 100%) !important;
+    box-shadow: 0 8px 20px rgba(192, 96, 53, 0.3) !important;
+}
+
+button:active {
+    transform: scale(0.96); /* Tıklama hissi */
+    box-shadow: 0 2px 10px rgba(192, 96, 53, 0.2) !important;
+}
