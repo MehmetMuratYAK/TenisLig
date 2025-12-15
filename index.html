@@ -697,5 +697,54 @@
             });
         }
     </script>
+
+    <div id="onboarding-modal" class="modal" style="display: none; z-index: 2000;">
+    <div class="modal-content onboarding-content">
+        <span id="close-onboarding" class="close-modal">&times;</span>
+        
+        <div class="onboarding-slider">
+            
+            <div class="onboarding-slide active-slide" data-index="0">
+                <div class="slide-icon">👋</div>
+                <h3>Kortlara Hoş Geldin!</h3>
+                <p>Tenis Ligi'nin dijital dünyasına adım attın. Burası sadece skor girdiğin yer değil, tenis tutkunu dijitalleştirdiğimiz yer.</p>
+                <div class="slide-image-placeholder" style="background: #e3f2fd; color:#0d47a1;">🏆</div>
+            </div>
+
+            <div class="onboarding-slide" data-index="1">
+                <div class="slide-icon">⚔️</div>
+                <h3>Maç Ayarla & Meydan Oku</h3>
+                <p><strong>"Meydan Oku"</strong> sekmesinden arkadaşına özel teklif gönder veya <strong>"Açık İlan"</strong> oluşturarak kendine uygun yeni rakipler bul.</p>
+                <div class="slide-image-placeholder" style="background: #fff3e0; color:#e65100;">🎾</div>
+            </div>
+
+            <div class="onboarding-slide" data-index="2">
+                <div class="slide-icon">📊</div>
+                <h3>İstatistiklerin Konuşsun</h3>
+                <p>Toprakta mı daha iyisin yoksa sert kortta mı? Galibiyet yüzdelerini, form durumunu ve kazandığın rozetleri <strong>"İstatistik"</strong> ve <strong>"Profil"</strong> sekmelerinde takip et.</p>
+                <div class="slide-image-placeholder" style="background: #e8f5e9; color:#1b5e20;">📈</div>
+            </div>
+
+            <div class="onboarding-slide" data-index="3">
+                <div class="slide-icon">💬</div>
+                <h3>Sosyalleş & Paylaş</h3>
+                <p>Maç sonuçlarına yorum yap, anketlere katıl, galibiyet fotoğraflarını yükle. Ligdeki herkesle etkileşimde kal!</p>
+                <div class="slide-image-placeholder" style="background: #f3e5f5; color:#4a148c;">📸</div>
+            </div>
+
+        </div>
+
+        <div class="onboarding-footer">
+            <div class="dots-container">
+                <span class="dot active"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+            </div>
+            <button id="btn-next-slide" class="btn-main" style="margin:0; width: auto; padding: 10px 30px;">İlerle 👉</button>
+            <button id="btn-finish-onboarding" class="btn-main" style="margin:0; width: auto; padding: 10px 30px; display: none; background-color: #28a745;">Başla! 🚀</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>

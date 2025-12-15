@@ -2844,6 +2844,7 @@ auth.onAuthStateChanged(user => {
                 checkAndSendReminders(); 
                 
                 initSpamWarning();
+                initOnboarding(); // <--- Bunu ekle
             });
         }else { 
             authScreen.style.display = 'flex'; mainApp.style.display = 'none'; listeners.forEach(u=>u());
@@ -3519,5 +3520,74 @@ function initSpamWarning() {
             loadLeaderboard(e.target.value);
         });
     }
+
+// --- UYGULAMA İÇİ REHBER YÖNETİMİ ---
+
+// Bu versiyon numarasını değiştirdiğinde (örn: 'v2'),
+// rehber daha önce görmüş olsa bile herkese tekrar gösterilir.
+const CURRENT_GUIDE_VERSION = 'v1_baslangic'; 
+
+function initOnboarding() {
+    const modal = document.getElementById('onboarding-modal');
+    const closeBtn = document.getElementById('close-onboarding');
+    const nextBtn = document.getElementById('btn-next-slide');
+    const finishBtn = document.getElementById('btn-finish-onboarding');
+    const slides = document.querySelectorAll('.onboarding-slide');
+    const dots = document.querySelectorAll('.dot');
+    
+    // Kullanıcı bu versiyonu daha önce gördü mü?
+    const seenVersion = localStorage.getItem('tenisLigi_guideVersion');
+    
+    // Eğer görmediyse veya versiyon güncellendiyse göster
+    if (seenVersion !== CURRENT_GUIDE_VERSION) {
+        modal.style.display = 'flex';
+    }
+
+    let currentSlide = 0;
+
+    function showSlide(index) {
+        // Slaytları gizle/göster
+        slides.forEach(s => s.classList.remove('active-slide'));
+        slides[index].classList.add('active-slide');
+        
+        // Noktaları güncelle
+        dots.forEach(d => d.classList.remove('active'));
+        dots[index].classList.add('active');
+
+        // Butonları yönet
+        if (index === slides.length - 1) {
+            nextBtn.style.display = 'none';
+            finishBtn.style.display = 'inline-block';
+        } else {
+            nextBtn.style.display = 'inline-block';
+            finishBtn.style.display = 'none';
+            nextBtn.textContent = index === 0 ? "Başlayalım 👉" : "İlerle 👉";
+        }
+    }
+
+    // İlerle Butonu
+    nextBtn.onclick = () => {
+        if (currentSlide < slides.length - 1) {
+            currentSlide++;
+            showSlide(currentSlide);
+        }
+    };
+
+    // Bitir/Kapat Fonksiyonu
+    const closeOnboarding = () => {
+        modal.style.display = 'none';
+        // Tarayıcı hafızasına "bu versiyonu gördü" diye kaydet
+        localStorage.setItem('tenisLigi_guideVersion', CURRENT_GUIDE_VERSION);
+    };
+
+    finishBtn.onclick = closeOnboarding;
+    closeBtn.onclick = closeOnboarding;
+    
+    // Pencere dışına tıklayınca kapatma (İsteğe bağlı, kapatmak için yoruma alabilirsin)
+    // window.onclick = (e) => { if (e.target == modal) closeOnboarding(); };
+}
+
+// Bu fonksiyonu, app.js içinde 'initSpamWarning()' fonksiyonunun hemen altına ekle.
+// Yani sayfa yüklendiğinde ve kullanıcı giriş yaptığında çalışacak.
 
 });
