@@ -39,6 +39,21 @@
                             <span class="input-icon">👤</span>
                             <input type="text" id="full-name" placeholder="Ad Soyad">
                         </div>
+
+                        <div class="input-group">
+    <span class="input-icon">📅</span>
+    <div style="flex:1;">
+        <label style="font-size:0.75em; color:#666; margin-left:45px; margin-bottom:2px; display:block;">Tenise Başlangıç Tarihi</label>
+        <input type="month" id="register-start-date" style="margin-top:0;">
+    </div>
+</div>
+
+<div class="input-group">
+    <span class="input-icon">🏟️</span>
+    <select id="register-club" style="margin-bottom:0;">
+        <option value="" disabled selected>Oynadığınız Kulüp Seçin</option>
+        </select>
+</div>
                         
                         <div class="input-group">
                             <span class="input-icon">🏟️</span>
@@ -83,21 +98,31 @@
             <h1>🎾 Tenis Ligi</h1>
         </div>
 
-        <div id="tab-lobby" class="tab-section active-section">
+<div id="tab-lobby" class="tab-section active-section">
             <h3>Lobi 🏠</h3>
             
-            <div id="weather-widget" class="lobby-card" style="background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%); color: white; border:none; display:none;">
-                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                     <div>
-                         <h4 style="color:white; margin:0; border:none; font-size:1.1em; text-shadow:0 1px 2px rgba(0,0,0,0.1);">🌤️ Bursa Kort Havası</h4>
-                         <div id="weather-desc" style="font-size:0.9em; opacity:0.95; margin-top:2px;">Yükleniyor...</div>
-                     </div>
-                     <div style="text-align:right;">
-                         <div id="weather-temp" style="font-size:1.8em; font-weight:bold; text-shadow:0 1px 3px rgba(0,0,0,0.2);">--°C</div>
-                         <div id="weather-wind" style="font-size:0.8em; opacity:0.9;">💨 -- km/s</div>
-                     </div>
-                 </div>
+            <div id="email-spam-alert" class="warning-banner" style="display: flex;">
+                <div class="warning-icon">📧</div>
+                <div class="warning-content">
+                    <strong>Önemli Bilgilendirme</strong>
+                    <p>Bildirimleri göremiyorsanız lütfen e-posta kutunuzun <strong>Gereksiz (Spam)</strong> klasörünü kontrol ediniz.</p>
+                </div>
+                <button id="btn-close-spam-alert" class="warning-close">&times;</button>
             </div>
+            
+            <div id="weather-widget" class="lobby-card" style="background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%); color: white; border:none; display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <h4 style="color:white; margin:0; border:none; font-size:1.1em; text-shadow:0 1px 2px rgba(0,0,0,0.1);">🌤️ Bursa Kort Havası</h4>
+                            <div id="weather-desc" style="font-size:0.9em; opacity:0.95; margin-top:2px;">Yükleniyor...</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div id="weather-temp" style="font-size:1.8em; font-weight:bold; text-shadow:0 1px 3px rgba(0,0,0,0.2);">--°C</div>
+                            <div id="weather-wind" style="font-size:0.8em; opacity:0.9;">💨 -- km/s</div>
+                        </div>
+                    </div>
+            </div>
+
             <div class="lobby-card" style="background: linear-gradient(to right, #ffffff, #f8f9fa); border-left: 4px solid #6f42c1;">
                 <h4 style="color:#6f42c1;">📢 Ligden Haberler & Dedikodular</h4>
                 <p style="font-size:0.8em; color:#888; margin-bottom:10px;">Yapay zeka ligi izliyor ve yorumluyor... 🤖</p>
@@ -147,6 +172,7 @@
 
                 </div>
             </div>
+
             <div style="margin-top: 20px; display:flex; justify-content:space-between; align-items:center; margin-bottom: 5px;">
                 <h4 style="margin:0; color: #2c3e50; border:none; padding:0;">📢 Açık Maç İlanları</h4>
                 <span style="font-size:0.7em; color:#777;">(Kaydır ↕)</span>
@@ -164,12 +190,19 @@
             </div>
         </div>
 
-        <div id="tab-rankings" class="tab-section" style="display: none;">
-            <h3>Lig Sıralaması 🏆</h3>
-            <div id="leaderboard"></div>
-        </div>
+<div id="tab-rankings" class="tab-section" style="display: none;">
+    <h3>Lig Sıralaması 🏆</h3>
+    
+    <div style="background-color: #f1f3f5; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e9ecef; position: sticky; top: 0; z-index: 10;">
+        <select id="leaderboard-club-filter" style="margin-bottom:0; width: 100%;">
+            <option value="all">Tüm Kulüpler 🌍</option>
+            </select>
+    </div>
 
-        <div id="tab-bests" class="tab-section" style="display: none;">
+<div id="leaderboard"></div>
+</div>
+
+<div id="tab-bests" class="tab-section" style="display: none;">
             <h3>Ligin En'leri 🌟</h3>
             
             <div style="background-color: #f1f3f5; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e9ecef; text-align: center;">
@@ -418,7 +451,7 @@
             </div>
         </div>
 
-        <div id="tab-profile" class="tab-section" style="display: none;">
+<div id="tab-profile" class="tab-section" style="display: none;">
             
             <button id="logout-btn-profile" style="background-color: #dc3545; margin-bottom: 15px;">Çıkış Yap 🚪</button>
 
@@ -438,8 +471,22 @@
                     </div>
                 </div>
 
+                <div style="margin-bottom: 20px;">
+                   <h4 style="color:#555; text-align:center; border:none; margin-bottom:5px; font-size:0.9em; text-transform:uppercase;">📸 Maç Karelerim</h4>
+                   <div id="my-photos-container" class="gallery-grid">
+                       </div>
+                </div>
+
                 <label class="input-label">Ad Soyad:</label>
                 <input type="text" id="edit-full-name" placeholder="Ad Soyad">
+
+                <label class="input-label">Tenise Başlangıç Tarihi:</label>
+                <input type="month" id="edit-start-date">
+
+                <label class="input-label">Oynadığı Kulüp:</label>
+                <select id="edit-club">
+                    <option value="">Kulüp Seçilmedi</option>
+                    </select>
                 <label class="input-label">Kort Tercihi:</label>
                 <select id="edit-court-preference">
                     <option value="Toprak">Toprak</option>
@@ -447,32 +494,35 @@
                     <option value="Çim">Çim</option>
                     <option value="Her İkisi">Farketmez</option>
                 </select>
+
                 <label class="input-label">Telefon:</label>
                 <input type="tel" id="edit-phone-number" placeholder="Telefon">
-            <label class="input-label">Bildirim Tercihi (Uygulama İçi):</label>
-<select id="edit-notification-preference">
-    <option value="ses">Ses 🔊</option>
-    <option value="titresim">Titreşim 📳</option>
-    <option value="sessiz">İstemiyorum 🔕</option>
-</select>
 
-<div style="margin-top:15px; margin-bottom:15px; display:flex; align-items:center; gap:10px; background-color:#f9f9f9; padding:10px; border-radius:8px; border:1px solid #eee;">
-    <input type="checkbox" id="edit-email-notify" style="width:20px; height:20px; margin:0;">
-    <label for="edit-email-notify" style="margin:0; font-size:0.95em; color:#333; cursor:pointer;">
-        E-posta ile bilgilendirilmek istiyorum 📧
-    </label>
-</div>
+                <label class="input-label">Bildirim Tercihi (Uygulama İçi):</label>
+                <select id="edit-notification-preference">
+                    <option value="ses">Ses 🔊</option>
+                    <option value="titresim">Titreşim 📳</option>
+                    <option value="sessiz">İstemiyorum 🔕</option>
+                </select>
 
-<button id="save-profile-btn" class="btn-save-profile">Kaydet ve Güncelle</button>
-<hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+                <div style="margin-top:15px; margin-bottom:15px; display:flex; align-items:center; gap:10px; background-color:#f9f9f9; padding:10px; border-radius:8px; border:1px solid #eee;">
+                    <input type="checkbox" id="edit-email-notify" style="width:20px; height:20px; margin:0;">
+                    <label for="edit-email-notify" style="margin:0; font-size:0.95em; color:#333; cursor:pointer;">
+                        E-posta ile bilgilendirilmek istiyorum 📧
+                    </label>
+                </div>
 
-<div style="margin-top: 30px; border-top: 2px dashed #ddd; padding-top: 20px;">
-    <h4 style="color:#333; text-align:center; margin-bottom:10px;">Tehlikeli Bölge 💀</h4>
-    <p style="font-size:0.8em; color:#666; text-align:center; margin-bottom:10px;">
-        Hesabını sildiğinde tüm verilerin (maçların, puanların) kalıcı olarak silinir.
-    </p>
-    <button id="btn-delete-account" style="background-color: #333; color: white;">Hesabımı Kalıcı Olarak Sil</button>
-</div>
+                <button id="save-profile-btn" class="btn-save-profile">Kaydet ve Güncelle</button>
+                
+                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+
+                <div style="margin-top: 30px; border-top: 2px dashed #ddd; padding-top: 20px;">
+                    <h4 style="color:#333; text-align:center; margin-bottom:10px;">Tehlikeli Bölge 💀</h4>
+                    <p style="font-size:0.8em; color:#666; text-align:center; margin-bottom:10px;">
+                        Hesabını sildiğinde tüm verilerin (maçların, puanların) kalıcı olarak silinir.
+                    </p>
+                    <button id="btn-delete-account" style="background-color: #333; color: white;">Hesabımı Kalıcı Olarak Sil</button>
+                </div>
 
             </div>
         </div>

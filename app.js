@@ -16,13 +16,33 @@ document.addEventListener('DOMContentLoaded', function() {
     const auth = firebase.auth();
     const db = firebase.firestore();
     
-    // --- KORT LİSTESİ ---
+  // --- KORT LİSTESİ ---
     const COURT_LIST = [
         "Meşelipark Tenis Kulübü", "Evrensel Tenis", "Esas Tenis ve Spor Kulübü", "Podyum Tenis",
         "Bursa Yenigün Tenis Kortu", "Hüdavendigar Spor Tesisleri", "Yenigün Tenis Akademi",
         "Ertuğrul Sağlam Tenis Kortları", "Altınşehir Gençlik Merkezi", "Nilüfer Hobi Bahçeleri Tenis Sahası",
-        "Gd Academy Bursa", "Uni+ Sport Club Tenis Kortları", "Aslanlar Tenis Akademisi"
+        "Gd Academy Bursa", "Uni+ Sport Club Tenis Kortları", "Aslanlar Tenis Akademisi", "Ferdi / Bağımsız"
     ];
+
+    // YENİ: Dropdownları doldurma fonksiyonu
+    function populateClubDropdowns() {
+        const selects = ['register-club', 'edit-club', 'leaderboard-club-filter'];
+        
+        selects.forEach(id => {
+            const el = document.getElementById(id);
+            if(!el) return;
+            
+            // Sıralama filtresi için olanı temizleme (Tüm Kulüpler kalsın diye), diğerlerine option ekle
+            COURT_LIST.forEach(court => {
+                const opt = document.createElement('option');
+                opt.value = court;
+                opt.textContent = court;
+                el.appendChild(opt);
+            });
+        });
+    }
+    // Sayfa yüklenince çalıştır
+    populateClubDropdowns();
 
     // --- GOOGLE APPS SCRIPT İLE MAİL GÖNDERME ---
 // Kopyaladığın uzun linki tırnak içine yapıştır:
@@ -311,8 +331,6 @@ const compressAndConvertToBase64 = (file, targetWidth = 1000) => {
                     let width = img.width;
                     let height = img.height;
                     
-                    // Eğer resim çok devasa ise önce genişliğini targetWidth'e (örn: 1000px) çekiyoruz.
-                    // 1000px mobil cihazlarda tam ekran görüntüleme için gayet yeterli ve nettir.
                     if (width > targetWidth) {
                         height = height * (targetWidth / width);
                         width = targetWidth;
@@ -334,18 +352,19 @@ const compressAndConvertToBase64 = (file, targetWidth = 1000) => {
                     
                     // --- AKILLI SIKIŞTIRMA DÖNGÜSÜ ---
                     let quality = 0.9; // %90 kalite ile başla
-                    let dataUrl = ctx.toDataURL('image/jpeg', quality);
                     
-                    // Firestore sınırı yaklaşık 1.048.576 byte'tır. 
-                    // Base64 string uzunluğu kabaca byte boyutuna yakındır.
-                    // Güvenli bölge olarak 950.000 karakter (yaklaşık 950KB) sınırını koyuyoruz.
+                    // DÜZELTME: ctx.toDataURL yerine elem.toDataURL kullanıyoruz
+                    let dataUrl = elem.toDataURL('image/jpeg', quality); 
+                    
                     const MAX_SIZE = 950000; 
 
                     while (dataUrl.length > MAX_SIZE && quality > 0.1) {
                         // Eğer dosya hala büyükse kaliteyi %10 düşür ve tekrar dene
                         quality -= 0.1;
                         console.log(`Dosya büyük (${(dataUrl.length/1024).toFixed(0)} KB), sıkıştırılıyor... Yeni Kalite: ${quality.toFixed(1)}`);
-                        dataUrl = ctx.toDataURL('image/jpeg', quality);
+                        
+                        // DÜZELTME: Burada da elem.toDataURL kullanıyoruz
+                        dataUrl = elem.toDataURL('image/jpeg', quality);
                     }
                     
                     console.log(`Sonuç: ${(dataUrl.length/1024).toFixed(0)} KB, Kalite: ${quality.toFixed(1)}`);
@@ -824,6 +843,8 @@ const body = `
     telefon: player.telefon,
     fotoURL: player.fotoURL, 
     bildirimTercihi: player.bildirimTercihi || 'ses',
+    tenisBaslangic: player.tenisBaslangic || '',
+    kulup: player.kulup || 'Belirtilmemiş',
     
     // --- YENİ SATIR ---
     emailNotifications: (player.emailNotifications !== false), // Varsayılan: true (undefined ise true kabul et)
@@ -851,52 +872,66 @@ const body = `
         });
     }
 
-    function loadLeaderboard() {
+// --- GÜNCELLENMİŞ SIRALAMA FONKSİYONU ---
+    function loadLeaderboard(filterClub = 'all') {
+        const leaderboardDiv = document.getElementById('leaderboard');
+        if(!leaderboardDiv) return;
+        
+        leaderboardDiv.innerHTML = '<p style="text-align:center;">Yükleniyor...</p>';
+
         db.collection('users').orderBy('toplamPuan', 'desc').limit(500).get().then(snapshot => {
-            if(leaderboardDiv) leaderboardDiv.innerHTML = '';
+            leaderboardDiv.innerHTML = '';
             let rank = 1;
+            let displayedCount = 0;
+
             snapshot.forEach(doc => {
                 const player = doc.data();
                 
-                // Kort tercihi ve kazanma yüzdesi kaldırıldı.
-                
+                // --- FİLTRELEME MANTIĞI ---
+                // Eğer filtre 'all' değilse ve oyuncunun kulübü filtreyle eşleşmiyorsa atla
+                if (filterClub !== 'all' && player.kulup !== filterClub) {
+                    return; 
+                }
+
                 const photoHTML = player.fotoURL ? `<img src="${player.fotoURL}" class="profile-img-small" style="width:40px; height:40px; border-radius:50%; margin-right:10px; object-fit:cover;">` : '';
-                
                 const badgeHTML = getLeagueBadgeHTML(player.toplamPuan);
+                
+                // Kulüp bilgisini kısaltarak gösterelim
+                const clubDisplay = player.kulup ? `<div style="font-size:0.75em; color:#888;">${player.kulup}</div>` : '';
 
                 const playerCard = document.createElement('div');
                 playerCard.className = 'player-card';
                 playerCard.onclick = () => showPlayerStats(doc.id); 
                 
-                // YENİ DÜZEN:
-                // Sol Taraf: Sıra No (#1) + Fotoğraf + İsim
-                // Sağ Taraf: Puan (Üstte) + Lig Rozeti (Altta)
-                
                 playerCard.innerHTML = `
                     <div style="width:100%; display:flex; align-items:center; justify-content:space-between;">
-                        
-                        <!-- SOL KISIM: Sıra, Foto, İsim -->
                         <div style="display:flex; align-items:center; flex:1; overflow:hidden;">
                             <span style="font-weight:bold; min-width:30px; margin-right:5px; color:#555;">#${rank}</span>
                             ${photoHTML}
-                            <div style="font-weight:600; font-size:1em; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                                ${player.isim || player.email}
+                            <div style="overflow:hidden;">
+                                <div style="font-weight:600; font-size:1em; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                    ${player.isim || player.email}
+                                </div>
+                                ${clubDisplay}
                             </div>
                         </div>
 
-                        <!-- SAĞ KISIM: Puan ve Altında Lig Detayı -->
                         <div style="display:flex; flex-direction:column; align-items:flex-end; justify-content:center; min-width:85px; margin-left:10px; text-align:right;">
                             <div style="font-weight:bold; color:#c06035; font-size:1.1em; margin-bottom:4px;">${player.toplamPuan} P</div>
                             <div style="transform: scale(0.9); transform-origin: right center;">
                                 ${badgeHTML}
                             </div>
                         </div>
-
                     </div>
                 `;
                 leaderboardDiv.appendChild(playerCard);
                 rank++;
+                displayedCount++;
             });
+
+            if (displayedCount === 0) {
+                leaderboardDiv.innerHTML = '<p style="text-align:center; padding:20px; color:#777;">Bu kulüpte henüz oyuncu yok.</p>';
+            }
         }).catch(err => console.log("Sıralama hatası:", err));
     }
 
@@ -1885,6 +1920,12 @@ async function showPlayerStats(userId) {
         try {
             const u = userMap[userId]; if(!u) return;
             statsPlayerName.textContent = u.isim; statsTotalPoints.textContent = u.toplamPuan; statsCourtPref.textContent = u.kortTercihi || '-';
+            let infoText = u.kortTercihi || '-';
+if (u.kulup) infoText += ` | 🏟️ ${u.kulup}`;
+if (u.tenisBaslangic) {
+    // Tarihi "Yıl-Ay" formatından daha okunur hale getirebiliriz ama şimdilik direkt yazalım
+    infoText += ` | 📅 Başlangıç: ${u.tenisBaslangic}`;
+}
             if(statsPlayerPhoto) statsPlayerPhoto.src = u.fotoURL || 'https://via.placeholder.com/120';
             
             renderBadges(userId, 'stats-badges-grid');
@@ -2124,7 +2165,7 @@ function showMatchDetail(matchDocId) {
                     actionButtonsContainer.appendChild(wb);
                 }
             } 
-  // 4. HAZIR (PLANLAMA VE SKOR GİRME - GİZLE/GÖSTER VERSİYONU)
+// 4. HAZIR (PLANLAMA VE SKOR GİRME - GÜNCELLENMİŞ VERSİYON)
             else if (match.durum === 'Hazır') {
                 
                 // --- A) PLANLAMA ALANI (Açılır/Kapanır) ---
@@ -2174,8 +2215,10 @@ function showMatchDetail(matchDocId) {
                 document.getElementById('dynamic-save-schedule-btn').onclick = () => saveMatchSchedule(matchDocId);
 
 
-                // --- B) SKOR GİRME ALANI (Açılır/Kapanır ve Fotoğrafsız) ---
+                // --- B) SKOR GİRME ALANI (GÜNCELLENMİŞ: Yer tutucular ve Konumlandırma) ---
                 scoreInputSection.style.display = 'block'; 
+                
+                // NOT: Aşağıdaki inputlarda value="${... || ''}" yaptık. Böylece 0 yerine boş gelir ve placeholder görünür.
                 scoreInputSection.innerHTML = `
                     <button id="btn-toggle-score" class="btn-main" style="width:100%; margin-bottom:10px; display:flex; justify-content:center; align-items:center; gap:10px; background: linear-gradient(to right, #ffc107, #ff9800); color:#333;">
                         <span>📝</span> Maç Sonucu Gir
@@ -2186,39 +2229,44 @@ function showMatchDetail(matchDocId) {
                          
                          <div class="score-row">
                             <span>1. Set</span>
-                            <input type="number" id="s1-me" class="score-box" placeholder="Ben" value="${match.skor?.s1_me || 0}">
-                            <input type="number" id="s1-opp" class="score-box" placeholder="Rakip" value="${match.skor?.s1_opp || 0}">
+                            <input type="number" id="s1-me" class="score-box" placeholder="Ben" value="${match.skor?.s1_me || ''}">
+                            <input type="number" id="s1-opp" class="score-box" placeholder="Rakip" value="${match.skor?.s1_opp || ''}">
                         </div>
                         <div class="score-row">
                             <span>2. Set</span>
-                            <input type="number" id="s2-me" class="score-box" placeholder="Ben" value="${match.skor?.s2_me || 0}">
-                            <input type="number" id="s2-opp" class="score-box" placeholder="Rakip" value="${match.skor?.s2_opp || 0}">
+                            <input type="number" id="s2-me" class="score-box" placeholder="Ben" value="${match.skor?.s2_me || ''}">
+                            <input type="number" id="s2-opp" class="score-box" placeholder="Rakip" value="${match.skor?.s2_opp || ''}">
                         </div>
                         <div class="score-row">
                             <span>3. Set (Opsiyonel)</span>
-                            <input type="number" id="s3-me" class="score-box" placeholder="Ben" value="${match.skor?.s3_me || 0}">
-                            <input type="number" id="s3-opp" class="score-box" placeholder="Rakip" value="${match.skor?.s3_opp || 0}">
+                            <input type="number" id="s3-me" class="score-box" placeholder="Ben" value="${match.skor?.s3_me || ''}">
+                            <input type="number" id="s3-opp" class="score-box" placeholder="Rakip" value="${match.skor?.s3_opp || ''}">
                         </div>
                         
-                        <button id="dynamic-save-score-btn" class="btn-save" style="margin-top:15px; background-color:#28a745;">Sonucu Kaydet ve Gönder 🚀</button>
+                        <div id="winner-select-container" style="margin-top: 15px; margin-bottom: 10px;">
+                            <label style="font-size:0.85em; color:#856404; font-weight:bold; margin-bottom:5px; display:block;">Kazanan Kim?</label>
+                        </div>
+
+                        <button id="dynamic-save-score-btn" class="btn-save" style="margin-top:5px; background-color:#28a745;">Sonucu Kaydet ve Gönder 🚀</button>
                     </div>
                 `;
 
-                winnerSelect.style.display = 'block';
+                // --- ÖNEMLİ DEĞİŞİKLİK: Kazanan Seçimini Kutunun İçine Taşıma ---
+                const scoreContainer = document.getElementById('score-form-container');
+                const winnerContainer = document.getElementById('winner-select-container');
+                
+                // Sayfanın altındaki winnerSelect'i alıp skor kutusunun içine taşıyoruz
+                winnerSelect.style.display = 'block'; // Görünür yap (kutunun içinde görünecek)
+                winnerSelect.style.marginBottom = '0'; // Alt boşluğu sıfırla
+                winnerContainer.appendChild(winnerSelect);
 
                 // Skor Toggle İşlevi
                 const toggleScoreBtn = document.getElementById('btn-toggle-score');
-                const scoreContainer = document.getElementById('score-form-container');
                 
                 toggleScoreBtn.onclick = () => {
                     const isHidden = scoreContainer.style.display === 'none';
                     scoreContainer.style.display = isHidden ? 'block' : 'none';
-                    // Kazanan seçimi de formla birlikte açılsın/kapansın diye kontrol ediyoruz
-                    winnerSelect.style.display = isHidden ? 'block' : 'none';
                 };
-                
-                // Varsayılan olarak kazanan seçimini gizle (butona basınca açılacak)
-                winnerSelect.style.display = 'none';
 
                 // Skor Kaydetme Eventi
                 document.getElementById('dynamic-save-score-btn').onclick = () => saveMatchResult(matchDocId);
@@ -2596,6 +2644,7 @@ async function updateAndResubmitScore(matchId) {
                 
                 // --- YENİ: BAKIM FONKSİYONUNU ÇAĞIR ---
                 runLeagueMaintenance(); // <-- BURAYA EKLENDİ
+                initSpamWarning();
             });
         } else { 
             authScreen.style.display = 'flex'; mainApp.style.display = 'none'; listeners.forEach(u=>u());
@@ -2632,6 +2681,8 @@ async function updateAndResubmitScore(matchId) {
                     editFullNameInput.value = u.isim || ''; 
                     editPhoneNumber.value = u.telefon || ''; 
                     editCourtPreference.value = u.kortTercihi || 'Her İkisi'; 
+                    document.getElementById('edit-start-date').value = u.tenisBaslangic || '';
+        document.getElementById('edit-club').value = u.kulup || '';
                     if(editNotificationPreference) editNotificationPreference.value = u.bildirimTercihi || 'ses';
                     if(editProfilePreview) editProfilePreview.src = u.fotoURL || 'https://via.placeholder.com/100';
                     const emailCheckbox = document.getElementById('edit-email-notify');
@@ -2677,6 +2728,8 @@ async function updateAndResubmitScore(matchId) {
             kortTercihi: editCourtPreference.value, 
             bildirimTercihi: editNotificationPreference.value,
             emailNotifications: document.getElementById('edit-email-notify').checked,
+            tenisBaslangic: document.getElementById('edit-start-date').value,
+    kulup: document.getElementById('edit-club').value,
             fotoURL: url
         });
         
@@ -2721,39 +2774,41 @@ async function updateAndResubmitScore(matchId) {
                     });
             } else {
                 // KAYIT OL
-                try {
-                    const c = await auth.createUserWithEmailAndPassword(email, password);
-                    let url = null;
+try {
+                const c = await auth.createUserWithEmailAndPassword(email, password);
+                let url = null;
+                
+                if(profilePhotoInput.files[0]) url = await compressAndConvertToBase64(profilePhotoInput.files[0], 800, 0.8);
+                
+                await db.collection('users').doc(c.user.uid).set({
+                    email: email,
+                    isim: fullNameInput.value || email.split('@')[0],
+                    kortTercihi: courtPreferenceSelect.value || 'Farketmez',
+                    telefon: phoneNumberInput.value || '',
+                    tenisBaslangic: document.getElementById('register-start-date').value || '',
+    kulup: document.getElementById('register-club').value || '',
+                    fotoURL: url,
+                    toplamPuan: 1000,
+                    bildirimTercihi: 'ses',
                     
-                    if(profilePhotoInput.files[0]) url = await compressAndConvertToBase64(profilePhotoInput.files[0], 800, 0.8);
-                    
-                    await db.collection('users').doc(c.user.uid).set({
-                        email: email,
-                        isim: fullNameInput.value || email.split('@')[0],
-                        kortTercihi: courtPreferenceSelect.value || 'Farketmez',
-                        telefon: phoneNumberInput.value || '',
-                        fotoURL: url,
-                        toplamPuan: 1000,
-                        bildirimTercihi: 'ses',
-                        macSayisi: 0,
-                        galibiyetSayisi: 0,
-                        badges: [],
-                        kayitTari: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    
-                    await db.collection('news').add({
-                        type: 'new_player',
-                        userId: c.user.uid,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                    // BURASI EKLENDİ: İlk kayıtta varsayılan olarak TRUE (Onaylı) yapıyoruz.
+                    emailNotifications: true, 
 
-                } catch(e) {
-                    authError.style.display = 'block';
-                    authError.textContent = "Kayıt Hatası: " + e.message;
-                }
+                    macSayisi: 0,
+                    galibiyetSayisi: 0,
+                    badges: [],
+                    kayitTari: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                // ... (news koleksiyonuna ekleme kodları aynı kalacak) ...
+
+            } catch(e) {
+                authError.style.display = 'block';
+                authError.textContent = "Kayıt Hatası: " + e.message;
             }
-        });
-    }
+        }
+    });
+}
 
 submitChallengeBtn.addEventListener('click', async () => {
         // 1. Form verilerini al
@@ -3350,8 +3405,48 @@ const btnDeleteAccount = document.getElementById('btn-delete-account');
 if(btnDeleteAccount) {
     btnDeleteAccount.addEventListener('click', deleteAccount);
 }
+// Spam Uyarısı Yönetimi
+function initSpamWarning() {
+    const alertBox = document.getElementById('email-spam-alert');
+    const closeBtn = document.getElementById('btn-close-spam-alert');
+    
+    // LocalStorage kontrolü: Kullanıcı daha önce kapattı mı?
+    const isDismissed = localStorage.getItem('tenisLigi_spamAlertDismissed');
 
+    if (!isDismissed && alertBox) {
+        alertBox.style.display = 'flex'; // Kartı göster
+    }
 
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+            // Karta tıklanınca gizle
+            alertBox.style.display = 'none';
+            // Tarayıcı hafızasına "kapattı" diye not al
+            localStorage.setItem('tenisLigi_spamAlertDismissed', 'true');
+        });
+    }
+}
 
+// Bu fonksiyonu uygulama başlarken çalıştırın.
+// auth.onAuthStateChanged bloğunun içine, "setupNotifications" çağrısının altına ekleyebilirsiniz.
+// Örnek:
+/*
+    fetchUserMap().then(() => { 
+        loadLeaderboard(); 
+        // ... diğer yüklemeler ...
+        setupNotifications(user.uid); 
+        runLeagueMaintenance();
+        
+        initSpamWarning(); // <--- BURAYA EKLEYİN
+    });
+*/
+
+// Sıralama Filtresi Değişince
+    const leaderboardFilter = document.getElementById('leaderboard-club-filter');
+    if (leaderboardFilter) {
+        leaderboardFilter.addEventListener('change', (e) => {
+            loadLeaderboard(e.target.value);
+        });
+    }
 
 });

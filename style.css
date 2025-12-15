@@ -734,3 +734,59 @@ button:hover { opacity: 0.9; }
 .league-bronze-text { color: #a05a2c; }
 .league-silver-text { color: #7f8c8d; }
 .league-gold-text { color: #f39c12; }
+/* --- SPAM UYARI KARTI STİLLERİ --- */
+.warning-banner {
+    background: linear-gradient(to right, #fff3cd, #fff8e1); /* Tatlı bir sarı tonu */
+    border-left: 5px solid #ffc107;
+    border-radius: 8px;
+    padding: 12px 15px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    animation: fadeIn 0.5s;
+    position: relative;
+}
+
+.warning-icon {
+    font-size: 1.5em;
+    padding-top: 2px;
+}
+
+.warning-content {
+    flex: 1;
+}
+
+.warning-content strong {
+    display: block;
+    color: #856404;
+    font-size: 0.95em;
+    margin-bottom: 3px;
+}
+
+.warning-content p {
+    margin: 0;
+    font-size: 0.85em;
+    color: #666;
+    line-height: 1.4;
+}
+
+.warning-close {
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 1.5em;
+    line-height: 0.8;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    width: auto;
+    box-shadow: none;
+    align-self: flex-start;
+}
+
+.warning-close:hover {
+    color: #333;
+    background: none;
+}
