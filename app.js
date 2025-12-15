@@ -2625,14 +2625,209 @@ async function updateAndResubmitScore(matchId) {
     if(closeChatModal) { closeChatModal.onclick = () => { chatModal.style.display = 'none'; if (currentChatUnsubscribe) currentChatUnsubscribe(); }; }
     if (clearChatBtn) clearChatBtn.addEventListener('click', clearChatMessages);
 
-    auth.onAuthStateChanged(user => {
+    // --- OTOMATİK LİG BAKIM VE TEMİZLİK FONKSİYONU ---
+async function runLeagueMaintenance() {
+    console.log("Lig bakımı başlatılıyor...");
+    const now = new Date();
+    const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000; // 5 Günün milisaniye karşılığı
+
+    try {
+        // --- KURAL 1 & 2: 'Hazır' statüsündeki maçların kontrolü ---
+        
+        const readySnap = await db.collection('matches').where('durum', '==', 'Hazır').get();
+        
+        const batch = db.batch(); // Toplu işlem başlatıyoruz
+        let operationCount = 0;
+
+        readySnap.forEach(doc => {
+            const m = doc.data();
+            const matchId = doc.id;
+            const matchRef = db.collection('matches').doc(matchId);
+
+            const createdDate = m.tarih ? m.tarih.toDate() : null;
+            const scheduledDate = m.macZamani ? m.macZamani.toDate() : null;
+
+            // KURAL 1: Maç onaylanmış (Hazır) ama tarih girilmemiş
+            if (!scheduledDate && createdDate) {
+                if ((now - createdDate) > FIVE_DAYS_MS) {
+                    console.log(`Maç İptal (Planlama Yapılmadı): ${matchId}`);
+                    batch.delete(matchRef); 
+                    operationCount++;
+                }
+            }
+
+            // KURAL 2: Maç tarihi belirlenmiş ama üzerinden 5 gün geçmiş (Skor girilmemiş)
+            if (scheduledDate) {
+                if ((now - scheduledDate) > FIVE_DAYS_MS) {
+                    console.log(`Maç İptal (Oynanmadı/Skor Girilmedi): ${matchId}`);
+                    batch.delete(matchRef);
+                    operationCount++;
+                }
+            }
+        });
+
+        // --- KURAL 3: 'Sonuç_Bekleniyor' statüsündeki maçların otomatik onayı ---
+        
+        const pendingSnap = await db.collection('matches').where('durum', '==', 'Sonuç_Bekleniyor').get();
+        
+        for (const doc of pendingSnap.docs) {
+            const m = doc.data();
+            const matchId = doc.id;
+            
+            const scoreDate = m.skorTarihi ? m.skorTarihi.toDate() : (m.macZamani ? m.macZamani.toDate() : m.tarih.toDate());
+
+            if ((now - scoreDate) > FIVE_DAYS_MS) {
+                console.log(`Otomatik Onay: ${matchId}`);
+                
+                const wid = m.adayKazananID;
+                const lid = m.oyuncu1ID === wid ? m.oyuncu2ID : m.oyuncu1ID;
+                
+                let wg = 0, lg = 0;
+                if(m.skor) {
+                    const s = m.skor;
+                    const isEntryByWinner = m.sonucuGirenID === wid;
+                    
+                    const s1w = isEntryByWinner ? parseInt(s.s1_me) : parseInt(s.s1_opp);
+                    const s1l = isEntryByWinner ? parseInt(s.s1_opp) : parseInt(s.s1_me);
+                    const s2w = isEntryByWinner ? parseInt(s.s2_me) : parseInt(s.s2_opp);
+                    const s2l = isEntryByWinner ? parseInt(s.s2_opp) : parseInt(s.s2_me);
+                    wg = s1w + s2w; 
+                    lg = s1l + s2l;
+                }
+
+                const bonusW = wg * 5; 
+                const bonusL = lg * 5;
+
+                // Puanları Dağıt
+                if(m.macTipi === 'Meydan Okuma') {
+                    batch.update(db.collection('users').doc(wid), { 
+                        toplamPuan: firebase.firestore.FieldValue.increment(m.bahisPuani + bonusW),
+                        galibiyetSayisi: firebase.firestore.FieldValue.increment(1),
+                        macSayisi: firebase.firestore.FieldValue.increment(1)
+                    });
+                    batch.update(db.collection('users').doc(lid), { 
+                        toplamPuan: firebase.firestore.FieldValue.increment(-m.bahisPuani + bonusL),
+                        macSayisi: firebase.firestore.FieldValue.increment(1)
+                    });
+                } else {
+                    batch.update(db.collection('users').doc(wid), { 
+                        toplamPuan: firebase.firestore.FieldValue.increment(50 + bonusW),
+                        galibiyetSayisi: firebase.firestore.FieldValue.increment(1),
+                        macSayisi: firebase.firestore.FieldValue.increment(1)
+                    });
+                    batch.update(db.collection('users').doc(lid), { 
+                        toplamPuan: firebase.firestore.FieldValue.increment(50 + bonusL),
+                        macSayisi: firebase.firestore.FieldValue.increment(1)
+                    });
+                }
+
+                batch.update(db.collection('matches').doc(matchId), {
+                    durum: 'Tamamlandı', 
+                    kayitliKazananID: wid,
+                    onayTipi: 'Otomatik'
+                });
+                
+                operationCount++;
+            }
+        }
+
+        if (operationCount > 0) {
+            await batch.commit();
+            console.log(`${operationCount} adet bakım işlemi uygulandı.`);
+        } else {
+            console.log("Bakım gerektiren maç bulunamadı.");
+        }
+
+    } catch (error) {
+        console.error("Lig bakımı sırasında hata:", error);
+    }
+}
+
+// --- GÜNLÜK HATIRLATMA SİSTEMİ (YENİ EKLENEN) ---
+async function checkAndSendReminders() {
+    console.log("Hatırlatma kontrolleri yapılıyor...");
+    const now = new Date();
+    const ONE_DAY_MS = 24 * 60 * 60 * 1000; // 24 Saat
+    
+    const batch = db.batch();
+    let reminderCount = 0;
+
+    const snapshot = await db.collection('matches')
+        .where('durum', 'in', ['Bekliyor', 'Hazır', 'Sonuç_Bekleniyor'])
+        .get();
+
+    for (const doc of snapshot.docs) {
+        const m = doc.data();
+        const matchId = doc.id;
+        
+        const lastRem = m.lastReminderSent ? m.lastReminderSent.toDate() : 0;
+        if ((now - lastRem) < ONE_DAY_MS) continue;
+
+        let targets = [];
+        let subject = "";
+        let bodyContent = "";
+
+        // 1. TEKLİF BEKLEYENLER
+        if (m.durum === 'Bekliyor' && m.oyuncu2ID) {
+            const createDate = m.tarih ? m.tarih.toDate() : now;
+            if ((now - createDate) > ONE_DAY_MS) {
+                targets.push(m.oyuncu2ID);
+                subject = "⏳ Bekleyen Maç Teklifi";
+                bodyContent = `<p>Bir oyuncu sana maç teklifi gönderdi. Lütfen yanıtla.</p>`;
+            }
+        }
+
+        // 2. PLANLAMA BEKLEYENLER
+        else if (m.durum === 'Hazır' && !m.macZamani) {
+            const acceptDate = m.tarih ? m.tarih.toDate() : now;
+            if ((now - acceptDate) > ONE_DAY_MS) {
+                targets.push(m.oyuncu1ID); targets.push(m.oyuncu2ID);
+                subject = "📅 Maç Tarihini Belirleyin";
+                bodyContent = `<p>Maç eşleşmeniz sağlandı, lütfen tarih ve kort belirleyin.</p>`;
+            }
+        }
+
+        // 3. SKOR BEKLEYENLER
+        else if (m.durum === 'Hazır' && m.macZamani) {
+            const matchDate = m.macZamani.toDate();
+            if (now > new Date(matchDate.getTime() + (3 * 60 * 60 * 1000))) {
+                targets.push(m.oyuncu1ID); targets.push(m.oyuncu2ID);
+                subject = "📝 Maç Skoru Girilmedi";
+                bodyContent = `<p>Maç saatiniz geçti. Lütfen skoru giriniz.</p>`;
+            }
+        }
+
+        // 4. ONAY BEKLEYENLER
+        else if (m.durum === 'Sonuç_Bekleniyor') {
+            const targetId = (m.sonucuGirenID === m.oyuncu1ID) ? m.oyuncu2ID : m.oyuncu1ID;
+            targets.push(targetId);
+            subject = "⚖️ Maç Sonucu Onayı Bekliyor";
+            bodyContent = `<p>Rakibin skoru girdi, onaylaman bekleniyor.</p>`;
+        }
+
+        if (targets.length > 0) {
+            const matchRef = db.collection('matches').doc(matchId);
+            batch.update(matchRef, { lastReminderSent: firebase.firestore.FieldValue.serverTimestamp() });
+            reminderCount++;
+
+            targets.forEach(uid => {
+                if(uid) sendNotificationEmail(uid, subject, bodyContent);
+            });
+        }
+    }
+
+    if (reminderCount > 0) {
+        await batch.commit();
+        console.log(`${reminderCount} maç için hatırlatma tetiklendi.`);
+    }
+}
+
+auth.onAuthStateChanged(user => {
         if (user) {
-            authScreen.style.display = 'none'; mainApp.style.display = 'flex'; 
-            tabSections.forEach(s => s.style.display = 'none'); document.getElementById('tab-lobby').style.display = 'block';
-            navItems.forEach(n => n.classList.remove('active')); document.querySelector('[data-target="tab-lobby"]').classList.add('active');
-
-            fetchWeather();
-
+            authScreen.style.display = 'none';
+            mainApp.style.display = 'flex';
+            // ... mevcut kodlar ...
+            
             fetchUserMap().then(() => { 
                 loadLeaderboard(); 
                 loadOpponents(); 
@@ -2642,11 +2837,15 @@ async function updateAndResubmitScore(matchId) {
                 loadAnnouncements(); 
                 setupNotifications(user.uid); 
                 
-                // --- YENİ: BAKIM FONKSİYONUNU ÇAĞIR ---
-                runLeagueMaintenance(); // <-- BURAYA EKLENDİ
+                // --- BAKIM VE HATIRLATMALAR ---
+                runLeagueMaintenance(); // Eski bakım fonksiyonu
+                
+                // YENİ EKLEDİĞİMİZ FONKSİYONU ÇAĞIRIYORUZ:
+                checkAndSendReminders(); 
+                
                 initSpamWarning();
             });
-        } else { 
+        }else { 
             authScreen.style.display = 'flex'; mainApp.style.display = 'none'; listeners.forEach(u=>u());
             switchAuthTab('login');
         }
@@ -3223,137 +3422,9 @@ async function saveOnlyPhoto(matchId) {
     }
 }
 
-// --- OTOMATİK LİG BAKIM VE TEMİZLİK FONKSİYONU ---
-async function runLeagueMaintenance() {
-    console.log("Lig bakımı başlatılıyor...");
-    const now = new Date();
-    const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000; // 5 Günün milisaniye karşılığı
 
-    try {
-        // --- KURAL 1 & 2: 'Hazır' statüsündeki maçların kontrolü ---
-        // 1. Tarih/Kort girilmemiş ve onaylanalı 5 gün geçmiş.
-        // 2. Maç tarihi üzerinden 5 gün geçmiş ama skor girilmemiş.
-        
-        const readySnap = await db.collection('matches').where('durum', '==', 'Hazır').get();
-        
-        const batch = db.batch(); // Toplu işlem başlatıyoruz (Performans için)
-        let operationCount = 0;
 
-        readySnap.forEach(doc => {
-            const m = doc.data();
-            const matchId = doc.id;
-            const matchRef = db.collection('matches').doc(matchId);
 
-            // Tarih verilerini JS Date objesine çevir
-            const createdDate = m.tarih ? m.tarih.toDate() : null;
-            const scheduledDate = m.macZamani ? m.macZamani.toDate() : null;
-
-            // KURAL 1: Maç onaylanmış (Hazır) ama tarih/kort belirlenmemiş (macZamani yok)
-            if (!scheduledDate && createdDate) {
-                if ((now - createdDate) > FIVE_DAYS_MS) {
-                    console.log(`Maç İptal (Planlama Yapılmadı): ${matchId}`);
-                    batch.delete(matchRef); // Veya batch.update(matchRef, {durum: 'İptal'});
-                    operationCount++;
-                }
-            }
-
-            // KURAL 2: Maç tarihi belirlenmiş ama üzerinden 5 gün geçmiş (Skor girilmemiş ki hala 'Hazır'da)
-            if (scheduledDate) {
-                if ((now - scheduledDate) > FIVE_DAYS_MS) {
-                    console.log(`Maç İptal (Oynanmadı/Skor Girilmedi): ${matchId}`);
-                    batch.delete(matchRef);
-                    operationCount++;
-                }
-            }
-        });
-
-        // --- KURAL 3: 'Sonuç_Bekleniyor' statüsündeki maçların otomatik onayı ---
-        // Skor girilmiş ama karşı taraf 5 gündür onaylamamış.
-        
-        const pendingSnap = await db.collection('matches').where('durum', '==', 'Sonuç_Bekleniyor').get();
-        
-        // Bu işlem puan hesaplaması gerektirdiği için batch yerine tek tek işlem yapacağız (finalizeMatch mantığı)
-        // Döngü içinde async/await kullanacağız.
-        for (const doc of pendingSnap.docs) {
-            const m = doc.data();
-            const matchId = doc.id;
-            
-            // Skor girilme tarihi yoksa (eski maçlar için) maç zamanını veya oluşturma tarihini baz al (fallback)
-            const scoreDate = m.skorTarihi ? m.skorTarihi.toDate() : (m.macZamani ? m.macZamani.toDate() : m.tarih.toDate());
-
-            if ((now - scoreDate) > FIVE_DAYS_MS) {
-                console.log(`Otomatik Onay: ${matchId}`);
-                
-                // --- finalizeMatch mantığının kopyası (UI bağımsız) ---
-                const wid = m.adayKazananID;
-                const lid = m.oyuncu1ID === wid ? m.oyuncu2ID : m.oyuncu1ID;
-                
-                let wg = 0, lg = 0;
-                if(m.skor) {
-                    const s = m.skor;
-                    // Skoru giren kişi kazanan mıydı kontrol et
-                    const isEntryByWinner = m.sonucuGirenID === wid;
-                    
-                    // Setleri topla
-                    const s1w = isEntryByWinner ? parseInt(s.s1_me) : parseInt(s.s1_opp);
-                    const s1l = isEntryByWinner ? parseInt(s.s1_opp) : parseInt(s.s1_me);
-                    const s2w = isEntryByWinner ? parseInt(s.s2_me) : parseInt(s.s2_opp);
-                    const s2l = isEntryByWinner ? parseInt(s.s2_opp) : parseInt(s.s2_me);
-                    wg = s1w + s2w; 
-                    lg = s1l + s2l;
-                }
-
-                const bonusW = wg * 5; 
-                const bonusL = lg * 5;
-
-                // Puanları Dağıt
-                if(m.macTipi === 'Meydan Okuma') {
-                    batch.update(db.collection('users').doc(wid), { 
-                        toplamPuan: firebase.firestore.FieldValue.increment(m.bahisPuani + bonusW),
-                        galibiyetSayisi: firebase.firestore.FieldValue.increment(1),
-                        macSayisi: firebase.firestore.FieldValue.increment(1)
-                    });
-                    batch.update(db.collection('users').doc(lid), { 
-                        toplamPuan: firebase.firestore.FieldValue.increment(-m.bahisPuani + bonusL),
-                        macSayisi: firebase.firestore.FieldValue.increment(1)
-                    });
-                } else {
-                    batch.update(db.collection('users').doc(wid), { 
-                        toplamPuan: firebase.firestore.FieldValue.increment(50 + bonusW),
-                        galibiyetSayisi: firebase.firestore.FieldValue.increment(1),
-                        macSayisi: firebase.firestore.FieldValue.increment(1)
-                    });
-                    batch.update(db.collection('users').doc(lid), { 
-                        toplamPuan: firebase.firestore.FieldValue.increment(50 + bonusL),
-                        macSayisi: firebase.firestore.FieldValue.increment(1)
-                    });
-                }
-
-                // Maç durumunu güncelle
-                batch.update(db.collection('matches').doc(matchId), {
-                    durum: 'Tamamlandı', 
-                    kayitliKazananID: wid,
-                    onayTipi: 'Otomatik' // Bilgi amaçlı
-                });
-                
-                // Rozet kontrolünü burada çağıramıyoruz (async karmaşası olmasın diye), 
-                // ama bir sonraki girişlerinde zaten sistem kontrol edecektir.
-                operationCount++;
-            }
-        }
-
-        // Tüm işlemleri veritabanına uygula
-        if (operationCount > 0) {
-            await batch.commit();
-            console.log(`${operationCount} adet bakım işlemi uygulandı.`);
-        } else {
-            console.log("Bakım gerektiren maç bulunamadı.");
-        }
-
-    } catch (error) {
-        console.error("Lig bakımı sırasında hata:", error);
-    }
-}
 
 // --- YENİ HESAP SİLME FONKSİYONU ---
 async function deleteAccount() {
