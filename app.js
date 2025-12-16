@@ -2375,6 +2375,40 @@ function showMatchDetail(matchDocId) {
                 scoreDisplaySection.innerHTML = `<div style="background:#e8f5e9; padding:10px;"><p>${s.s1_me}-${s.s1_opp}, ${s.s2_me}-${s.s2_opp}, ${s.s3_me}-${s.s3_opp}</p><p>Kazanan: ${userMap[match.kayitliKazananID]?.isim}</p></div>`;
             }
         });
+// --- PAYLAŞ BUTONU AKTİVASYONU ---
+    const shareMatchBtn = document.getElementById('btn-share-match-detail');
+    if (shareMatchBtn) {
+        const newShareBtn = shareMatchBtn.cloneNode(true);
+        shareMatchBtn.parentNode.replaceChild(newShareBtn, shareMatchBtn);
+        
+        // Butonun varsayılan stilini ve metnini garantiye al
+        newShareBtn.innerHTML = '📸 Instagram\'da Paylaş';
+        newShareBtn.style.background = 'linear-gradient(45deg, #405de6, #5851db, #833ab4, #c13584, #e1306c, #fd1d1d)';
+        
+        newShareBtn.addEventListener('click', async () => {
+             // 1. Geçici Marka/Banner Oluştur
+            const brandingDiv = document.createElement('div');
+            brandingDiv.id = 'temp-branding-match';
+            brandingDiv.innerHTML = '<p style="text-align:center; margin-bottom:10px; font-size:1em; color:#fff; font-weight:bold; background:#c06035; padding:8px; border-radius:5px; box-shadow:0 2px 5px rgba(0,0,0,0.2);">🏆 Tenis Ligi - Maç Sonucu</p>';
+            
+            const contentDiv = document.getElementById('match-detail-view'); 
+            
+            if (!contentDiv) {
+                alert("Hata: Paylaşılacak alan bulunamadı.");
+                return;
+            }
+
+            // 2. Banner'ı EN ÜSTE ekle (append değil insertBefore)
+            contentDiv.insertBefore(brandingDiv, contentDiv.firstChild);
+
+            // 3. Resmi Hazırla (Fonksiyon içinde reload YOK)
+            await shareElementAsImage('match-detail-view', 'mac-sonucu', 'btn-share-match-detail');
+            
+            // Not: Banner silme işlemini shareElementAsImage içindeki "ŞİMDİ PAYLAŞ" butonuna bıraktık.
+            // Böylece kullanıcı resimde banner'ı görecek, paylaştıktan sonra silinecek.
+        });
+    }
+       
     }
 
     async function updateMatchStatus(id, st, msg) { await db.collection('matches').doc(id).update({durum:st}); alert(msg); goBackToList(); }
@@ -2594,6 +2628,8 @@ confetti({
     origin: { y: 0.6 },
     colors: ['#c06035', '#ffffff', '#28a745'] // Toprak, Beyaz ve Yeşil renkleri
 });
+
+
         goBackToList(); 
         loadLeaderboard();
     } catch (error) {
@@ -2886,7 +2922,8 @@ auth.onAuthStateChanged(user => {
                 loadOpenRequests();
                 loadScheduledMatches(); 
                 loadAnnouncements(); 
-                setupNotifications(user.uid); 
+                setupNotifications(user.uid);
+                checkAndShowRecaps();
                 
                 // --- BAKIM VE HATIRLATMALAR ---
                 runLeagueMaintenance(); // Eski bakım fonksiyonu
@@ -3699,5 +3736,322 @@ function initOnboarding() {
 
 // Bu fonksiyonu, app.js içinde 'initSpamWarning()' fonksiyonunun hemen altına ekle.
 // Yani sayfa yüklendiğinde ve kullanıcı giriş yaptığında çalışacak.
+
+// --- AYLIK & YILLIK RAPOR SİSTEMİ ---
+
+// Tarih aralığına göre istatistikleri hesaplayan yardımcı fonksiyon
+async function getPeriodStats(userId, startDate, endDate) {
+    // Kullanıcının tüm maçlarını çek (daha sonra tarihe göre filtreleyeceğiz)
+    // Not: Firestore'da karmaşık tarih+or query zor olduğu için memory'de filtreliyoruz.
+    const q1 = db.collection('matches').where('oyuncu1ID', '==', userId).where('durum', '==', 'Tamamlandı').get();
+    const q2 = db.collection('matches').where('oyuncu2ID', '==', userId).where('durum', '==', 'Tamamlandı').get();
+    
+    const [s1, s2] = await Promise.all([q1, q2]);
+    let matches = [];
+    
+    const process = (doc) => {
+        const m = doc.data();
+        const d = m.macZamani ? m.macZamani.toDate() : (m.tarih ? m.tarih.toDate() : null);
+        if (d && d >= startDate && d <= endDate) {
+            matches.push({ ...m, id: doc.id });
+        }
+    };
+    
+    s1.forEach(process);
+    s2.forEach(process);
+
+    // Tekrar edenleri temizle (nadir durum ama garanti olsun)
+    matches = matches.filter((v,i,a)=>a.findIndex(t=>(t.id === v.id))===i);
+
+    if (matches.length === 0) return null;
+
+    let stats = {
+        totalMatches: matches.length,
+        wins: 0,
+        pointsEarned: 0, // Tahmini puan (kazanınca 50, kaybedince 10 gibi basit mantık veya maç verisinden)
+        photos: []
+    };
+
+    matches.forEach(m => {
+        const isWinner = m.kayitliKazananID === userId;
+        if (isWinner) stats.wins++;
+        
+        // Puan tahmini (Basit hesap, meydan okuma bahsi varsa onu ekle)
+        let pts = 50; 
+        if (m.macTipi === 'Meydan Okuma') pts = m.bahisPuani || 50;
+        
+        if (isWinner) stats.pointsEarned += pts;
+        else stats.pointsEarned += 10; // Kaybedene teselli puanı varsayımı
+
+        if (m.macFotoURL) stats.photos.push(m.macFotoURL);
+    });
+
+    return stats;
+}
+
+// Ana Kontrol Fonksiyonu
+async function checkAndShowRecaps() {
+    const userId = auth.currentUser.uid;
+    const now = new Date();
+    
+    // --- 1. AYLIK RAPOR KONTROLÜ ---
+    // Geçen ayın raporunu göstermemiz gerekiyor.
+    // Örn: Bugün Mart ayıysa, Şubat raporunu göster.
+    const prevMonthDate = new Date();
+    prevMonthDate.setDate(1); // Ayın 1'ine sabitle
+    prevMonthDate.setMonth(prevMonthDate.getMonth() - 1); // Bir ay geriye git
+    
+    const pYear = prevMonthDate.getFullYear();
+    const pMonth = prevMonthDate.getMonth(); // 0-11 arası
+    const pMonthName = prevMonthDate.toLocaleString('tr-TR', { month: 'long' });
+
+    // LocalStorage Anahtarı: recap_shown_USERID_YEAR_MONTH
+    const storageKeyMonth = `tenisLigi_recap_${userId}_${pYear}_${pMonth}`;
+    const hasSeenMonth = localStorage.getItem(storageKeyMonth);
+
+    if (!hasSeenMonth) {
+        const start = new Date(pYear, pMonth, 1);
+        const end = new Date(pYear, pMonth + 1, 0, 23, 59, 59); // Ayın son günü
+        
+        const stats = await getPeriodStats(userId, start, end);
+        
+        if (stats && stats.totalMatches > 0) {
+            showRecapModal('month', pMonthName, stats);
+            localStorage.setItem(storageKeyMonth, 'true');
+            return; // Aynı anda hem aylık hem yıllık göstermemek için çık
+        }
+    }
+
+    // --- 2. YILLIK RAPOR KONTROLÜ ---
+    // Eğer ay Ocak ise ve geçen yıl raporu gösterilmediyse
+    if (now.getMonth() === 0) { // Ocak ayı (0 index)
+        const lastYear = now.getFullYear() - 1;
+        const storageKeyYear = `tenisLigi_recap_${userId}_${lastYear}_YEAR`;
+        const hasSeenYear = localStorage.getItem(storageKeyYear);
+
+        if (!hasSeenYear) {
+            const start = new Date(lastYear, 0, 1);
+            const end = new Date(lastYear, 11, 31, 23, 59, 59);
+            
+            const stats = await getPeriodStats(userId, start, end);
+            
+            if (stats && stats.totalMatches > 5) { // Yılda en az 5 maç yapmışsa göster
+                showRecapModal('year', lastYear, stats);
+                localStorage.setItem(storageKeyYear, 'true');
+            }
+        }
+    }
+}
+
+// Modalı Gösterme ve Doldurma Fonksiyonu
+function showRecapModal(type, titlePeriod, stats) {
+    const modal = document.getElementById('recap-modal');
+    const title = document.getElementById('recap-title');
+    const subtitle = document.getElementById('recap-subtitle');
+    const closeBtn = document.getElementById('close-recap');
+    const shareBtn = document.getElementById('btn-share-recap');
+    
+    const elMatches = document.getElementById('recap-matches');
+    const elWins = document.getElementById('recap-wins');
+    const elRate = document.getElementById('recap-rate');
+    const elPoints = document.getElementById('recap-points');
+    const photoArea = document.getElementById('recap-photos-area');
+    const photoGrid = document.getElementById('recap-photo-grid');
+    const message = document.getElementById('recap-message');
+
+    // İçeriği Doldur
+    if (type === 'month') {
+        title.textContent = `${titlePeriod} Özeti`;
+        subtitle.textContent = "Geçen ayın performansı";
+        document.querySelector('.recap-content').style.background = "linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)"; // Mavi tema
+    } else {
+        title.textContent = `${titlePeriod} Özeti 🏆`;
+        subtitle.textContent = "Koskoca bir tenis yılı!";
+        document.querySelector('.recap-content').style.background = "linear-gradient(135deg, #c06035 0%, #8d4020 100%)"; // Turuncu/Toprak tema
+    }
+
+    elMatches.textContent = stats.totalMatches;
+    elWins.textContent = stats.wins;
+    const winRate = Math.round((stats.wins / stats.totalMatches) * 100);
+    elRate.textContent = `%${winRate}`;
+    elPoints.textContent = stats.pointsEarned; // Yaklaşık puan
+
+    // Mesajı özelleştir
+    if (winRate > 70) message.textContent = "🔥 Kortları ateşe verdin! İnanılmaz bir performans.";
+    else if (winRate > 40) message.textContent = "💪 Mücadeleci ruhunla harika maçlar çıkardın.";
+    else message.textContent = "🎾 Önemli olan katılmaktı! Gelecek dönem senin olacak.";
+
+    // Fotoğraflar (Rastgele en fazla 3 tane)
+    if (stats.photos.length > 0) {
+        photoArea.style.display = 'block';
+        photoGrid.innerHTML = '';
+        // Diziyi karıştır ve ilk 3'ü al
+        const shuffled = stats.photos.sort(() => 0.5 - Math.random()).slice(0, 3);
+        shuffled.forEach(url => {
+            const img = document.createElement('img');
+            img.src = url;
+            img.className = 'recap-photo-thumb';
+            photoGrid.appendChild(img);
+        });
+    } else {
+        photoArea.style.display = 'none';
+    }
+
+    modal.style.display = 'flex';
+
+    // Konfeti Patlat! 🎉
+    if (window.confetti) {
+        var duration = 3000;
+        var end = Date.now() + duration;
+        (function frame() {
+            confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 } });
+            confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 } });
+            if (Date.now() < end) requestAnimationFrame(frame);
+        }());
+    }
+
+    // Kapatma İşlevleri
+    const closeModal = () => { modal.style.display = 'none'; };
+    closeBtn.onclick = closeModal;
+    shareBtn.onclick = () => {
+    shareElementAsImage('recap-capture-area', 'tenis-ozet', 'btn-share-recap');
+};
+}
+
+// --- SORUNSUZ PAYLAŞIM FONKSİYONU (ZAMANLAYICI YOK) ---
+async function shareElementAsImage(elementId, fileNamePrefix, buttonId) {
+    const element = document.getElementById(elementId);
+    const button = document.getElementById(buttonId);
+    
+    if (!element || !button) return;
+    
+    // Butonun orijinal metnini ve rengini sakla
+    const originalText = button.innerHTML;
+    const originalColor = button.style.background;
+    
+    // 1. AŞAMA: BUTONU KİLİTLE VE "HAZIRLANIYOR" DE
+    button.innerHTML = '⏳ Görüntü Oluşturuluyor...';
+    button.style.background = '#6c757d'; // Gri renk
+    button.disabled = true;
+
+    try {
+        // html2canvas ile resmi oluştur
+        const canvas = await html2canvas(element, {
+            scale: 2, 
+            useCORS: true, 
+            allowTaint: true,
+            backgroundColor: "#ffffff", // Arka planı beyaz yap
+            logging: false,
+            // Resimde çıkmasını istemediğimiz butonları gizle
+            ignoreElements: (el) => {
+                return el.tagName === 'BUTTON' || 
+                       el.id === 'btn-share-match-detail' || 
+                       el.classList.contains('close-modal');
+            }
+        });
+
+        canvas.toBlob(async (blob) => {
+            if (!blob) {
+                alert("Görüntü oluşturulamadı.");
+                // Hata olursa butonu eski haline getir
+                button.innerHTML = originalText;
+                button.style.background = originalColor;
+                button.disabled = false;
+                return;
+            }
+
+            const file = new File([blob], `${fileNamePrefix}.png`, { type: 'image/png' });
+
+            // 2. AŞAMA: BUTONU "PAYLAŞMAYA HAZIR" YAP
+            // Burada ASLA otomatik tıklama veya reload yapmıyoruz.
+            
+            button.innerHTML = '📲 ŞİMDİ PAYLAŞ (HAZIR!)';
+            button.disabled = false;
+            button.style.background = '#28a745'; // Yeşil renk
+            
+            // Butonun eski olaylarını temizlemek için klonluyoruz
+            const readyBtn = button.cloneNode(true);
+            button.parentNode.replaceChild(readyBtn, button);
+
+            // 3. AŞAMA: KULLANICI YEŞİL BUTONA BASTIĞINDA
+            readyBtn.addEventListener('click', async () => {
+                
+                // --- KRİTİK NOKTA: Buraya reload koymuyoruz ---
+                
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            files: [file],
+                            title: 'Tenis Ligi',
+                            text: 'Kortlardaki performansım! 🎾'
+                        });
+                        
+                        // Paylaşım penceresi kapandıktan sonra (Başarılı ise):
+                        console.log("Paylaşım başarılı.");
+                        cleanupAfterShare(readyBtn, originalText, originalColor);
+
+                    } catch (err) {
+                        // Kullanıcı pencereyi "X" ile kapatırsa burası çalışır
+                        console.log("Paylaşım penceresi kapatıldı veya hata:", err);
+                        cleanupAfterShare(readyBtn, originalText, originalColor);
+                    }
+                } else {
+                    // PC/Tarayıcı desteklemiyorsa indir
+                    const link = document.createElement('a');
+                    link.download = `${fileNamePrefix}-${Date.now()}.png`;
+                    link.href = canvas.toDataURL();
+                    link.click();
+                    
+                    cleanupAfterShare(readyBtn, originalText, originalColor);
+                }
+            });
+
+        }, 'image/png');
+
+    } catch (error) {
+        console.error("Hata:", error);
+        alert("Hata: " + error.message);
+        button.innerHTML = originalText;
+        button.style.background = originalColor;
+        button.disabled = false;
+        
+        // Hata durumunda banner'ı temizle
+        const tempBanner = document.getElementById('temp-branding-match');
+        if(tempBanner) tempBanner.remove();
+    }
+}
+
+// Paylaşım sonrası ortalığı temizleyen fonksiyon
+function cleanupAfterShare(btn, origTxt, origCol) {
+    // 1. Turuncu Banner'ı kaldır
+    const tempBanner = document.getElementById('temp-branding-match');
+    if(tempBanner) tempBanner.remove();
+
+    // 2. Butonu eski haline getir
+    btn.innerHTML = origTxt;
+    btn.style.background = origCol;
+    
+    // 3. Butonu tekrar çalışması için sayfayı yenilemeden resetlemek zordur
+    // çünkü klonlama yaptık. En basiti butonu pasif bırakıp "Bitti" demektir.
+    // Ancak kullanıcı tekrar basmak isterse diye sayfayı yenilemeden
+    // showMatchDetail fonksiyonunu tekrar tetikleyebiliriz:
+    // showMatchDetail(currentMatchDocId); // Bu fonksiyon app.js içinde global ise çalışır.
+    
+    // Veya basitçe kullanıcıya işlemin bittiğini gösterelim:
+    btn.innerHTML = "✅ Paylaşıldı / İndirildi";
+    btn.disabled = true; 
+    
+    // 3 saniye sonra butonu tamamen eski haline döndürelim (sayfa yenilemeden)
+    setTimeout(() => {
+        btn.innerHTML = origTxt;
+        btn.style.background = origCol;
+        btn.disabled = false;
+        // Event listener kaybolduğu için sayfayı yenilemek yerine
+        // kullanıcı "Geri Dön" deyip tekrar girebilir.
+        // Ama en garantisi burada basit bir reload yapmaktır ama SADECE İŞLEM BİTTİKTEN SONRA.
+        // window.location.reload(); // Bunu İSTEMİYORSAN bu satırı kapalı tut.
+    }, 2000);
+}
+
 
 });

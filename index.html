@@ -623,6 +623,10 @@
             <select id="winner-select" style="display:none;"><option value="">Kazananı Seçin</option></select>
             <div id="action-buttons-container"></div>
             <p id="result-message"></p>
+</div> <button id="btn-share-match-detail" class="btn-main" style="background: linear-gradient(45deg, #405de6, #5851db, #833ab4, #c13584, #e1306c, #fd1d1d); margin-top: 15px; margin-bottom: 10px;">
+        📸 Instagram'da Paylaş
+    </button>
+
             <button id="back-to-list-btn">Geri Dön</button>
         </div>
 
@@ -699,7 +703,9 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    <script src="app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script src="app.js"></script>
     
     <script>
         if ('serviceWorker' in navigator) {
@@ -759,5 +765,55 @@
         </div>
     </div>
 </div>
+
+<div id="recap-modal" class="modal" style="display: none; z-index: 3000;">
+    <div id="recap-capture-area" class="modal-content recap-content" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; border:none; text-align:center;">
+        <span id="close-recap" class="close-modal" style="color:white; opacity:0.8;">&times;</span>
+        
+        <div id="recap-header">
+            <div style="font-size:3em; margin-bottom:10px;">🗓️</div>
+            <h2 id="recap-title" style="color:white; margin:0; text-shadow:0 2px 4px rgba(0,0,0,0.2);">Özet Yükleniyor...</h2>
+            <p id="recap-subtitle" style="color:rgba(255,255,255,0.8); margin-top:5px; font-size:0.9em;">Performans Raporu</p>
+        </div>
+
+        <div class="recap-stats-grid" style="margin: 20px 0; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <div class="recap-stat-box">
+                <span class="recap-val" id="recap-matches">0</span>
+                <span class="recap-lbl">Maç</span>
+            </div>
+            <div class="recap-stat-box">
+                <span class="recap-val" id="recap-wins">0</span>
+                <span class="recap-lbl">Galibiyet</span>
+            </div>
+            <div class="recap-stat-box">
+                <span class="recap-val" id="recap-rate">%0</span>
+                <span class="recap-lbl">Kazanma</span>
+            </div>
+            <div class="recap-stat-box">
+                <span class="recap-val" id="recap-points">0</span>
+                <span class="recap-lbl">Puan</span>
+            </div>
+        </div>
+
+        <div id="recap-photos-area" style="margin-bottom:20px; display:none;">
+            <p style="font-size:0.8em; color:rgba(255,255,255,0.7); margin-bottom:5px;">📸 Ayın Kareleri</p>
+            <div id="recap-photo-grid" style="display:flex; justify-content:center; gap:5px; overflow-x:auto;">
+                </div>
+        </div>
+
+        <div id="recap-message" style="font-style:italic; font-size:0.95em; margin-bottom:20px; color:#ffc107;">
+            </div>
+
+        <div class="share-branding" style="margin-bottom: 15px; font-size: 0.8em; opacity: 0.8; letter-spacing: 1px;">
+            🏆 trtenis.com lig istatistikleri
+        </div>
+
+        <button id="btn-share-recap" class="btn-main" style="background: white; color: #1e3c72; border:none; box-shadow:0 4px 15px rgba(0,0,0,0.2); display:flex; align-items:center; justify-content:center; gap:10px; width:100%;">
+            📸 Instagram'da Paylaş
+        </button>
+        <p style="font-size:0.7em; color:rgba(255,255,255,0.6); margin-top:5px;">(Görseli Hikayene Ekleyebilirsin)</p>
+    </div>
+</div>
+
 </body>
 </html>
