@@ -1,12 +1,16 @@
-// --- CACHING ---
-const CACHE_NAME = 'tenis-ligi-v24-no-push'; // Versiyonu güncelledik
+/* sw.js */
+
+// 1. OneSignal Kütüphanesini İçe Aktar (BU SATIR EN ÜSTTE OLMALI)
+importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
+
+// --- CACHING (Senin Mevcut Kodların) ---
+const CACHE_NAME = 'tenis-ligi-v26-push'; // Versiyonu güncelledik
 const urlsToCache = [
   './',
   './index.html',
   './style.css',
   './app.js',
   './manifest.json',
-  // Yeni eklenen ikon dosyaları
   './logo.png',
   './logo-192.png',
   './logo-512.png'
@@ -35,6 +39,7 @@ self.addEventListener('activate', function(event) {
       );
     })
   );
+  // 2. ÖNEMLİ EKLEME: OneSignal'ın sayfayı hemen kontrol etmesi için gerekli
   self.clients.claim();
 });
 

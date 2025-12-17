@@ -84,55 +84,54 @@ function pickConsistent(arr, seed) {
 
     // --- GOOGLE APPS SCRIPT İLE MAİL GÖNDERME ---
 // Kopyaladığın uzun linki tırnak içine yapıştır:
-const MAIL_API_URL = "https://script.google.com/macros/s/AKfycbxHcYdbhFkkm9PK4i8x3Fj3MaNStwPauO4LvJHZHlZqIvgcsWqO_c3naNv3lYIY1eRs/exec"; 
+const MAIL_API_URL = "https://script.google.com/macros/s/AKfycbzgbO-8F-nVogxzQLq6ezuhMXf7yujLUcbL352J6XO8jXHKfk-RlsdkUeU4qd9BQNqb/exec"; 
+
+// --- GOOGLE APPS SCRIPT & ONESIGNAL BİLDİRİM FONKSİYONU ---
+// Mevcut sendNotificationEmail fonksiyonunu silip tamamen bunu yapıştırın:
 
 async function sendNotificationEmail(targetUserId, subject, messageHTML) {
+    // Hedef kullanıcıyı bul
     const targetUser = userMap[targetUserId];
     
-    // 1. Temel Kontroller: Kullanıcı veya e-posta adresi var mı?
-    if (!targetUser || !targetUser.email) {
-        console.log("Mail gönderilmedi: Kullanıcı veya e-posta adresi bulunamadı.");
+    // Kullanıcı yoksa işlem yapma
+    if (!targetUser) {
+        console.log("Bildirim hatası: Kullanıcı bulunamadı ID:", targetUserId);
         return;
     }
 
-    // 2. Tercih Kontrolü: Kullanıcı e-posta bildirimini özellikle kapattı mı?
-    // Veritabanında bu alan henüz yoksa (undefined) varsayılan olarak gönderim yapılır.
-    // Sadece 'false' ise engellenir.
-    if (targetUser.emailNotifications === false) {
-        console.log(`Mail engellendi: ${targetUser.isim} e-posta bildirimi almak istemiyor.`);
-        return;
-    }
+    // 1. Push Bildirimi İçin Düz Metin Oluşturma
+    // HTML etiketlerini (<br>, <b> vs.) temizle ve çok uzunsa kısalt.
+    const plainText = messageHTML.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim().substring(0, 150) + (messageHTML.length > 150 ? "..." : "");
 
-    const emailData = {
-        to: targetUser.email,
-        subject: subject,
-        body: `
-            <div style="font-family: Arial, sans-serif; color: #333;">
-                <h2 style="color: #c06035;">Tenis Ligi Bildirimi 🎾</h2>
-                <p>Merhaba <strong>${targetUser.isim}</strong>,</p>
-                <div style="background: #f9f9f9; padding: 15px; border-left: 4px solid #c06035; margin: 10px 0;">
-                    ${messageHTML}
-                </div>
-                <p style="font-size: 12px; color: #999;">
-                    Bu otomatik bir bildirimdir. 
-                    <br>Bildirim ayarlarınızı profil sayfasından yönetebilirsiniz.
-                </p>
-            </div>
-        `
+    // 2. Sunucuya (Google Script) Gönderilecek Veri Paketi
+    const requestData = {
+        targetUserId: targetUserId, // OneSignal (Push) için gerekli ID
+        subject: subject,           // Hem Mail Başlığı hem Bildirim Başlığı
+        body: messageHTML,          // Mail Gövdesi (HTML formatında)
+        plainText: plainText        // Push Mesajı (Sadece yazı)
+        // 'to' (E-posta adresi) aşağıda duruma göre eklenecek
     };
 
+    // 3. E-posta Gönderimi Kontrolü
+    // Kullanıcının e-postası varsa VE bildirimleri kapatmamışsa 'to' alanını ekle.
+    // Eğer 'to' eklenmezse, Google Script sadece Push bildirimi atar.
+    if (targetUser.email && targetUser.emailNotifications !== false) {
+        requestData.to = targetUser.email;
+    } else {
+        console.log(`${targetUser.isim} e-posta istemiyor veya adresi yok. Sadece Push denenecek.`);
+    }
+
+    // 4. İsteği Gönder
     try {
-        // "no-cors" modu, tarayıcının Google'dan dönen yanıtı bloklamasını engeller.
-        // Yanıtın içeriğini (ok/fail) okuyamayız ama isteği göndermiş oluruz.
         await fetch(MAIL_API_URL, {
             method: "POST",
-            mode: "no-cors", 
+            mode: "no-cors", // Google Script'e veri atarken cevabı okuyamayız ama işlem gerçekleşir.
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(emailData)
+            body: JSON.stringify(requestData)
         });
-        console.log(`Mail isteği gönderildi: ${targetUser.isim}`);
+        console.log(`Bildirim/Mail isteği sunucuya iletildi: ${targetUser.isim}`);
     } catch (error) {
-        console.error("Mail gönderme hatası:", error);
+        console.error("Bildirim gönderme hatası:", error);
     }
 }
 
@@ -1359,46 +1358,63 @@ async function loadTheBests(filterType = 'all') {
     }
 
 async function loadAnnouncements() {
-    if(!announcementsContainer) return;
-    announcementsContainer.innerHTML = `<p style="text-align:center; color:#999; font-style:italic; margin-top:20px;">🤖 Lig taranıyor... Haberler hazırlanıyor...</p>`;
+    if (!announcementsContainer) return;
     
+    // Yükleniyor animasyonu
+    announcementsContainer.innerHTML = `<p style="text-align:center; color:#999; font-style:italic; margin-top:20px;">🤖 Lig taranıyor... Haberler hazırlanıyor...</p>`;
+
     try {
+        // Veritabanından verileri çek
         const matchSnap = await db.collection('matches').where('durum', '==', 'Tamamlandı').orderBy('tarih', 'desc').limit(10).get();
         const adSnap = await db.collection('matches').where('durum', '==', 'Acik_Ilan').orderBy('tarih', 'desc').limit(5).get();
         const newsSnap = await db.collection('news').orderBy('timestamp', 'desc').limit(10).get();
 
         let allItems = [];
 
-        // 1. MAÇ SONUÇLARI
+        // --- YARDIMCI FONKSİYON: GÜVENLİ FOTOĞRAF ALMA ---
+        // Bu fonksiyon, kullanıcı fotoğrafı yoksa veya link kıriksa otomatik baş harf üretir.
+        const getSafePhoto = (userObj, name) => {
+            // Eğer veritabanında geçerli bir URL varsa onu kullan
+            if (userObj && userObj.fotoURL && userObj.fotoURL.length > 10 && !userObj.fotoURL.includes("undefined")) {
+                return userObj.fotoURL;
+            }
+            // Yoksa ismin baş harflerinden avatar oluştur (Arka plan rastgele renk)
+            const safeName = name ? encodeURIComponent(name) : 'O';
+            return `https://ui-avatars.com/api/?name=${safeName}&background=random&color=fff&size=128&bold=true`;
+        };
+
+        // 1. MAÇ SONUÇLARI (İç İçe Avatar Yapısı)
         matchSnap.forEach(doc => {
             const m = doc.data();
             const p1Obj = userMap[m.oyuncu1ID];
             const p2Obj = userMap[m.oyuncu2ID];
+
+            const p1Name = p1Obj?.isim || 'Oyuncu 1';
+            const p2Name = p2Obj?.isim || 'Oyuncu 2';
             
-            const p1Name = p1Obj?.isim || '???';
-            const p2Name = p2Obj?.isim || '???';
-            const p1Photo = p1Obj?.fotoURL || 'https://via.placeholder.com/50?text=P1';
-            const p2Photo = p2Obj?.fotoURL || 'https://via.placeholder.com/50?text=P2';
-            
+            // Güvenli fotoğrafları al
+            const p1Photo = getSafePhoto(p1Obj, p1Name);
+            const p2Photo = getSafePhoto(p2Obj, p2Name);
+
             const winnerName = userMap[m.kayitliKazananID]?.isim || '???';
             const loserName = (m.kayitliKazananID === m.oyuncu1ID) ? p2Name : p1Name;
 
             let isCrushing = false, isTight = false, isComeback = false;
 
-            if(m.skor) {
+            if (m.skor) {
                 const s = m.skor;
-                if((s.s1_me<=1||s.s1_opp<=1) || (s.s2_me<=1||s.s2_opp<=1)) isCrushing = true;
-                if(s.s3_me || s.s3_opp || s.s1_me==7 || s.s1_opp==7 || s.s2_me==7 || s.s2_opp==7) isTight = true;
-                if(s.s3_me || s.s3_opp) isComeback = true; 
-                
-                if(isComeback) { isTight = false; isCrushing = false; }
-                else if(isTight) { isCrushing = false; }
-            }
-            
-            let scoreStr = "";
-            if(m.skor) { scoreStr = `${m.skor.s1_me}-${m.skor.s1_opp}, ${m.skor.s2_me}-${m.skor.s2_opp}` + (m.skor.s3_me?`, ${m.skor.s3_me}-${m.skor.s3_opp}`:''); }
+                if ((s.s1_me <= 1 || s.s1_opp <= 1) || (s.s2_me <= 1 || s.s2_opp <= 1)) isCrushing = true;
+                if (s.s3_me || s.s3_opp || s.s1_me == 7 || s.s1_opp == 7 || s.s2_me == 7 || s.s2_opp == 7) isTight = true;
+                if (s.s3_me || s.s3_opp) isComeback = true;
 
-            // YORUM ÜRET (ID GÖNDERİLİYOR)
+                if (isComeback) { isTight = false; isCrushing = false; }
+                else if (isTight) { isCrushing = false; }
+            }
+
+            let scoreStr = "";
+            if (m.skor) { scoreStr = `${m.skor.s1_me}-${m.skor.s1_opp}, ${m.skor.s2_me}-${m.skor.s2_opp}` + (m.skor.s3_me ? `, ${m.skor.s3_me}-${m.skor.s3_opp}` : ''); }
+
+            // YORUM ÜRET
             const commentary = generateAdvancedCommentary('match_result', {
                 winnerName, loserName, scoreStr, isCrushing, isTight, isComeback, matchId: doc.id
             });
@@ -1406,21 +1422,23 @@ async function loadAnnouncements() {
             // KART STİLİ
             let stripClass = "strip-match";
             let headerText = "MAÇ SONUCU";
-            if(isCrushing) { stripClass = "strip-upset"; headerText = "EZİCİ ÜSTÜNLÜK 🔥"; }
-            else if(isTight || isComeback) { stripClass = "strip-thriller"; headerText = "NEFES KESTİ 😱"; }
+            if (isCrushing) { stripClass = "strip-upset"; headerText = "EZİCİ ÜSTÜNLÜK 🔥"; }
+            else if (isTight || isComeback) { stripClass = "strip-thriller"; headerText = "NEFES KESTİ 😱"; }
 
             const card = document.createElement('div');
             card.className = 'news-card';
+            
+            // NOT: onerror kısmı, eğer resim yüklenemezse devreye girer ve yedeği yükler.
             card.innerHTML = `
                 <div class="news-header-strip ${stripClass}">
                     <span>${headerText}</span>
-                    <span>${m.macZamani ? m.macZamani.toDate().toLocaleDateString('tr-TR', {day:'numeric', month:'short'}) : ''}</span>
+                    <span>${m.macZamani ? m.macZamani.toDate().toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) : ''}</span>
                 </div>
                 <div class="news-body">
                     <div class="news-players-row">
                         <div class="news-avatars-stack">
-                            <img src="${p1Photo}" class="news-avatar">
-                            <img src="${p2Photo}" class="news-avatar">
+                            <img src="${p1Photo}" class="news-avatar" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(p1Name)}&background=random'">
+                            <img src="${p2Photo}" class="news-avatar" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(p2Name)}&background=random'">
                         </div>
                         <div class="news-highlight-names">
                             ${p1Name} <span style="color:#999; font-weight:normal; font-size:0.8em;">vs</span><br>${p2Name}
@@ -1434,15 +1452,15 @@ async function loadAnnouncements() {
             allItems.push({ date: m.macZamani ? m.macZamani.toDate() : new Date(), element: card });
         });
 
-        // 2. AÇIK İLANLAR
+        // 2. AÇIK İLANLAR (Tekli Avatar)
         adSnap.forEach(doc => {
             const m = doc.data();
             const p1 = userMap[m.oyuncu1ID];
             const p1Name = p1?.isim || '???';
-            const p1Photo = p1?.fotoURL || 'https://via.placeholder.com/50?text=P1';
+            const p1Photo = getSafePhoto(p1, p1Name); // Güvenli Foto
 
-            const commentary = generateAdvancedCommentary('open_ad', { 
-                p1Name: p1Name, wager: m.bahisPuani, matchId: doc.id 
+            const commentary = generateAdvancedCommentary('open_ad', {
+                p1Name: p1Name, wager: m.bahisPuani, matchId: doc.id
             });
 
             const card = document.createElement('div');
@@ -1454,7 +1472,7 @@ async function loadAnnouncements() {
                 </div>
                 <div class="news-body">
                     <div class="news-players-row">
-                        <img src="${p1Photo}" class="news-avatar" style="position:static; margin-right:10px;">
+                        <img src="${p1Photo}" class="news-avatar" style="margin-right:10px;" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(p1Name)}&background=random'">
                         <div class="news-highlight-names" style="margin-left:0;">${p1Name}</div>
                     </div>
                     <div class="news-commentary">${commentary}</div>
@@ -1464,12 +1482,12 @@ async function loadAnnouncements() {
             allItems.push({ date: m.tarih ? m.tarih.toDate() : new Date(), element: card });
         });
 
-        // 3. HABERLER
+        // 3. HABERLER / ROZETLER (Tekli Avatar)
         newsSnap.forEach(doc => {
             const n = doc.data();
             const p1 = userMap[n.userId];
             const p1Name = p1?.isim || 'Oyuncu';
-            const p1Photo = p1?.fotoURL || 'https://via.placeholder.com/50?text=U';
+            const p1Photo = getSafePhoto(p1, p1Name); // Güvenli Foto
 
             let commentary = "";
             let stripClass = "strip-match";
@@ -1492,7 +1510,7 @@ async function loadAnnouncements() {
                 </div>
                 <div class="news-body">
                     <div class="news-players-row">
-                        <img src="${p1Photo}" class="news-avatar" style="position:static; margin-right:10px;">
+                        <img src="${p1Photo}" class="news-avatar" style="margin-right:10px;" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(p1Name)}&background=random'">
                         <div class="news-highlight-names" style="margin-left:0;">${p1Name}</div>
                     </div>
                     <div class="news-commentary">${commentary}</div>
@@ -1502,10 +1520,11 @@ async function loadAnnouncements() {
             allItems.push({ date: n.timestamp ? n.timestamp.toDate() : new Date(), element: card });
         });
 
+        // Tarihe göre sırala ve ekrana bas
         allItems.sort((a, b) => b.date - a.date);
         announcementsContainer.innerHTML = '';
-        
-        if(allItems.length === 0) {
+
+        if (allItems.length === 0) {
             announcementsContainer.innerHTML = '<p style="text-align:center; padding:20px;">Henüz bir hareketlilik yok. Sessizlik...</p>';
         } else {
             allItems.forEach(item => announcementsContainer.appendChild(item.element));
@@ -1587,7 +1606,7 @@ function loadOpenRequests() {
                 </div>
                 <div class="news-body">
                     <div class="news-players-row">
-                        <img src="${p1Photo}" class="news-avatar" style="position:static; margin-right:0; box-shadow:0 2px 5px rgba(0,0,0,0.15);">
+                        <img src="${p1Photo}" class="news-avatar" style="margin-right: 10px;">
                         <div class="news-highlight-names">
                             ${p1Name}
                             <div style="font-weight:normal; margin-top:3px;">${courtBadge}</div>
@@ -3168,7 +3187,17 @@ auth.onAuthStateChanged(user => {
         if (user) {
             authScreen.style.display = 'none';
             mainApp.style.display = 'flex';
-            // ... mevcut kodlar ...
+
+            if (window.OneSignalDeferred) {
+            window.OneSignalDeferred.push(function(OneSignal) {
+                // Kullanıcının Firebase ID'sini OneSignal'a 'External ID' olarak veriyoruz
+                OneSignal.login(user.uid);
+                
+                // İsteğe bağlı: Kullanıcı adını da etiket olarak ekle
+                // OneSignal.User.addTag("name", user.displayName || "Player");
+            });
+        }
+            
             
             fetchUserMap().then(() => { 
                 loadLeaderboard(); 

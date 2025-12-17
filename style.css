@@ -1511,3 +1511,257 @@ button:active {
     box-shadow: 0 4px 20px rgba(0,0,0,0.05);
     margin-bottom: 20px;
 }
+/* --- HABER VE İLAN KARTLARI KÜÇÜLTME & DÜZELTME --- */
+
+/* 1. Kartın dış boşluklarını azaltalım */
+.news-card {
+    margin-bottom: 12px !important; /* Kartlar arası boşluğu düşürdük */
+    border-radius: 12px !important; /* Köşeleri biraz daha keskinleştirdik */
+}
+
+/* 2. Kartın Başlık Şeridi (Renkli Kısım) */
+.news-header-strip {
+    padding: 6px 12px !important; /* Şerit yüksekliğini azalttık */
+    font-size: 0.65em !important; /* Yazıyı küçülttük */
+}
+
+/* 3. Kartın İçeriği (Gövde) */
+.news-body {
+    padding: 10px !important; /* İç boşluğu azalttık (Eskisi 18px idi) */
+}
+
+/* 4. RESİM BOYUTU SORUNU ÇÖZÜMÜ (En Önemli Kısım) */
+/* .news-avatar sınıfına boyut vermediğimiz için resimler devasa çıkıyordu */
+.news-avatar {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50%;
+    object-fit: cover; /* Resmi yuvarlağa sığdır */
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+/* İkili avatar yapısı (Maç sonuçları için) */
+.news-avatars-stack {
+    width: 60px !important; /* Genişliği azalttık */
+    height: 40px !important;
+}
+
+/* 5. İsimlerin Boyutu */
+.news-highlight-names {
+    font-size: 0.95em !important; /* İsimleri küçülttük */
+    margin-left: 10px !important;
+    line-height: 1.2 !important;
+}
+
+/* 6. Yorum / Açıklama Alanı */
+.news-commentary {
+    font-size: 0.8em !important; /* Yorum yazısını küçülttük */
+    line-height: 1.4 !important;
+    padding: 8px !important;
+    margin-bottom: 8px !important;
+}
+
+/* 7. Aksiyon Butonu (Detay Gör vb.) */
+.news-action-btn {
+    padding: 6px !important; /* Butonu incelttik */
+    font-size: 0.8em !important;
+    margin-top: 5px !important;
+    border-radius: 6px !important;
+}
+
+/* 8. Kaydırma Alanı Yüksekliği */
+/* Böylece en az 2.5 kart ekranda görünür */
+.lobby-scroll-list {
+    max-height: 400px !important; 
+    padding: 8px !important;
+}
+
+/* Ekstra: İlanlardaki tarih ve bahis rozetini hizalama */
+.news-body div[style*="display:flex"] {
+    margin-top: 5px !important;
+}
+/* --- AVATAR DÜZELTMELERİ VE GÜZELLEŞTİRME --- */
+
+/* Avatar Kapsayıcısı: Esnek kutu yapısı */
+.news-avatars-stack {
+    display: flex !important;
+    align-items: center !important;
+    width: auto !important; /* Sabit genişliği kaldırdık */
+    height: 50px !important;
+    position: relative;
+    margin-right: 15px; /* İsimlerle araya mesafe */
+}
+
+/* Avatar Resimleri: Sabit yuvarlak ve şık */
+.news-avatars-stack .news-avatar {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #fff; /* Beyaz çerçeve ayırıcı görevi görür */
+    box-shadow: 0 4px 6px rgba(0,0,0,0.15); /* Hafif gölge */
+    background-color: #eee; /* Resim yüklenmezse gri zemin */
+}
+
+/* İkinci Resim: İlk resmin hafifçe üzerine biner */
+.news-avatars-stack .news-avatar:nth-child(2) {
+    margin-left: -18px; /* Sola doğru çekerek üst üste bindirir */
+    z-index: 1; /* Üstte kalmasını sağlar */
+}
+
+/* Mobilde isimlerin hizalanması */
+.news-players-row {
+    align-items: center !important;
+}
+/* --- INSTAGRAM PAYLAŞIM KARTI TASARIMI --- */
+
+/* Paylaşım Kartı Konteyneri (Gizli oluşturulup resim çekilecek) */
+#share-card-temp {
+    width: 1080px;  /* Instagram Standart Genişlik */
+    height: 1920px; /* Instagram Hikaye Yüksekliği (9:16) */
+    position: fixed;
+    top: -9999px;   /* Ekranda gözükmesin, arkada oluşsun */
+    left: -9999px;
+    background-color: #f4f6f8;
+    z-index: 99999;
+    font-family: 'Poppins', sans-serif;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* 1. DURUM: FOTOĞRAF VARSA (Arka Plan Resimli) */
+.share-card-photo-mode {
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+/* Resmin üzerine gelen karartma (Yazı okunsun diye) */
+.share-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* Alttan ve üstten hafif siyah gradyan */
+    background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 20%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.9) 100%);
+}
+
+/* 2. DURUM: FOTOĞRAF YOKSA (Ortalanmış Tasarım) */
+.share-card-clean-mode {
+    width: 100%;
+    height: 100%;
+    /* Tenis kortu rengi gradyan */
+    background: linear-gradient(135deg, #c06035 0%, #8d4020 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+/* --- ORTAK ELEMANLAR --- */
+
+/* Üst Kısım: Logo ve Link */
+.share-header {
+    position: absolute;
+    top: 60px;
+    left: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    z-index: 10;
+}
+
+.share-logo-img {
+    width: 180px;
+    height: auto;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+    margin-bottom: 20px;
+}
+
+.share-link-badge {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    color: white;
+    padding: 10px 30px;
+    border-radius: 50px;
+    font-size: 24px;
+    font-weight: 600;
+    border: 2px solid rgba(255,255,255,0.4);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+/* Alt Kısım: Kazanan ve Skor (Fotoğraf Modu İçin) */
+.share-footer-split {
+    position: absolute;
+    bottom: 80px;
+    left: 0;
+    width: 100%;
+    padding: 0 60px;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    z-index: 10;
+}
+
+.share-winner-box {
+    text-align: left;
+}
+.share-winner-label {
+    color: #ffd700; /* Altın rengi */
+    font-size: 32px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 5px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+.share-winner-name {
+    color: white;
+    font-size: 64px;
+    font-weight: 800;
+    line-height: 1.1;
+    text-shadow: 0 4px 10px rgba(0,0,0,0.8);
+}
+
+.share-score-box {
+    text-align: right;
+    background: rgba(0,0,0,0.6); /* Yarı saydam siyah kutu */
+    padding: 20px 30px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.2);
+    backdrop-filter: blur(5px);
+}
+
+.share-score-row {
+    color: white;
+    font-size: 36px;
+    font-weight: 600;
+    margin: 5px 0;
+    display: block;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+.share-score-val {
+    color: #28a745; /* Yeşil skor rengi */
+    font-weight: 800;
+    margin-left: 15px;
+}
+
+/* Ortalanmış İçerik (Fotoğrafsız Mod İçin) */
+.share-center-content {
+    text-align: center;
+    color: white;
+    z-index: 10;
+    padding: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 40px;
+    border: 2px solid rgba(255,255,255,0.2);
+    width: 80%;
+}
