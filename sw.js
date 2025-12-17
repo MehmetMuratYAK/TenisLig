@@ -4,7 +4,7 @@
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
 // --- CACHING (Senin Mevcut Kodların) ---
-const CACHE_NAME = 'tenis-ligi-v27-push'; // Versiyonu güncelledik
+const CACHE_NAME = 'tenis-ligi-v29-push'; // Versiyonu güncelledik
 const urlsToCache = [
   './',
   './index.html',
