@@ -24,6 +24,29 @@ document.addEventListener('DOMContentLoaded', function() {
         "Gd Academy Bursa", "Uni+ Sport Club Tenis Kortları", "Aslanlar Tenis Akademisi", "Ferdi / Bağımsız"
     ];
 
+    // --- YARDIMCI: GÜVENLİ AVATAR OLUŞTURUCU (CORS HATASINI ÖNLER) ---
+function getSafeAvatar(text) {
+    // 1. Rastgele ama isme göre sabit renk seçimi
+    const colors = ['#f44336', '#E91E63', '#9C27B0', '#673AB7', '#3F51B5', '#2196F3', '#009688', '#4CAF50', '#FF9800', '#FF5722', '#795548', '#607D8B'];
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+        hash = text.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const color = colors[Math.abs(hash) % colors.length];
+
+    // 2. Baş harfleri al
+    const initials = text.split(" ").map((n)=>n[0]).join("").substring(0,2).toUpperCase();
+
+    // 3. SVG oluştur ve Base64'e çevir
+    const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="${color}" />
+      <text x="50" y="50" font-family="Arial, sans-serif" font-weight="bold" font-size="40" fill="white" text-anchor="middle" dy=".35em">${initials}</text>
+    </svg>`;
+    
+    return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
+}
+
     // YENİ: Tenis tecrübesi hesaplama fonksiyonu
 function calculateTennisDuration(startDateStr) {
     if (!startDateStr) return '';
@@ -986,7 +1009,7 @@ function loadLeaderboard(filterClub = 'all') {
             }
 
             // Profil Fotoğrafı (Yoksa varsayılan)
-            const photoURL = player.fotoURL || 'https://via.placeholder.com/80?text=Oyuncu';
+            const photoURL = player.fotoURL || getSafeAvatar(player.isim || player.email);
             
             // Rozet HTML'i
             const badgeHTML = getLeagueBadgeHTML(player.toplamPuan);
@@ -1174,7 +1197,7 @@ async function loadTheBests(filterType = 'all') {
         const getPhotoByName = (name) => {
             if (!name || name === '-') return 'https://via.placeholder.com/60?text=?';
             const user = Object.values(userMap).find(u => (u.isim || u.email) === name);
-            return user && user.fotoURL ? user.fotoURL : 'https://via.placeholder.com/60?text=' + name.charAt(0);
+            return user && user.fotoURL ? user.fotoURL : getSafeAvatar(name);
         };
 
         // Kart Oluşturucu
@@ -1558,7 +1581,7 @@ function loadOpenRequests() {
               hasRequest = true;
               const p1 = userMap[data.oyuncu1ID];
               const p1Name = p1?.isim || 'Bilinmiyor';
-              const p1Photo = p1?.fotoURL || 'https://via.placeholder.com/60?text=P1';
+              const p1Photo = p1?.fotoURL || getSafeAvatar(p1Name);
               
               // 1. İLAN METNİ (Yapay Zeka / Hazır Metin)
               // matchId gönderiyoruz ki her seferinde farklı metin üretmesin
@@ -1677,8 +1700,8 @@ function loadScheduledMatches() {
             
             const p1Name = p1?.isim || 'Oyuncu 1';
             const p2Name = p2?.isim || 'Oyuncu 2';
-            const p1Photo = p1?.fotoURL || 'https://via.placeholder.com/60?text=P1';
-            const p2Photo = p2?.fotoURL || 'https://via.placeholder.com/60?text=P2';
+const p1Photo = p1?.fotoURL || getSafeAvatar(p1Name);
+const p2Photo = p2?.fotoURL || getSafeAvatar(p2Name);
             
             // Tarih ve Kort Bilgisi Hazırla
             let locationInfo = "Kort ve Zaman Bekleniyor ⏳";
@@ -1807,7 +1830,7 @@ function createModernMatchHTML(match, currentUserID, isFixture = false) {
     const p2 = userMap[match.oyuncu2ID];
     const p1Name = p1?.isim || '???';
     const p2Name = p2 ? (p2.isim || '???') : 'Bekleniyor';
-    const p2Photo = p2?.fotoURL || 'https://via.placeholder.com/50?text=?';
+    const p2Photo = p2?.fotoURL || getSafeAvatar(p2Name);
 
     // Durum Rengi ve Metni
     let statusClass = 'status-gray';
@@ -2160,7 +2183,7 @@ async function showPlayerStats(userId) {
     statsPlayerName.textContent = 'Yükleniyor...'; 
     statsTotalPoints.textContent = '-'; 
     statsCourtPref.innerHTML = '';
-    if(statsPlayerPhoto) statsPlayerPhoto.src = 'https://via.placeholder.com/120';
+    if(statsPlayerPhoto) statsPlayerPhoto.src = u.fotoURL || getSafeAvatar(u.isim);
     document.getElementById('stats-badges-grid').innerHTML = ''; 
     document.getElementById('stats-form-badges').innerHTML = '';
 
@@ -2650,106 +2673,121 @@ function showMatchDetail(matchDocId) {
             }
         });
 // --- PAYLAŞ BUTONU AKTİVASYONU ---
-// --- PAYLAŞ BUTONU AKTİVASYONU (MODERN TASARIM ENTEGRASYONU) ---
+// --- PAYLAŞ BUTONU AKTİVASYONU (AKILLI HATA DÜZELTİCİ MOD) ---
+// --- PAYLAŞ BUTONU AKTİVASYONU (BAĞIMSIZ/GÜVENLİ MOD) ---
     const shareMatchBtn = document.getElementById('btn-share-match-detail');
     if (shareMatchBtn) {
-        // Eski event listener'ları temizlemek için butonu klonluyoruz
         const newShareBtn = shareMatchBtn.cloneNode(true);
         shareMatchBtn.parentNode.replaceChild(newShareBtn, shareMatchBtn);
         
-        // Buton stili
         newShareBtn.innerHTML = '📸 Instagram\'da Paylaş';
         newShareBtn.style.background = 'linear-gradient(45deg, #405de6, #5851db, #833ab4, #c13584, #e1306c, #fd1d1d)';
         
         newShareBtn.addEventListener('click', async () => {
-            // --- VERİLERİ HAZIRLA ---
-            // Kazananı ve kaybedeni belirle
-            let winnerName = "Belirsiz";
-            const wid = match.kayitliKazananID || match.adayKazananID; // Kesinleşmiş veya aday kazanan
-            if (wid) {
-                winnerName = userMap[wid]?.isim || 'Kazanan';
-            } else {
-                // Eğer kazanan henüz yoksa (örn: maç oynanıyor ama paylaşılmak istendi)
-                winnerName = "?"; 
-            }
+            console.log("Paylaşım başlatılıyor...");
 
-            // Skoru metin haline getir
-            let scoreText = "";
-            if (match.skor) {
-                const s = match.skor;
-                // Veritabanındaki skor yapısını düzgün formatla: "6-4, 6-2"
-                // Not: Kazananın skorunu önce yazmak mantıklıdır ama burada veritabanı sırasını koruyoruz
-                // Gerekirse basit bir if ile kazananın setlerini önce yazdırabilirsin.
-                const set1 = (parseInt(s.s1_me) + parseInt(s.s1_opp)) > 0 ? `${s.s1_me}-${s.s1_opp}` : '';
-                const set2 = (parseInt(s.s2_me) + parseInt(s.s2_opp)) > 0 ? `, ${s.s2_me}-${s.s2_opp}` : '';
-                const set3 = (parseInt(s.s3_me) + parseInt(s.s3_opp)) > 0 ? `, ${s.s3_me}-${s.s3_opp}` : '';
-                scoreText = set1 + set2 + set3;
-            } else {
-                scoreText = "Skor Bekleniyor";
-            }
-
-            // --- HTML OLUŞTURMA (SENİN CSS TASARIMINA GÖRE) ---
-            const tempDiv = document.createElement('div');
-            tempDiv.id = 'share-card-temp'; // CSS'teki #share-card-temp ID'si
+            // --- 1. MAÇ VERİSİNİ AL ---
+            let finalMatchData = null;
+            try { if (typeof match !== 'undefined') finalMatchData = match; } catch (e) {}
             
-            // Eğer maçın fotoğrafı varsa "Photo Mode", yoksa "Clean Mode" kullan
-            const hasPhoto = match.macFotoURL && match.macFotoURL.length > 10;
+            if (!finalMatchData && typeof currentMatchDocId !== 'undefined' && currentMatchDocId) {
+                try {
+                    const doc = await db.collection('matches').doc(currentMatchDocId).get();
+                    finalMatchData = doc.data();
+                } catch (err) { console.error(err); }
+            }
+
+            if (!finalMatchData) {
+                alert("Veri yüklenemedi, lütfen sayfayı yenileyin.");
+                return;
+            }
+
+            // --- 2. LOGO İÇİN BASE64 (Tenis Topu İkonu) ---
+            // Bu sayede "logo.png" dosya yolu hatası veya CORS hatası olmaz.
+            const SAFE_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+PHBhdGggZmlsbD0iI2MzZjkwOCIgZD0iTTI1NiAwdTI1NiAyNTZjMCAxNDEuMzg1LTExNC42MTUgMjU2LTI1NiAyNTZTJDAgMzk3LjM4NSAwIDI1NiAxMTQuNjE1IDAgMjU2IDB6Ii8+PHBhdGggZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjMyIiBzdHJva2UtbWl0ZXJsaW1pdD0iMTAiIGQ9Ik0zMzkuMzQ4IDEwOC41NDVjLTQ3LjA2IDUwLjI3Mi03NS45NjIgMTE4LjE1NS03NS45NjIgMTkyLjQ1NXM4MS45NDcgMTM3LjUzNyAxMzUuMTY0IDE4Mi42MzZNMzcuNTg2IDEzNC4xMDRjNDkuNjY4IDM5LjczNyAxMTIuNzU3IDYzLjYyNCAxODAuOTU4IDYzLjYyNHMxMzEuMjktMjMuODg3IDE4MC45NTgtNjMuNjI0Ii8+PC9zdmc+";
+
+            // --- 3. VERİLERİ HAZIRLA ---
+            let winnerName = "?";
+            const wid = finalMatchData.kayitliKazananID || finalMatchData.adayKazananID;
+            if (wid && typeof userMap !== 'undefined' && userMap[wid]) {
+                winnerName = userMap[wid].isim || 'Kazanan';
+            }
+
+            let scoreText = "Skor Yok";
+            if (finalMatchData.skor) {
+                const s = finalMatchData.skor;
+                const set1 = (parseInt(s.s1_me||0) + parseInt(s.s1_opp||0)) > 0 ? `${s.s1_me}-${s.s1_opp}` : '';
+                const set2 = (parseInt(s.s2_me||0) + parseInt(s.s2_opp||0)) > 0 ? `, ${s.s2_me}-${s.s2_opp}` : '';
+                const set3 = (parseInt(s.s3_me||0) + parseInt(s.s3_opp||0)) > 0 ? `, ${s.s3_me}-${s.s3_opp}` : '';
+                scoreText = set1 + set2 + set3;
+            }
+
+            // --- 4. HTML OLUŞTUR (LOGO YERİNE BASE64 KULLANILDI) ---
+            const tempDiv = document.createElement('div');
+            tempDiv.id = 'share-card-temp';
+            
+            // Eğer maç fotoğrafı varsa ve URL "via.placeholder" DEĞİLSE kullan
+            let photoUrl = finalMatchData.macFotoURL;
+            let hasPhoto = photoUrl && photoUrl.length > 20 && !photoUrl.includes("placeholder");
+
+            // Eğer resim URL'si varsa ama cross-origin hatası riski varsa (Firebase dışı),
+            // html2canvas bunu yükleyemeyebilir. Bu durumda güvenli moda (fotosuz) geçmek daha sağlamdır.
             
             let innerContent = '';
 
             if (hasPhoto) {
-                // FOTOĞRAFLI TASARIM
+                // FOTOĞRAFLI MOD
                 innerContent = `
-                    <div class="share-card-photo-mode" style="background-image: url('${match.macFotoURL}');">
+                    <div class="share-card-photo-mode" style="background-image: url('${photoUrl}');">
                         <div class="share-overlay"></div>
-                        
                         <div class="share-header">
-                             <img src="logo.png" class="share-logo-img">
-                             <div class="share-link-badge">tenisligi.app</div>
+                             <img src="${SAFE_LOGO}" class="share-logo-img" style="width:100px; height:100px;">
+                             <div class="share-link-badge" style="margin-top:10px;">tenisligi.app</div>
                         </div>
-
                         <div class="share-footer-split">
                             <div class="share-winner-box">
-                                <div class="share-winner-label">MAÇ SONUCU</div>
+                                <div class="share-winner-label">KAZANAN</div>
                                 <div class="share-winner-name">${winnerName}</div>
                             </div>
                             <div class="share-score-box">
                                 <span class="share-score-row">${scoreText}</span>
                             </div>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             } else {
-                // FOTOĞRAFSIZ (GRAFİK) TASARIM
+                // GRAFİK MODU (FOTOĞRAFSIZ)
                 innerContent = `
                     <div class="share-card-clean-mode">
                         <div class="share-header">
-                             <img src="logo.png" class="share-logo-img">
-                             <div class="share-link-badge">tenisligi.app</div>
+                             <img src="${SAFE_LOGO}" class="share-logo-img" style="width:120px; height:120px;">
+                             <div class="share-link-badge" style="margin-top:15px;">tenisligi.app</div>
                         </div>
-
                         <div class="share-center-content">
                             <div class="share-winner-label" style="font-size: 2em; margin-bottom:10px;">MAÇ SONUCU</div>
-                            <div class="share-winner-name" style="font-size: 4em; margin-bottom: 20px;">${winnerName}</div>
-                            
-                            <div style="background:rgba(255,255,255,0.2); padding:20px; border-radius:15px; width:100%;">
-                                <div class="share-score-row" style="text-align:center; font-size:3em;">${scoreText}</div>
+                            <div class="share-winner-name" style="font-size: 3.5em; line-height:1.2; margin-bottom: 20px;">${winnerName}</div>
+                            <div style="background:rgba(255,255,255,0.2); padding:15px 30px; border-radius:15px; display:inline-block;">
+                                <div class="share-score-row" style="text-align:center; font-size:2.5em; margin:0;">${scoreText}</div>
                             </div>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             }
 
             tempDiv.innerHTML = innerContent;
-
-            // Oluşturulan kartı sayfaya (görünmez alana) ekle
             document.body.appendChild(tempDiv);
 
-            // Görüntüyü oluştur
-            await shareElementAsImage('share-card-temp', 'mac-sonucu-story', 'btn-share-match-detail');
+            // --- 5. RESMİ OLUŞTUR ---
+            if (typeof shareElementAsImage === 'function') {
+                // shareElementAsImage fonksiyonu içindeki html2canvas ayarlarının
+                // allowTaint: false ve useCORS: true olduğundan emin olun.
+                await shareElementAsImage('share-card-temp', 'mac-sonucu', 'btn-share-match-detail');
+            } else {
+                alert("Hata: Görüntü fonksiyonu bulunamadı.");
+            }
 
-            // İşlem bitince geçici kartı sil
-            document.body.removeChild(tempDiv);
+            // Temizlik
+            setTimeout(() => {
+                if(document.body.contains(tempDiv)) document.body.removeChild(tempDiv);
+            }, 1000);
         });
     }
        
@@ -3327,7 +3365,7 @@ auth.onAuthStateChanged(user => {
                     document.getElementById('edit-start-date').value = u.tenisBaslangic || '';
         document.getElementById('edit-club').value = u.kulup || '';
                     if(editNotificationPreference) editNotificationPreference.value = u.bildirimTercihi || 'ses';
-                    if(editProfilePreview) editProfilePreview.src = u.fotoURL || 'https://via.placeholder.com/100';
+                    if(editProfilePreview) editProfilePreview.src = u.fotoURL || getSafeAvatar(u.isim);
                     const emailCheckbox = document.getElementById('edit-email-notify');
         if(emailCheckbox) {
             emailCheckbox.checked = (u.emailNotifications !== false);
@@ -4293,24 +4331,21 @@ async function shareElementAsImage(elementId, fileNamePrefix, buttonId) {
     
     if (!element || !button) return;
     
-    // Butonun orijinal metnini ve rengini sakla
     const originalText = button.innerHTML;
     const originalColor = button.style.background;
     
-    // 1. AŞAMA: BUTONU KİLİTLE VE "HAZIRLANIYOR" DE
     button.innerHTML = '⏳ Görüntü Oluşturuluyor...';
-    button.style.background = '#6c757d'; // Gri renk
+    button.style.background = '#6c757d'; 
     button.disabled = true;
 
     try {
-        // html2canvas ile resmi oluştur
+        // --- GÜNCEL AYARLAR ---
         const canvas = await html2canvas(element, {
             scale: 2, 
-            useCORS: true, 
-            allowTaint: true,
-            backgroundColor: "#ffffff", // Arka planı beyaz yap
-            logging: false,
-            // Resimde çıkmasını istemediğimiz butonları gizle
+            useCORS: true,      // Dış kaynaklı (Firebase) resimlere izin ver
+            allowTaint: false,  // Tainted (kirli) canvas oluşumunu engelle
+            backgroundColor: "#ffffff", 
+            logging: true,      // Hata ayıklamak için logları açtık
             ignoreElements: (el) => {
                 return el.tagName === 'BUTTON' || 
                        el.id === 'btn-share-match-detail' || 
@@ -4320,32 +4355,18 @@ async function shareElementAsImage(elementId, fileNamePrefix, buttonId) {
 
         canvas.toBlob(async (blob) => {
             if (!blob) {
-                alert("Görüntü oluşturulamadı.");
-                // Hata olursa butonu eski haline getir
-                button.innerHTML = originalText;
-                button.style.background = originalColor;
-                button.disabled = false;
-                return;
+                throw new Error("Canvas blob oluşturulamadı.");
             }
-
             const file = new File([blob], `${fileNamePrefix}.png`, { type: 'image/png' });
-
-            // 2. AŞAMA: BUTONU "PAYLAŞMAYA HAZIR" YAP
-            // Burada ASLA otomatik tıklama veya reload yapmıyoruz.
             
             button.innerHTML = '📲 ŞİMDİ PAYLAŞ (HAZIR!)';
             button.disabled = false;
-            button.style.background = '#28a745'; // Yeşil renk
+            button.style.background = '#28a745'; 
             
-            // Butonun eski olaylarını temizlemek için klonluyoruz
             const readyBtn = button.cloneNode(true);
             button.parentNode.replaceChild(readyBtn, button);
 
-            // 3. AŞAMA: KULLANICI YEŞİL BUTONA BASTIĞINDA
             readyBtn.addEventListener('click', async () => {
-                
-                // --- KRİTİK NOKTA: Buraya reload koymuyoruz ---
-                
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
                     try {
                         await navigator.share({
@@ -4353,23 +4374,16 @@ async function shareElementAsImage(elementId, fileNamePrefix, buttonId) {
                             title: 'Tenis Ligi',
                             text: 'Kortlardaki performansım! 🎾'
                         });
-                        
-                        // Paylaşım penceresi kapandıktan sonra (Başarılı ise):
-                        console.log("Paylaşım başarılı.");
                         cleanupAfterShare(readyBtn, originalText, originalColor);
-
                     } catch (err) {
-                        // Kullanıcı pencereyi "X" ile kapatırsa burası çalışır
-                        console.log("Paylaşım penceresi kapatıldı veya hata:", err);
+                        console.log("Paylaşım iptal:", err);
                         cleanupAfterShare(readyBtn, originalText, originalColor);
                     }
                 } else {
-                    // PC/Tarayıcı desteklemiyorsa indir
                     const link = document.createElement('a');
                     link.download = `${fileNamePrefix}-${Date.now()}.png`;
                     link.href = canvas.toDataURL();
                     link.click();
-                    
                     cleanupAfterShare(readyBtn, originalText, originalColor);
                 }
             });
@@ -4377,15 +4391,19 @@ async function shareElementAsImage(elementId, fileNamePrefix, buttonId) {
         }, 'image/png');
 
     } catch (error) {
-        console.error("Hata:", error);
-        alert("Hata: " + error.message);
+        console.error("html2canvas Hatası:", error);
+        alert("Görüntü oluşturulamadı. Lütfen internet bağlantınızı kontrol edin veya profil fotoğrafınızı güncelleyin.");
+        
         button.innerHTML = originalText;
         button.style.background = originalColor;
         button.disabled = false;
         
-        // Hata durumunda banner'ı temizle
         const tempBanner = document.getElementById('temp-branding-match');
         if(tempBanner) tempBanner.remove();
+        
+        // Hata durumunda geçici kartı da temizle
+        const shareCard = document.getElementById('share-card-temp');
+        if(shareCard) shareCard.remove();
     }
 }
 
