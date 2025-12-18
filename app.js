@@ -2650,36 +2650,106 @@ function showMatchDetail(matchDocId) {
             }
         });
 // --- PAYLAŞ BUTONU AKTİVASYONU ---
+// --- PAYLAŞ BUTONU AKTİVASYONU (MODERN TASARIM ENTEGRASYONU) ---
     const shareMatchBtn = document.getElementById('btn-share-match-detail');
     if (shareMatchBtn) {
+        // Eski event listener'ları temizlemek için butonu klonluyoruz
         const newShareBtn = shareMatchBtn.cloneNode(true);
         shareMatchBtn.parentNode.replaceChild(newShareBtn, shareMatchBtn);
         
-        // Butonun varsayılan stilini ve metnini garantiye al
+        // Buton stili
         newShareBtn.innerHTML = '📸 Instagram\'da Paylaş';
         newShareBtn.style.background = 'linear-gradient(45deg, #405de6, #5851db, #833ab4, #c13584, #e1306c, #fd1d1d)';
         
         newShareBtn.addEventListener('click', async () => {
-             // 1. Geçici Marka/Banner Oluştur
-            const brandingDiv = document.createElement('div');
-            brandingDiv.id = 'temp-branding-match';
-            brandingDiv.innerHTML = '<p style="text-align:center; margin-bottom:10px; font-size:1em; color:#fff; font-weight:bold; background:#c06035; padding:8px; border-radius:5px; box-shadow:0 2px 5px rgba(0,0,0,0.2);">🏆 Tenis Ligi - Maç Sonucu</p>';
-            
-            const contentDiv = document.getElementById('match-detail-view'); 
-            
-            if (!contentDiv) {
-                alert("Hata: Paylaşılacak alan bulunamadı.");
-                return;
+            // --- VERİLERİ HAZIRLA ---
+            // Kazananı ve kaybedeni belirle
+            let winnerName = "Belirsiz";
+            const wid = match.kayitliKazananID || match.adayKazananID; // Kesinleşmiş veya aday kazanan
+            if (wid) {
+                winnerName = userMap[wid]?.isim || 'Kazanan';
+            } else {
+                // Eğer kazanan henüz yoksa (örn: maç oynanıyor ama paylaşılmak istendi)
+                winnerName = "?"; 
             }
 
-            // 2. Banner'ı EN ÜSTE ekle (append değil insertBefore)
-            contentDiv.insertBefore(brandingDiv, contentDiv.firstChild);
+            // Skoru metin haline getir
+            let scoreText = "";
+            if (match.skor) {
+                const s = match.skor;
+                // Veritabanındaki skor yapısını düzgün formatla: "6-4, 6-2"
+                // Not: Kazananın skorunu önce yazmak mantıklıdır ama burada veritabanı sırasını koruyoruz
+                // Gerekirse basit bir if ile kazananın setlerini önce yazdırabilirsin.
+                const set1 = (parseInt(s.s1_me) + parseInt(s.s1_opp)) > 0 ? `${s.s1_me}-${s.s1_opp}` : '';
+                const set2 = (parseInt(s.s2_me) + parseInt(s.s2_opp)) > 0 ? `, ${s.s2_me}-${s.s2_opp}` : '';
+                const set3 = (parseInt(s.s3_me) + parseInt(s.s3_opp)) > 0 ? `, ${s.s3_me}-${s.s3_opp}` : '';
+                scoreText = set1 + set2 + set3;
+            } else {
+                scoreText = "Skor Bekleniyor";
+            }
 
-            // 3. Resmi Hazırla (Fonksiyon içinde reload YOK)
-            await shareElementAsImage('match-detail-view', 'mac-sonucu', 'btn-share-match-detail');
+            // --- HTML OLUŞTURMA (SENİN CSS TASARIMINA GÖRE) ---
+            const tempDiv = document.createElement('div');
+            tempDiv.id = 'share-card-temp'; // CSS'teki #share-card-temp ID'si
             
-            // Not: Banner silme işlemini shareElementAsImage içindeki "ŞİMDİ PAYLAŞ" butonuna bıraktık.
-            // Böylece kullanıcı resimde banner'ı görecek, paylaştıktan sonra silinecek.
+            // Eğer maçın fotoğrafı varsa "Photo Mode", yoksa "Clean Mode" kullan
+            const hasPhoto = match.macFotoURL && match.macFotoURL.length > 10;
+            
+            let innerContent = '';
+
+            if (hasPhoto) {
+                // FOTOĞRAFLI TASARIM
+                innerContent = `
+                    <div class="share-card-photo-mode" style="background-image: url('${match.macFotoURL}');">
+                        <div class="share-overlay"></div>
+                        
+                        <div class="share-header">
+                             <img src="logo.png" class="share-logo-img">
+                             <div class="share-link-badge">tenisligi.app</div>
+                        </div>
+
+                        <div class="share-footer-split">
+                            <div class="share-winner-box">
+                                <div class="share-winner-label">MAÇ SONUCU</div>
+                                <div class="share-winner-name">${winnerName}</div>
+                            </div>
+                            <div class="share-score-box">
+                                <span class="share-score-row">${scoreText}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // FOTOĞRAFSIZ (GRAFİK) TASARIM
+                innerContent = `
+                    <div class="share-card-clean-mode">
+                        <div class="share-header">
+                             <img src="logo.png" class="share-logo-img">
+                             <div class="share-link-badge">tenisligi.app</div>
+                        </div>
+
+                        <div class="share-center-content">
+                            <div class="share-winner-label" style="font-size: 2em; margin-bottom:10px;">MAÇ SONUCU</div>
+                            <div class="share-winner-name" style="font-size: 4em; margin-bottom: 20px;">${winnerName}</div>
+                            
+                            <div style="background:rgba(255,255,255,0.2); padding:20px; border-radius:15px; width:100%;">
+                                <div class="share-score-row" style="text-align:center; font-size:3em;">${scoreText}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            tempDiv.innerHTML = innerContent;
+
+            // Oluşturulan kartı sayfaya (görünmez alana) ekle
+            document.body.appendChild(tempDiv);
+
+            // Görüntüyü oluştur
+            await shareElementAsImage('share-card-temp', 'mac-sonucu-story', 'btn-share-match-detail');
+
+            // İşlem bitince geçici kartı sil
+            document.body.removeChild(tempDiv);
         });
     }
        
