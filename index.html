@@ -110,7 +110,11 @@
 
         <div id="tab-lobby" class="tab-section active-section">
             <h3>Lobi 🏠</h3>
-            
+            <div id="lobby-actions-card" class="lobby-card" style="background: #fff3e0; border-left: 4px solid #ff9800; display: none;">
+    <h4 style="color:#e65100; margin-bottom:10px;">⚠️ Eylem Gerektirenler</h4>
+    <div id="lobby-actions-container" class="lobby-scroll-list" style="max-height: 200px; padding: 5px; background:transparent; border:none; box-shadow:none;">
+        </div>
+</div>
             <div id="email-spam-alert" class="warning-banner" style="display: flex;">
                 <div class="warning-icon">📧</div>
                 <div class="warning-content">
@@ -635,21 +639,29 @@
         </div>
 
         <div id="notification-container"></div>
+        <div id="lobby-detail-modal" class="modal" style="display: none; z-index: 2500;">
+            <div class="modal-content">
+                <span onclick="document.getElementById('lobby-detail-modal').style.display='none'" class="close-modal">&times;</span>
+                <div id="lobby-detail-content">
+                    </div>
+            </div>
+        </div>
         
     </div>
     
     <div style="height: 120px;"></div>
-    <nav class="bottom-nav">
-        <div class="nav-item active" data-target="tab-lobby"><span class="nav-icon">🏠</span></div>
-        <div class="nav-item" data-target="tab-rankings"><span class="nav-icon">🏆</span></div>
-        <div class="nav-item" data-target="tab-bests"><span class="nav-icon">🌟</span></div>
-        <div class="nav-item" data-target="tab-challenge"><span class="nav-icon">⚔️</span></div>
-        <div class="nav-item" data-target="tab-fixture"><span class="nav-icon">📅</span></div>
-        <div class="nav-item" data-target="tab-matches"><span class="nav-icon">🎾</span></div>
-        <div class="nav-item" data-target="tab-stats"><span class="nav-icon">📊</span></div>
-        <div class="nav-item" data-target="tab-gallery"><span class="nav-icon">📸</span></div>
-        <div class="nav-item" data-target="tab-chat"><span class="nav-icon">💬</span></div>
-        <div class="nav-item" data-target="tab-profile"><span class="nav-icon">👤</span></div>
+<nav class="bottom-nav">
+        <div class="nav-item active" data-target="tab-lobby"><span class="nav-icon">🏠</span><br>Lobi</div>
+        <div class="nav-item" data-target="tab-rankings"><span class="nav-icon">🏆</span><br>Sıralama</div>
+        <div class="nav-item" data-target="tab-challenge"><span class="nav-icon">⚔️</span><br>Meydan</div>
+        
+        <div class="nav-item" data-target="tab-fixture"><span class="nav-icon">🌎</span><br>Lig</div>
+        <div class="nav-item" data-target="tab-matches"><span class="nav-icon">🎾</span><br>Maçlarım</div>
+        <div class="nav-item" data-target="tab-stats"><span class="nav-icon">📊</span><br>İstatistik</div>
+        <div class="nav-item" data-target="tab-gallery"><span class="nav-icon">📸</span><br>Galeri</div>
+        <div class="nav-item" data-target="tab-chat"><span class="nav-icon">💬</span><br>Mesajlar</div>
+        <div class="nav-item" data-target="tab-bests"><span class="nav-icon">🌟</span><br>En'ler</div>
+        <div class="nav-item" data-target="tab-profile"><span class="nav-icon">👤</span><br>Profil</div>
     </nav>
 
     <div id="forgot-password-modal" class="modal">

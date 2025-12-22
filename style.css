@@ -1765,3 +1765,132 @@ button:active {
     border: 2px solid rgba(255,255,255,0.2);
     width: 80%;
 }
+/* --- COMPACT (SIKIŞTIRILMIŞ) LOBİ TASARIMI --- */
+
+/* Kart yerine daha ince satırlar */
+.compact-news-row {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    padding: 10px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    border: 1px solid #f0f0f0;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.compact-news-row:active {
+    background-color: #f9f9f9;
+}
+
+/* Sol Taraf: İkon veya Küçük Avatar */
+.compact-left {
+    margin-right: 12px;
+    display: flex;
+    align-items: center;
+}
+
+.compact-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #ddd;
+}
+
+/* Orta Taraf: Başlık ve Alt Bilgi */
+.compact-mid {
+    flex: 1;
+    overflow: hidden;
+}
+
+.compact-title {
+    font-size: 0.9em;
+    font-weight: 700;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+}
+
+.compact-subtitle {
+    font-size: 0.75em;
+    color: #777;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Sağ Taraf: Tarih veya Rozet */
+.compact-right {
+    text-align: right;
+    min-width: 60px;
+    font-size: 0.7em;
+    color: #999;
+}
+
+.compact-badge {
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 0.9em; /* Badge içi yazı */
+}
+
+/* Renkler */
+.bg-green-light { background: #e8f5e9; color: #28a745; }
+.bg-blue-light { background: #e3f2fd; color: #0d47a1; }
+.bg-orange-light { background: #fff3e0; color: #e65100; }
+.bg-purple-light { background: #f3e5f5; color: #6a1b9a; }
+/* Arka Plan Renkleri (Sade Tasarım İçin) */
+.bg-gray-light { background: #f8f9fa; color: #6c757d; }
+.bg-green-light { background: #e8f5e9; color: #28a745; }
+.bg-blue-light { background: #e3f2fd; color: #0d47a1; }
+.bg-orange-light { background: #fff3e0; color: #e65100; }
+.bg-purple-light { background: #f3e5f5; color: #6a1b9a; }
+.bg-red-light { background: #ffebee; color: #c62828; }
+
+/* Modal Detay Stilleri */
+#lobby-detail-content {
+    text-align: center;
+}
+.detail-big-icon {
+    font-size: 3em;
+    margin-bottom: 10px;
+}
+.detail-players {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin: 20px 0;
+}
+.detail-player-box {
+    text-align: center;
+}
+.detail-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    margin-bottom: 5px;
+    border: 3px solid #eee;
+}
+.detail-vs {
+    font-weight: bold;
+    color: #ccc;
+    font-size: 1.2em;
+}
+.detail-commentary {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 10px;
+    font-size: 0.9em;
+    color: #555;
+    line-height: 1.5;
+    margin-bottom: 20px;
+    border-left: 4px solid #c06035;
+    text-align: left;
+}
+.bg-red-light { background: #ffebee; color: #c62828; }

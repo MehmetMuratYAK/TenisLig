@@ -181,62 +181,55 @@ const getPlayerLeague = (points) => {
     return 'Bronz';
 };
 
-// --- 1000+ OLASILIKLI YORUM MOTORU VERİLERİ ---
+
 const COMMENTARY_PARTS = {
     openers: [
-        "Vay canına! 😱", "İnanılmaz bir haber!", "Kortlardan son dakika!", "Bursa sallandı!", 
-        "Tenis severler buraya!", "Gözlerime inanamadım,", "Beklenen an geldi,", 
-        "Ligde deprem etkisi!", "Raketler konuştu,", "Nefesler tutuldu,"
+        "Maç sonucu tescillendi.", "Kortlarda beklenen karşılaşma tamamlandı.", "Lig fikstüründeki kritik maç sonuçlandı.", 
+        "Mücadele sona erdi.", "Skor tabelası güncellendi.", "Son dakika skoru sisteme düştü.", 
+        "Karşılaşmanın galibi belirlendi.", "Zorlu mücadele neticelendi."
     ],
     actions: {
         crushing: [ // Ezici
-            "<strong>{winner}</strong>, rakibi {loser}'a adeta tenis dersi verdi.",
-            "<strong>{winner}</strong> bugün kortta fırtına gibi esti, kimse durduramazdı.",
-            "<strong>{winner}</strong>, {loser} karşısında sahanın tek hakimiydi.",
-            "<strong>{winner}</strong>, rakibine nefes bile aldırmadan maçı kopardı.",
-            "<strong>{winner}</strong> silindir gibi geçti, {loser} çaresiz kaldı."
+            "<strong>{winner}</strong>, rakibi karşısında net bir üstünlük kurarak maçı kazandı.",
+            "<strong>{winner}</strong>, maç boyunca oyunun kontrolünü elinde tuttu.",
+            "<strong>{winner}</strong>, disiplinli oyunuyla sonuca gitmekte zorlanmadı.",
+            "Rakibine şans tanımayan <strong>{winner}</strong>, rahat bir galibiyet aldı."
         ],
         tight: [ // Çekişmeli
-            "<strong>{winner}</strong> ile {loser} arasındaki maç gladyatör savaşına döndü.",
-            "<strong>{winner}</strong>, son topa kadar süren bu düellodan sağ çıkmayı başardı.",
-            "Gitti geldi, gitti geldi... Sonunda gülen taraf <strong>{winner}</strong> oldu.",
-            "İzleyenlerin tırnaklarını yediği maçta <strong>{winner}</strong> soğukkanlı kaldı.",
-            "<strong>{winner}</strong>, {loser}'ın müthiş direncini kırmayı ancak başardı."
+            "Büyük bir çekişmeye sahne olan maçta kazanan <strong>{winner}</strong> oldu.",
+            "Kritik puanların belirleyici olduğu maçta <strong>{winner}</strong> hata yapmadı.",
+            "Başa baş geçen mücadelede son sözü <strong>{winner}</strong> söyledi.",
+            "İki oyuncunun da üst düzey performans sergilediği maçı <strong>{winner}</strong> kazandı."
         ],
         comeback: [ // Geri Dönüş
-            "<strong>{winner}</strong> öldü bitti denilen maçta küllerinden doğdu!",
-            "İlk seti kaybeden <strong>{winner}</strong>, inanılmaz bir geri dönüşe imza attı.",
-            "<strong>{winner}</strong>, {loser} maçı kazandım sanarken masaya yumruğunu vurdu.",
-            "<strong>{winner}</strong> geriden gelip maçı alarak 'bitti demeden bitmez' dedi."
+            "Geriye düştüğü maçta oyunu bırakmayan <strong>{winner}</strong>, maçı çevirmeyi başardı.",
+            "<strong>{winner}</strong>, ilk seti kaybetmesine rağmen disiplinden kopmayarak kazandı.",
+            "Müthiş bir geri dönüşe imza atan <strong>{winner}</strong> sahadan galip ayrıldı."
         ],
         normal: [ // Standart
-            "<strong>{winner}</strong>, istikrarlı oyunuyla sonuca gitmeyi bildi.",
-            "<strong>{winner}</strong>, {loser} karşısında hata yapmadı ve kazandı.",
-            "Günün kazananı, güzel oyunuyla <strong>{winner}</strong> oldu.",
-            "<strong>{winner}</strong>, kritik anlarda doğru vuruşları yaparak maçı aldı."
+            "<strong>{winner}</strong>, istikrarlı oyunuyla galibiyete uzandı.",
+            "Günün kazanan ismi <strong>{winner}</strong> oldu.",
+            "<strong>{winner}</strong>, rakibi {loser} karşısında galip gelmeyi bildi.",
+            "Maç sonunda gülen taraf <strong>{winner}</strong> oldu."
         ]
     },
     details: [
-        "Skor tabelası her şeyi anlatıyor: {score}.",
-        "{score} gibi net bir skorla bitti.",
-        "Maçın sonucu {score} olarak tescillendi.",
-        "Müthiş mücadelenin skoru: {score}.",
-        "Raketlerin savaşı {score} ile son buldu."
+        "Maç sonucu: {score}.",
+        "Tescil edilen skor: {score}.",
+        "Mücadele {score} skoruyla tamamlandı.",
+        "Skor tabelası: {score}."
     ],
     closings: [
-        "Bu performans ligde çok konuşulur. 🗣️",
-        "Şapka çıkartılacak bir oyun. 🎩",
-        "Ligdeki dengeler değişiyor mu? 🤔",
-        "Formunun zirvesinde bir oyuncu görüyoruz. 💪",
-        "Sıradaki rakip kim olacak merak konusu. 🧐",
-        "Alkışlar her iki oyuncuya da gelsin. 👏",
-        "Bu maçı kaçıranlar çok üzülecek. 📺",
-        "Tenis şöleni devam ediyor! 🎾"
+        "Kazanan oyuncuyu tebrik ederiz.",
+        "Lig sıralamasındaki dengeler değişebilir.",
+        "Her iki oyuncu da fair-play ruhuyla mücadele etti.",
+        "Bir sonraki maçlar merakla bekleniyor.",
+        "Puanlar güncellendi."
     ],
     ads: {
-        challenge: ["📢 <strong>MEYDAN OKUMA!</strong> {p1} kılıçları çekti!", "🔥 <strong>KORTA DAVET!</strong> {p1} kendine güvenen bir rakip arıyor.", "💰 <strong>BAHİSLER AÇILDI!</strong> {p1} masaya puanları koydu."],
-        friendly: ["👋 <strong>TENİS PARTNERİ ARANIYOR.</strong> {p1} keyifli bir maç istiyor.", "🎾 <strong>KORT BOŞ KALMASIN.</strong> {p1} ter atmak için rakip bekliyor.", "🤝 <strong>DOSTLUK KAZANSIN.</strong> {p1} maç ilanı oluşturdu."],
-        wagerText: ["Tam <strong>{wager} Puan</strong> ortada duruyor!", "Kaybeden <strong>{wager} puanına</strong> veda eder.", "Cesareti olan bu <strong>{wager} puanlık</strong> maçı kabul etsin.", "Hedef büyük: <strong>{wager} Puan</strong>!"]
+        challenge: ["📢 <strong>RESMİ MEYDAN OKUMA</strong>", "🔥 <strong>PUANLI MAÇ TEKLİFİ</strong>", "⚔️ <strong>REKABET ÇAĞRISI</strong>"],
+        friendly: ["👋 <strong>HAZIRLIK MAÇI</strong>", "🎾 <strong>ANTRENMAN MAÇI</strong>", "🤝 <strong>DOSTLUK KARŞILAŞMASI</strong>"],
+        wagerText: ["Ortadaki ödül: <strong>{wager} Puan</strong>.", "Kazanan <strong>{wager} puan</strong> alacak.", "Mücadele <strong>{wager} puan</strong> değerinde."]
     }
 };
 
@@ -1263,55 +1256,83 @@ async function loadTheBests(filterType = 'all') {
 }
 
     // --- YENİ: GALERİ YÜKLEME SİSTEMİ ---
-    function loadGallery() {
-        if (!galleryGrid) return;
-        galleryGrid.innerHTML = '<p style="text-align:center; width:200%; color:#777;">Fotoğraflar yükleniyor...</p>';
+// --- GÜNCELLENMİŞ GALERİ YÜKLEME (SON 10 GÜN) ---
+// --- GÜNCELLENMİŞ GALERİ YÜKLEME (DURUM BAĞIMSIZ & GENİŞ KAPSAM) ---
+function loadGallery() {
+    if (!galleryGrid) return;
+    
+    galleryGrid.innerHTML = '<p style="text-align:center; width:200%; color:#777;">📸 Fotoğraflar yükleniyor...</p>';
 
-        if (galleryFilterCourt && galleryFilterCourt.options.length === 1) {
-            ['Toprak', 'Sert', 'Çim'].forEach(c => { 
-                const opt = document.createElement('option'); opt.value = c; opt.textContent = c; 
-                galleryFilterCourt.appendChild(opt); 
-            });
-        }
+    // Kort filtrelerini doldur
+    if (galleryFilterCourt && galleryFilterCourt.options.length === 1) {
+        ['Toprak', 'Sert', 'Çim'].forEach(c => { 
+            const opt = document.createElement('option'); opt.value = c; opt.textContent = c; 
+            galleryFilterCourt.appendChild(opt); 
+        });
+    }
 
-        const filterDate = galleryFilterDate.value ? new Date(galleryFilterDate.value) : null;
-        const filterCrt = galleryFilterCourt.value;
-        const filterPlyr = galleryFilterPlayer.value;
+    // 1. Filtre Değerlerini Al
+    const filterDate = galleryFilterDate.value ? new Date(galleryFilterDate.value) : null;
+    const filterCrt = galleryFilterCourt.value;
+    const filterPlyr = galleryFilterPlayer.value;
 
-        db.collection('matches')
-            .where('durum', '==', 'Tamamlandı')
-            .orderBy('tarih', 'desc')
-            .limit(50)
-            .get()
-            .then(snapshot => {
-                let photos = [];
-                snapshot.forEach(doc => {
-                    const m = doc.data();
-                    if (m.macFotoURL) {
-                        const mDate = m.macZamani ? m.macZamani.toDate() : (m.tarih ? m.tarih.toDate() : null);
-                        
-                        let pass = true;
-                        if (filterDate) {
-                            if (!mDate || mDate.getDate() !== filterDate.getDate() || mDate.getMonth() !== filterDate.getMonth() || mDate.getFullYear() !== filterDate.getFullYear()) {
-                                pass = false;
-                            }
+    // 2. Son 10 Günün Tarihini Hesapla
+    const tenDaysAgo = new Date();
+    tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
+    tenDaysAgo.setHours(0, 0, 0, 0);
+
+    // DÜZELTME: .where('durum', '==', 'Tamamlandı') filtresini kaldırdık.
+    // Artık sonucu girilmemiş ama fotoğrafı olan maçlar da görünecek.
+    db.collection('matches')
+        .orderBy('tarih', 'desc') // En yeniden eskiye
+        .limit(100) // Limiti 50'den 100'e çıkardık, garanti olsun
+        .get()
+        .then(snapshot => {
+            let photos = [];
+            snapshot.forEach(doc => {
+                const m = doc.data();
+                
+                // Sadece fotoğrafı olanları al
+                if (m.macFotoURL) {
+                    const mDate = m.macZamani ? m.macZamani.toDate() : (m.tarih ? m.tarih.toDate() : null);
+                    
+                    let pass = true;
+
+                    // --- TARİH FİLTRESİ ---
+                    if (filterDate) {
+                        // Özel tarih seçildiyse ona bak
+                        if (!mDate || mDate.getDate() !== filterDate.getDate() || mDate.getMonth() !== filterDate.getMonth() || mDate.getFullYear() !== filterDate.getFullYear()) {
+                            pass = false;
                         }
-                        if (filterCrt && m.kortTipi !== filterCrt) pass = false;
-                        if (filterPlyr && (m.oyuncu1ID !== filterPlyr && m.oyuncu2ID !== filterPlyr)) pass = false;
-
-                        if (pass) {
-                            photos.push({ ...m, id: doc.id, dateObj: mDate });
+                    } else {
+                        // Tarih seçilmediyse SON 10 GÜN kuralını uygula
+                        if (!mDate || mDate < tenDaysAgo) {
+                            pass = false;
                         }
                     }
-                });
 
-                renderGalleryGrid(photos, galleryGrid);
-            })
-            .catch(err => {
-                console.error("Galeri hatası:", err);
-                galleryGrid.innerHTML = '<p style="text-align:center; width:200%; color:red;">Yüklenemedi.</p>';
+                    // --- DİĞER FİLTRELER ---
+                    if (filterCrt && m.kortTipi !== filterCrt) pass = false;
+                    if (filterPlyr && (m.oyuncu1ID !== filterPlyr && m.oyuncu2ID !== filterPlyr)) pass = false;
+
+                    if (pass) {
+                        photos.push({ ...m, id: doc.id, dateObj: mDate });
+                    }
+                }
             });
-    }
+
+            if (photos.length === 0) {
+                let msg = filterDate ? "Seçilen tarihte fotoğraf yok." : "Son 10 gün içinde yüklenen maç fotoğrafı yok.";
+                galleryGrid.innerHTML = `<p style="text-align:center; width:200%; color:#999; padding:20px;">${msg} 🤷‍♂️</p>`;
+            } else {
+                renderGalleryGrid(photos, galleryGrid);
+            }
+        })
+        .catch(err => {
+            console.error("Galeri hatası:", err);
+            galleryGrid.innerHTML = '<p style="text-align:center; width:200%; color:red;">Yüklenemedi.</p>';
+        });
+}
 
     // --- YENİ: KULLANICI PROFİL FOTOĞRAFLARI ---
     function loadUserPhotos() {
@@ -1380,182 +1401,166 @@ async function loadTheBests(filterType = 'all') {
         });
     }
 
+    // --- YENİ LOBİ DETAY MODALI AÇMA FONKSİYONU ---
+function openLobbyDetail(type, data) {
+    const modal = document.getElementById('lobby-detail-modal');
+    const content = document.getElementById('lobby-detail-content');
+    
+    let html = '';
+    
+    // 1. MAÇ SONUCU DETAYI
+    if (type === 'result') {
+        html = `
+            <div class="detail-big-icon">🏁</div>
+            <h3>Maç Sonucu</h3>
+            <div class="detail-players">
+                <div class="detail-player-box">
+                    <img src="${data.p1Photo}" class="detail-avatar">
+                    <div>${data.p1Name}</div>
+                </div>
+                <div class="detail-vs">VS</div>
+                <div class="detail-player-box">
+                    <img src="${data.p2Photo}" class="detail-avatar">
+                    <div>${data.p2Name}</div>
+                </div>
+            </div>
+            <div style="font-size:1.5em; font-weight:bold; margin-bottom:15px; color:#28a745;">
+                ${data.scoreStr}
+            </div>
+            <div class="detail-commentary">${data.commentary}</div>
+            <button onclick="document.getElementById('lobby-detail-modal').style.display='none'; showMatchDetail('${data.matchId}')" class="btn-main">Maç Detayına Git</button>
+        `;
+    } 
+    // 2. AÇIK İLAN DETAYI (KABUL ETME BURADA)
+    else if (type === 'ad') {
+        // Buton Durumu (Lig yetiyor mu?)
+        let btnHTML = '';
+        if (data.isEligible) {
+            btnHTML = `<button class="btn-main" style="background:#28a745;" onclick="acceptOpenRequest('${data.matchId}', ${data.wager}, '${data.matchType}')">✅ Meydan Okumayı Kabul Et</button>`;
+        } else {
+            btnHTML = `<button class="btn-main" style="background:#ccc; cursor:not-allowed;" disabled>🔒 Ligin Yetmiyor</button>`;
+        }
+
+        html = `
+            <div class="detail-big-icon">${data.isChallenge ? '🔥' : '🤝'}</div>
+            <h3>${data.headerTitle}</h3>
+            <div class="detail-players">
+                <div class="detail-player-box">
+                    <img src="${data.p1Photo}" class="detail-avatar">
+                    <div>${data.p1Name}</div>
+                </div>
+                <div class="detail-vs">?</div>
+                <div class="detail-player-box">
+                     <div style="width:60px; height:60px; border-radius:50%; background:#eee; display:flex; align-items:center; justify-content:center; margin:0 auto 5px auto; font-size:20px; color:#999;">👤</div>
+                    <div>Rakip Aranıyor</div>
+                </div>
+            </div>
+            <div style="background:#fff3cd; padding:10px; border-radius:8px; margin-bottom:15px; color:#856404; font-weight:bold;">
+                Bahis: ${data.wager} Puan
+            </div>
+            <div class="detail-commentary">${data.commentary}</div>
+            ${btnHTML}
+        `;
+    }
+    // 3. YAKLAŞAN MAÇ DETAYI
+    else if (type === 'schedule') {
+        html = `
+             <div class="detail-big-icon">📅</div>
+             <h3>Maç Planı</h3>
+             <div class="detail-players">
+                <div class="detail-player-box">
+                    <img src="${data.p1Photo}" class="detail-avatar">
+                    <div>${data.p1Name}</div>
+                </div>
+                <div class="detail-vs">VS</div>
+                <div class="detail-player-box">
+                    <img src="${data.p2Photo}" class="detail-avatar">
+                    <div>${data.p2Name}</div>
+                </div>
+            </div>
+            <div class="detail-commentary">
+                <strong>Zaman:</strong> ${data.timeStr}<br>
+                <strong>Yer:</strong> ${data.location}<br><br>
+                ${data.contextMsg}
+            </div>
+            <button onclick="document.getElementById('lobby-detail-modal').style.display='none'; showMatchDetail('${data.matchId}')" class="btn-main">Detayları Gör</button>
+        `;
+    }
+
+    content.innerHTML = html;
+    modal.style.display = 'flex';
+}
+
 async function loadAnnouncements() {
     if (!announcementsContainer) return;
-    
-    // Yükleniyor animasyonu
-    announcementsContainer.innerHTML = `<p style="text-align:center; color:#999; font-style:italic; margin-top:20px;">🤖 Lig taranıyor... Haberler hazırlanıyor...</p>`;
+    announcementsContainer.innerHTML = `<p style="text-align:center; color:#999; margin-top:10px;">Yükleniyor...</p>`;
 
     try {
-        // Veritabanından verileri çek
-        const matchSnap = await db.collection('matches').where('durum', '==', 'Tamamlandı').orderBy('tarih', 'desc').limit(10).get();
-        const adSnap = await db.collection('matches').where('durum', '==', 'Acik_Ilan').orderBy('tarih', 'desc').limit(5).get();
-        const newsSnap = await db.collection('news').orderBy('timestamp', 'desc').limit(10).get();
+        const matchSnap = await db.collection('matches').where('durum', '==', 'Tamamlandı').orderBy('tarih', 'desc').limit(5).get();
+        // Sadece Maç sonuçlarını burada gösterelim, ilanlar zaten ayrı kutuda
+        // (Haberler koleksiyonunu da ekleyebilirsin istersen)
+        
+        announcementsContainer.innerHTML = '';
+        
+        if (matchSnap.empty) {
+            announcementsContainer.innerHTML = '<p style="text-align:center; padding:10px; font-size:0.9em;">Henüz tamamlanan maç yok.</p>';
+            return;
+        }
 
-        let allItems = [];
-
-        // --- YARDIMCI FONKSİYON: GÜVENLİ FOTOĞRAF ALMA ---
-        // Bu fonksiyon, kullanıcı fotoğrafı yoksa veya link kıriksa otomatik baş harf üretir.
-        const getSafePhoto = (userObj, name) => {
-            // Eğer veritabanında geçerli bir URL varsa onu kullan
-            if (userObj && userObj.fotoURL && userObj.fotoURL.length > 10 && !userObj.fotoURL.includes("undefined")) {
-                return userObj.fotoURL;
-            }
-            // Yoksa ismin baş harflerinden avatar oluştur (Arka plan rastgele renk)
-            const safeName = name ? encodeURIComponent(name) : 'O';
-            return `https://ui-avatars.com/api/?name=${safeName}&background=random&color=fff&size=128&bold=true`;
-        };
-
-        // 1. MAÇ SONUÇLARI (İç İçe Avatar Yapısı)
         matchSnap.forEach(doc => {
             const m = doc.data();
-            const p1Obj = userMap[m.oyuncu1ID];
-            const p2Obj = userMap[m.oyuncu2ID];
-
-            const p1Name = p1Obj?.isim || 'Oyuncu 1';
-            const p2Name = p2Obj?.isim || 'Oyuncu 2';
-            
-            // Güvenli fotoğrafları al
-            const p1Photo = getSafePhoto(p1Obj, p1Name);
-            const p2Photo = getSafePhoto(p2Obj, p2Name);
-
-            const winnerName = userMap[m.kayitliKazananID]?.isim || '???';
-            const loserName = (m.kayitliKazananID === m.oyuncu1ID) ? p2Name : p1Name;
-
-            let isCrushing = false, isTight = false, isComeback = false;
-
-            if (m.skor) {
-                const s = m.skor;
-                if ((s.s1_me <= 1 || s.s1_opp <= 1) || (s.s2_me <= 1 || s.s2_opp <= 1)) isCrushing = true;
-                if (s.s3_me || s.s3_opp || s.s1_me == 7 || s.s1_opp == 7 || s.s2_me == 7 || s.s2_opp == 7) isTight = true;
-                if (s.s3_me || s.s3_opp) isComeback = true;
-
-                if (isComeback) { isTight = false; isCrushing = false; }
-                else if (isTight) { isCrushing = false; }
-            }
-
-            let scoreStr = "";
-            if (m.skor) { scoreStr = `${m.skor.s1_me}-${m.skor.s1_opp}, ${m.skor.s2_me}-${m.skor.s2_opp}` + (m.skor.s3_me ? `, ${m.skor.s3_me}-${m.skor.s3_opp}` : ''); }
-
-            // YORUM ÜRET
-            const commentary = generateAdvancedCommentary('match_result', {
-                winnerName, loserName, scoreStr, isCrushing, isTight, isComeback, matchId: doc.id
-            });
-
-            // KART STİLİ
-            let stripClass = "strip-match";
-            let headerText = "MAÇ SONUCU";
-            if (isCrushing) { stripClass = "strip-upset"; headerText = "EZİCİ ÜSTÜNLÜK 🔥"; }
-            else if (isTight || isComeback) { stripClass = "strip-thriller"; headerText = "NEFES KESTİ 😱"; }
-
-            const card = document.createElement('div');
-            card.className = 'news-card';
-            
-            // NOT: onerror kısmı, eğer resim yüklenemezse devreye girer ve yedeği yükler.
-            card.innerHTML = `
-                <div class="news-header-strip ${stripClass}">
-                    <span>${headerText}</span>
-                    <span>${m.macZamani ? m.macZamani.toDate().toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) : ''}</span>
-                </div>
-                <div class="news-body">
-                    <div class="news-players-row">
-                        <div class="news-avatars-stack">
-                            <img src="${p1Photo}" class="news-avatar" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(p1Name)}&background=random'">
-                            <img src="${p2Photo}" class="news-avatar" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(p2Name)}&background=random'">
-                        </div>
-                        <div class="news-highlight-names">
-                            ${p1Name} <span style="color:#999; font-weight:normal; font-size:0.8em;">vs</span><br>${p2Name}
-                        </div>
-                    </div>
-                    <div class="news-commentary">${commentary}</div>
-                    <div class="news-score-badge">🏁 Skor: ${scoreStr}</div>
-                    <button class="news-action-btn" onclick="returnToTab='tab-lobby'; showMatchDetail('${doc.id}')">Maç Detayını Gör ➝</button>
-                </div>
-            `;
-            allItems.push({ date: m.macZamani ? m.macZamani.toDate() : new Date(), element: card });
-        });
-
-        // 2. AÇIK İLANLAR (Tekli Avatar)
-        adSnap.forEach(doc => {
-            const m = doc.data();
             const p1 = userMap[m.oyuncu1ID];
-            const p1Name = p1?.isim || '???';
-            const p1Photo = getSafePhoto(p1, p1Name); // Güvenli Foto
+            const p2 = userMap[m.oyuncu2ID];
+            const p1Name = p1?.isim || '?';
+            const p2Name = p2?.isim || '?';
+            
+            // Skor metni
+            let scoreStr = "Skor Yok";
+            if(m.skor) scoreStr = `${m.skor.s1_me}-${m.skor.s1_opp}, ${m.skor.s2_me}-${m.skor.s2_opp}` + (m.skor.s3_me ? `, ${m.skor.s3_me}-${m.skor.s3_opp}` : '');
 
-            const commentary = generateAdvancedCommentary('open_ad', {
-                p1Name: p1Name, wager: m.bahisPuani, matchId: doc.id
+            // Yapay Zeka Yorumu (Sadece Detayda Göstermek İçin Hazırla)
+            const winnerName = userMap[m.kayitliKazananID]?.isim || 'Kazanan';
+            const loserName = (m.kayitliKazananID === m.oyuncu1ID) ? p2Name : p1Name;
+            
+            // Basit mantık
+            let isCrushing = false;
+            if (m.skor && ((m.skor.s1_me <= 1 || m.skor.s1_opp <= 1))) isCrushing = true;
+            
+            const commentary = generateAdvancedCommentary('match_result', {
+                winnerName, loserName, scoreStr, isCrushing, matchId: doc.id
             });
+            
+            // Veri Paketi (Modala gidecek)
+            const modalData = {
+                p1Name, p2Name, 
+                p1Photo: p1?.fotoURL || getSafeAvatar(p1Name),
+                p2Photo: p2?.fotoURL || getSafeAvatar(p2Name),
+                scoreStr, commentary, matchId: doc.id
+            };
 
-            const card = document.createElement('div');
-            card.className = 'news-card';
-            card.innerHTML = `
-                <div class="news-header-strip strip-ad">
-                    <span>${m.macTipi === 'Meydan Okuma' ? 'MEYDAN OKUMA' : 'DOSTLUK MAÇI'}</span>
-                    <span>YENİ</span>
+            // HTML OLUŞTURMA (KOMPAKT)
+            const div = document.createElement('div');
+            div.className = 'compact-news-row';
+            div.onclick = () => openLobbyDetail('result', modalData);
+            
+            div.innerHTML = `
+                <div class="compact-left">
+                    <div style="font-size:1.5em;">🏁</div> 
                 </div>
-                <div class="news-body">
-                    <div class="news-players-row">
-                        <img src="${p1Photo}" class="news-avatar" style="margin-right:10px;" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(p1Name)}&background=random'">
-                        <div class="news-highlight-names" style="margin-left:0;">${p1Name}</div>
-                    </div>
-                    <div class="news-commentary">${commentary}</div>
-                    <button class="news-action-btn" onclick="returnToTab='tab-lobby'; showMatchDetail('${doc.id}')">Teklifi İncele ➝</button>
+                <div class="compact-mid">
+                    <div class="compact-title">${p1Name} vs ${p2Name}</div>
+                    <div class="compact-subtitle">${scoreStr}</div>
                 </div>
-            `;
-            allItems.push({ date: m.tarih ? m.tarih.toDate() : new Date(), element: card });
-        });
-
-        // 3. HABERLER / ROZETLER (Tekli Avatar)
-        newsSnap.forEach(doc => {
-            const n = doc.data();
-            const p1 = userMap[n.userId];
-            const p1Name = p1?.isim || 'Oyuncu';
-            const p1Photo = getSafePhoto(p1, p1Name); // Güvenli Foto
-
-            let commentary = "";
-            let stripClass = "strip-match";
-            let headerText = "HABER";
-
-            if (n.type === 'new_player') {
-                commentary = generateAdvancedCommentary('new_player', { p1Name, matchId: doc.id });
-                stripClass = "strip-ad"; headerText = "ARAMIZA KATILDI";
-            } else if (n.type === 'badge_earned') {
-                commentary = generateAdvancedCommentary('badge_earned', { p1Name, badgeName: n.badgeName, matchId: doc.id });
-                stripClass = "strip-badge"; headerText = "ROZET KAZANILDI";
-            }
-
-            const card = document.createElement('div');
-            card.className = 'news-card';
-            card.innerHTML = `
-                <div class="news-header-strip ${stripClass}">
-                    <span>${headerText}</span>
-                    <span>📰</span>
-                </div>
-                <div class="news-body">
-                    <div class="news-players-row">
-                        <img src="${p1Photo}" class="news-avatar" style="margin-right:10px;" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(p1Name)}&background=random'">
-                        <div class="news-highlight-names" style="margin-left:0;">${p1Name}</div>
-                    </div>
-                    <div class="news-commentary">${commentary}</div>
-                    <button class="news-action-btn" onclick="showPlayerStats('${n.userId}')">Profile Git ➝</button>
+                <div class="compact-right">
+                    <span style="font-size:0.8em; color:#28a745; font-weight:bold;">Sonuç</span>
                 </div>
             `;
-            allItems.push({ date: n.timestamp ? n.timestamp.toDate() : new Date(), element: card });
+            announcementsContainer.appendChild(div);
         });
-
-        // Tarihe göre sırala ve ekrana bas
-        allItems.sort((a, b) => b.date - a.date);
-        announcementsContainer.innerHTML = '';
-
-        if (allItems.length === 0) {
-            announcementsContainer.innerHTML = '<p style="text-align:center; padding:20px;">Henüz bir hareketlilik yok. Sessizlik...</p>';
-        } else {
-            allItems.forEach(item => announcementsContainer.appendChild(item.element));
-        }
 
     } catch (e) {
         console.error(e);
-        announcementsContainer.innerHTML = '<p style="color:red; text-align:center;">Haberler yüklenemedi.</p>';
+        announcementsContainer.innerHTML = '<p style="color:red; text-align:center;">Yüklenemedi.</p>';
     }
 }
 
@@ -1563,205 +1568,130 @@ async function loadAnnouncements() {
 // --- YENİ MODERN AÇIK İLANLAR (MEYDAN OKUMA) FONKSİYONU ---
 function loadOpenRequests() {
     if(!openRequestsContainer) return;
-    openRequestsContainer.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">📡 İlanlar taranıyor...</p>';
+    openRequestsContainer.innerHTML = '<p style="text-align:center; color:#999; margin-top:10px;">Yükleniyor...</p>';
     
     const currentUserID = auth.currentUser.uid;
-    const currentUserData = userMap[currentUserID];
-    const myLeague = getPlayerLeague(currentUserData ? currentUserData.toplamPuan : 0);
+    const myLeague = getPlayerLeague(userMap[currentUserID]?.toplamPuan || 0);
 
     db.collection('matches').where('durum', '==', 'Acik_Ilan').orderBy('tarih', 'desc').get().then(snapshot => {
           openRequestsContainer.innerHTML = '';
-          let hasRequest = false;
           
+          if(snapshot.empty) {
+              openRequestsContainer.innerHTML = '<p style="text-align:center; color:#999; font-size:0.9em; padding:10px;">Açık ilan yok.</p>';
+              return;
+          }
+
           snapshot.forEach(doc => {
               const data = doc.data();
-              // Kendi ilanını görme (Opsiyonel: görmek istersen bu satırı kaldır)
-              if(data.oyuncu1ID === currentUserID) return; 
+              if(data.oyuncu1ID === currentUserID) return; // Kendi ilanımı gizle
               
-              hasRequest = true;
               const p1 = userMap[data.oyuncu1ID];
               const p1Name = p1?.isim || 'Bilinmiyor';
-              const p1Photo = p1?.fotoURL || getSafeAvatar(p1Name);
               
-              // 1. İLAN METNİ (Yapay Zeka / Hazır Metin)
-              // matchId gönderiyoruz ki her seferinde farklı metin üretmesin
-              const commentary = generateAdvancedCommentary('open_ad', {
-                  p1Name: p1Name,
-                  wager: data.bahisPuani,
-                  matchId: doc.id
-              });
-
-              // 2. LİG KONTROLÜ
+              // İlan Detayları
+              const isChallenge = data.macTipi === 'Meydan Okuma';
+              const badgeClass = isChallenge ? 'bg-orange-light' : 'bg-green-light';
+              const badgeText = isChallenge ? `${data.bahisPuani} P` : 'Dostluk';
+              
               const allowed = data.allowedLeagues || ['Bronz', 'Gümüş', 'Altın'];
               const isEligible = allowed.includes(myLeague);
-
-              // 3. RENK VE BAŞLIK AYARLARI
-              const isChallenge = data.macTipi === 'Meydan Okuma';
               
-              // Dostluk Maçı: Yeşil, Meydan Okuma: Pembe/Mor
-              const stripClass = isChallenge ? "strip-badge" : "strip-ad"; 
-              const headerTitle = isChallenge ? "MEYDAN OKUMA 🔥" : "DOSTLUK MAÇI 🤝";
-              
-              const wagerBadge = isChallenge 
-                  ? `<span style="color:#d63384; font-weight:bold; background:#fce4ec; padding:4px 8px; border-radius:10px; font-size:0.85em;">💰 ${data.bahisPuani} Puan</span>` 
-                  : `<span style="color:#28a745; font-weight:bold; background:#e8f5e9; padding:4px 8px; border-radius:10px; font-size:0.85em;">Keyif Maçı</span>`;
-              
-              const courtBadge = p1?.kortTercihi ? `<span style="color:#666; font-size:0.85em;">📍 ${p1.kortTercihi}</span>` : '';
+              // Yapay Zeka Yorumu (Modal için)
+              const commentary = generateAdvancedCommentary('open_ad', {
+                  p1Name: p1Name, wager: data.bahisPuani, matchId: doc.id
+              });
 
-              // 4. BUTON DURUMU
-              let buttonHTML = '';
-              if (isEligible) {
-                  // Global acceptOpenRequest fonksiyonunu çağırır
-                  buttonHTML = `<button class="news-action-btn" style="border-color:#28a745; color:#28a745; background-color:#f0fff4;" onclick="acceptOpenRequest('${doc.id}', ${data.bahisPuani}, '${data.macTipi}')">✅ Meydan Okumayı Kabul Et</button>`;
-              } else {
-                  buttonHTML = `<button class="news-action-btn" style="border-color:#ccc; color:#999; cursor:not-allowed;" disabled>🔒 Ligin Yetmiyor (${allowed.join(', ')})</button>`;
-              }
+              const modalData = {
+                  p1Name, 
+                  p1Photo: p1?.fotoURL || getSafeAvatar(p1Name),
+                  wager: data.bahisPuani,
+                  matchType: data.macTipi,
+                  commentary,
+                  matchId: doc.id,
+                  isEligible, isChallenge,
+                  headerTitle: isChallenge ? 'Meydan Okuma' : 'Dostluk Maçı'
+              };
 
-              // 5. KART OLUŞTURMA
-              const card = document.createElement('div');
-              card.className = 'news-card'; // Standart modern kart sınıfı
-              if (!isEligible) card.style.opacity = "0.7";
+              const div = document.createElement('div');
+              div.className = 'compact-news-row';
+              if(!isEligible) div.style.opacity = '0.6';
+              div.onclick = () => openLobbyDetail('ad', modalData);
 
-              card.innerHTML = `
-                <div class="news-header-strip ${stripClass}">
-                    <span>${headerTitle}</span>
-                    <span>LOBİ</span>
+              div.innerHTML = `
+                <div class="compact-left">
+                    <img src="${p1?.fotoURL || getSafeAvatar(p1Name)}" class="compact-avatar">
                 </div>
-                <div class="news-body">
-                    <div class="news-players-row">
-                        <img src="${p1Photo}" class="news-avatar" style="margin-right: 10px;">
-                        <div class="news-highlight-names">
-                            ${p1Name}
-                            <div style="font-weight:normal; margin-top:3px;">${courtBadge}</div>
-                        </div>
-                    </div>
-                    
-                    <div class="news-commentary" style="background:#fffbeb; border-color:#ffecb3;">
-                        ${commentary}
-                    </div>
-
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding:0 5px;">
-                        <div>${wagerBadge}</div>
-                        <div style="font-size:0.75em; color:#999;">${data.tarih ? data.tarih.toDate().toLocaleDateString('tr-TR') : ''}</div>
-                    </div>
-
-                    ${buttonHTML}
+                <div class="compact-mid">
+                    <div class="compact-title">${p1Name}</div>
+                    <div class="compact-subtitle">${isChallenge ? 'Meydan Okuma' : 'Dostluk Maçı'}</div>
+                </div>
+                <div class="compact-right">
+                    <span class="compact-badge ${badgeClass}">${badgeText}</span>
                 </div>
               `;
-              
-              openRequestsContainer.appendChild(card);
+              openRequestsContainer.appendChild(div);
           });
-          
-          if(!hasRequest) openRequestsContainer.innerHTML = `
-            <div style="text-align:center; padding:30px; opacity:0.6;">
-                <div style="font-size:3em;">🎾</div>
-                <p>Şu an açık ilan yok.</p>
-                <button class="btn-purple" 
-                    onclick="goToCreateAd()" 
-                    style="width:auto; font-size:0.9em; padding:10px 20px;">
-                    İlk İlanı Sen Aç
-                </button>
-            </div>`;
-      });
+    });
 }
 
 function loadScheduledMatches() {
     if(!scheduledMatchesContainer) return;
-    
-    // Yükleniyor animasyonu
-    scheduledMatchesContainer.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">📅 Fikstür taranıyor...</p>';
+    scheduledMatchesContainer.innerHTML = '<p style="text-align:center; color:#999; margin-top:10px;">Yükleniyor...</p>';
 
-    // Veritabanı sorgusu
     db.collection('matches').where('durum', '==', 'Hazır').get().then(snapshot => {
         scheduledMatchesContainer.innerHTML = '';
         let matches = [];
-        snapshot.forEach(doc => { matches.push({ ...doc.data(), id: doc.id }); });
+        snapshot.forEach(doc => matches.push({ ...doc.data(), id: doc.id }));
         
-        // Tarihe göre sırala (En yakın tarih en üstte)
-        matches.sort((a, b) => { 
-            const timeA = a.macZamani ? a.macZamani.toMillis() : 9999999999999;
-            const timeB = b.macZamani ? b.macZamani.toMillis() : 9999999999999;
-            return timeA - timeB; 
-        });
+        matches.sort((a, b) => (a.macZamani ? a.macZamani.toMillis() : 9e12) - (b.macZamani ? b.macZamani.toMillis() : 9e12));
 
         if(matches.length === 0) { 
-            scheduledMatchesContainer.innerHTML = `
-                <div style="text-align:center; padding:30px; opacity:0.6;">
-                    <div style="font-size:3em;">📅</div>
-                    <p>Planlanmış maç bulunmuyor.</p>
-                </div>`; 
+            scheduledMatchesContainer.innerHTML = '<p style="text-align:center; color:#999; font-size:0.9em; padding:10px;">Planlanmış maç yok.</p>';
             return; 
         }
 
         matches.forEach(match => {
-            // Oyuncu Verilerini Çek
             const p1 = userMap[match.oyuncu1ID];
             const p2 = userMap[match.oyuncu2ID];
-            
-            const p1Name = p1?.isim || 'Oyuncu 1';
-            const p2Name = p2?.isim || 'Oyuncu 2';
-const p1Photo = p1?.fotoURL || getSafeAvatar(p1Name);
-const p2Photo = p2?.fotoURL || getSafeAvatar(p2Name);
-            
-            // Tarih ve Kort Bilgisi Hazırla
-            let locationInfo = "Kort ve Zaman Bekleniyor ⏳";
-            let dateBadge = "";
-            let timeContextMsg = "Henüz tarih netleşmedi, görüşmeler sürüyor.";
+            const p1Name = p1?.isim || 'O1';
+            const p2Name = p2?.isim || 'O2';
+
+            let dateDisplay = 'Planlanıyor';
+            let timeStr = 'Tarih Bekleniyor';
+            let location = match.macYeri || 'Kort Seçilmedi';
 
             if (match.macZamani) {
-                const date = match.macZamani.toDate();
-                const day = date.getDate();
-                const month = date.toLocaleString('tr-TR', { month: 'short' });
-                const timeStr = date.toLocaleString('tr-TR', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'long' });
-                const kort = match.macYeri || 'Belirlenmedi';
-                const kortTipi = match.kortTipi ? `(${match.kortTipi})` : '';
-
-                locationInfo = `📍 <strong>${kort}</strong> ${kortTipi}`;
-                dateBadge = `${day} ${month}`;
-                
-                // Zamanın yakınlığına göre mesaj üret
-                const diffHours = (date - new Date()) / (1000 * 60 * 60);
-                if (diffHours < 24 && diffHours > 0) timeContextMsg = "🔥 <strong>BÜYÜK MAÇ BUGÜN!</strong> Kortlar ısınmaya başladı.";
-                else if (diffHours < 48 && diffHours > 0) timeContextMsg = "⏳ Heyecan artıyor, karşılaşmaya çok az kaldı.";
-                else timeContextMsg = `📅 Randevu deftere yazıldı: <strong>${timeStr}</strong>`;
+                const d = match.macZamani.toDate();
+                dateDisplay = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+                timeStr = d.toLocaleString('tr-TR', { day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' });
             }
 
-            // Kart HTML Yapısı (News Card Formatı)
-            const card = document.createElement('div');
-            card.className = 'news-card'; // CSS dosyasındaki modern kart sınıfı
-            
-            // Tıklama özelliği (Detaylar için)
-            // Not: Global fonksiyon ayarını yaptıysanız bu çalışacaktır.
-            const clickAction = `returnToTab='tab-lobby'; isReadOnlyView=${(match.oyuncu1ID !== auth.currentUser.uid && match.oyuncu2ID !== auth.currentUser.uid)}; showMatchDetail('${match.id}')`;
+            const modalData = {
+                p1Name, p2Name,
+                p1Photo: p1?.fotoURL || getSafeAvatar(p1Name),
+                p2Photo: p2?.fotoURL || getSafeAvatar(p2Name),
+                matchId: match.id,
+                timeStr, location,
+                contextMsg: "Maç detaylarını ve konum bilgisini buradan görebilirsin."
+            };
 
-            card.innerHTML = `
-                <div class="news-header-strip strip-match">
-                    <span>MAÇ ZAMANI</span>
-                    <span>${dateBadge || 'PLANLANIYOR'}</span>
+            const div = document.createElement('div');
+            div.className = 'compact-news-row';
+            div.onclick = () => openLobbyDetail('schedule', modalData);
+
+            div.innerHTML = `
+                <div class="compact-left">
+                    <div style="font-size:1.5em; width:36px; text-align:center;">📅</div>
                 </div>
-                <div class="news-body">
-                    <div class="news-players-row">
-                        <div class="news-avatars-stack">
-                            <img src="${p1Photo}" class="news-avatar">
-                            <img src="${p2Photo}" class="news-avatar">
-                        </div>
-                        <div class="news-highlight-names">
-                            ${p1Name} <span style="color:#999; font-weight:normal; font-size:0.8em;">vs</span><br>${p2Name}
-                        </div>
-                    </div>
-
-                    <div class="news-commentary" style="background-color: #f0f8ff; border-left-color: #007bff;">
-                        ${timeContextMsg} <br>
-                        <div style="margin-top:5px; font-size:0.9em; color:#555;">${locationInfo}</div>
-                    </div>
-
-                    <button class="news-action-btn" onclick="${clickAction}">
-                        Detayları ve Bahsi Gör ➝
-                    </button>
+                <div class="compact-mid">
+                    <div class="compact-title">${p1Name} vs ${p2Name}</div>
+                    <div class="compact-subtitle">${location}</div>
+                </div>
+                <div class="compact-right">
+                    <span class="compact-badge bg-blue-light">${dateDisplay}</span>
                 </div>
             `;
-            
-            scheduledMatchesContainer.appendChild(card);
+            scheduledMatchesContainer.appendChild(div);
         });
     });
 }
@@ -1824,55 +1754,87 @@ const p2Photo = p2?.fotoURL || getSafeAvatar(p2Name);
         });
     }
     // --- MODERN MAÇ KARTI OLUŞTURUCU (HTML string döndürür) ---
+// --- SADELEŞTİRİLMİŞ MAÇ KARTI OLUŞTURUCU (KOMPAKT) ---
 function createModernMatchHTML(match, currentUserID, isFixture = false) {
-    // Oyuncu İsimleri ve Fotoları
+    // Oyuncu İsimleri
     const p1 = userMap[match.oyuncu1ID];
     const p2 = userMap[match.oyuncu2ID];
     const p1Name = p1?.isim || '???';
     const p2Name = p2 ? (p2.isim || '???') : 'Bekleniyor';
-    const p2Photo = p2?.fotoURL || getSafeAvatar(p2Name);
+    
+    // Fotoğraflar (Sadece bir tanesini göstermek daha sade olur veya yan yana küçük)
+    // Burada sade olması için rakibin veya 1. oyuncunun fotosunu alalım
+    const displayPhoto = (match.oyuncu1ID === currentUserID) 
+        ? (p2?.fotoURL || getSafeAvatar(p2Name)) 
+        : (p1?.fotoURL || getSafeAvatar(p1Name));
 
-    // Durum Rengi ve Metni
-    let statusClass = 'status-gray';
+    // Durum Rengi ve İkonu
+    let badgeClass = 'bg-gray-light';
+    let iconStr = '⏳';
     let statusText = match.durum;
     
-    if(match.durum === 'Hazır') { statusClass = 'status-green'; statusText = '🎾 Oynanıyor'; }
-    else if(match.durum === 'Bekliyor') { statusClass = 'status-yellow'; statusText = '⏳ Yanıt Bekliyor'; }
-    else if(match.durum === 'Sonuç_Bekleniyor') { statusClass = 'status-blue'; statusText = '📝 Sonuç Onayı'; }
-    else if(match.durum === 'Tamamlandı') { statusClass = 'status-gray'; statusText = '🏁 Tamamlandı'; }
-    else if(match.durum === 'Acik_Ilan') { statusClass = 'status-green'; statusText = '📢 Açık İlan'; }
+    if(match.durum === 'Hazır') { 
+        badgeClass = 'bg-blue-light'; 
+        iconStr = '📅'; 
+        statusText = 'Oynanacak'; 
+    }
+    else if(match.durum === 'Bekliyor') { 
+        badgeClass = 'bg-orange-light'; 
+        iconStr = '📩'; 
+        statusText = 'Teklif'; 
+    }
+    else if(match.durum === 'Sonuç_Bekleniyor') { 
+        badgeClass = 'bg-purple-light'; 
+        iconStr = '⚖️'; 
+        statusText = 'Onay'; 
+    }
+    else if(match.durum === 'Tamamlandı') { 
+        badgeClass = 'bg-green-light'; 
+        iconStr = '✅'; 
+        statusText = 'Bitti'; 
+    }
+    else if(match.durum === 'Acik_Ilan') { 
+        badgeClass = 'bg-green-light'; 
+        iconStr = '📢'; 
+        statusText = 'İlan'; 
+    }
 
     // Başlık ve Alt Metin
     let title = `${p1Name} vs ${p2Name}`;
-    let subText = match.macYeri ? `📍 ${match.macYeri}` : 'Kort Henüz Seçilmedi';
+    let subText = match.macYeri || 'Kort Seçilmedi';
     
-    // Eğer maç bitmişse skoru göster
+    // Sağ Taraf Bilgisi (Skor veya Tarih)
+    let rightInfo = '';
+    
     if (match.durum === 'Tamamlandı' && match.skor) {
         const s = match.skor;
-        subText = `Skor: <strong>${s.s1_me}-${s.s1_opp}, ${s.s2_me}-${s.s2_opp}</strong>`;
-    }
-
-    // Tarih Gösterimi
-    let dateDisplay = '';
-    if (match.macZamani) {
+        // Sade Skor: 6-4, 6-3
+        subText = `${s.s1_me}-${s.s1_opp}, ${s.s2_me}-${s.s2_opp}` + (s.s3_me ? `, ...` : '');
+        rightInfo = `<span style="font-weight:bold; color:#333;">${iconStr}</span>`;
+    } else if (match.macZamani) {
         const d = match.macZamani.toDate();
-        dateDisplay = `<div>${d.getDate()}</div><div style="font-size:0.8em">${d.toLocaleString('tr-TR', {month:'short'})}</div>`;
+        const dateStr = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+        const timeStr = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+        rightInfo = `<div style="text-align:right; line-height:1.2;"><div style="font-weight:bold;">${dateStr}</div><div style="font-size:0.8em;">${timeStr}</div></div>`;
     } else {
-        dateDisplay = `<span style="font-size:1.2em">?</span>`;
+        rightInfo = `<span class="compact-badge ${badgeClass}">${statusText}</span>`;
     }
 
+    // Tıklama Hedefi
+    const targetTab = isFixture ? 'tab-fixture' : 'tab-matches';
+
+    // HTML Çıktısı (Lobi ile aynı 'compact-news-row' yapısı)
     return `
-        <div class="modern-list-item" onclick="returnToTab='${isFixture ? 'tab-fixture' : 'tab-matches'}'; showMatchDetail('${match.id}')">
-            <div class="list-item-left">
-                <img src="${p2Photo}" class="list-item-avatar">
+        <div class="compact-news-row" onclick="returnToTab='${targetTab}'; showMatchDetail('${match.id}')">
+            <div class="compact-left">
+                <img src="${displayPhoto}" class="compact-avatar" style="width:40px; height:40px;">
             </div>
-            <div class="list-item-content">
-                <span class="match-status-badge ${statusClass}">${statusText}</span>
-                <div class="list-item-title">${title}</div>
-                <div class="list-item-subtitle">${subText}</div>
+            <div class="compact-mid">
+                <div class="compact-title">${title}</div>
+                <div class="compact-subtitle">${subText}</div>
             </div>
-            <div class="list-item-right" style="background:#f8f9fa; padding:5px 10px; border-radius:8px; align-items:center;">
-                ${dateDisplay}
+            <div class="compact-right">
+                ${rightInfo}
             </div>
         </div>
     `;
@@ -3312,7 +3274,8 @@ auth.onAuthStateChanged(user => {
                 loadOpponents(); 
                 loadMyMatchesOverview(); 
                 loadOpenRequests();
-                loadScheduledMatches(); 
+                loadScheduledMatches();
+                loadLobbyMyActions();
                 loadAnnouncements(); 
                 setupNotifications(user.uid);
                 checkAndShowRecaps();
@@ -3352,9 +3315,13 @@ auth.onAuthStateChanged(user => {
             else if (targetId === 'tab-bests') { loadTheBests(bestsFilterSelect.value); }
             else if (targetId === 'tab-chat') { loadChatList(); }
             else if (targetId === 'tab-rankings') { loadLeaderboard(); }
-            else if (targetId === 'tab-lobby') { loadOpenRequests(); loadScheduledMatches(); loadAnnouncements(); }
+            else if (targetId === 'tab-lobby') { loadLobbyMyActions();loadOpenRequests(); loadScheduledMatches(); loadAnnouncements(); }
             // YENİ: Galeri sekmesine tıklandığında
-            else if (targetId === 'tab-gallery') { setGalleryTodayFilters(); loadGallery(); }
+            // Tarihi bugüne eşitleme fonksiyonunu kaldırdık (setGalleryTodayFilters), yerine boşalttık.
+else if (targetId === 'tab-gallery') { 
+    if(galleryFilterDate) galleryFilterDate.value = ''; // Tarih kutusunu temizle
+    loadGallery(); 
+}
             // YENİ: Profil sekmesine tıklandığında
             else if (targetId === 'tab-profile') {
                 const u = userMap[auth.currentUser.uid];
@@ -3973,22 +3940,32 @@ if(btnDeleteAccount) {
     btnDeleteAccount.addEventListener('click', deleteAccount);
 }
 // Spam Uyarısı Yönetimi
+// Spam Uyarısı Yönetimi (Otomatik Kapanan Versiyon)
 function initSpamWarning() {
     const alertBox = document.getElementById('email-spam-alert');
     const closeBtn = document.getElementById('btn-close-spam-alert');
     
-    // LocalStorage kontrolü: Kullanıcı daha önce kapattı mı?
+    // LocalStorage kontrolü: Kullanıcı daha önce "Kapat" butonuna basarak kapattı mı?
     const isDismissed = localStorage.getItem('tenisLigi_spamAlertDismissed');
 
     if (!isDismissed && alertBox) {
-        alertBox.style.display = 'flex'; // Kartı göster
+        // Kartı göster
+        alertBox.style.display = 'flex'; 
+        
+        // --- YENİ EKLENEN KISIM: 5 SANİYE SONRA KAPAT ---
+        setTimeout(() => {
+            // Animasyonlu kapanış istersen buraya CSS transition ekleyebilirsin, 
+            // şimdilik direkt gizliyoruz.
+            if(alertBox) alertBox.style.display = 'none';
+        }, 5000); // 5000 milisaniye = 5 saniye
+        // ------------------------------------------------
     }
 
     if (closeBtn) {
         closeBtn.addEventListener('click', function() {
             // Karta tıklanınca gizle
-            alertBox.style.display = 'none';
-            // Tarayıcı hafızasına "kapattı" diye not al
+            if(alertBox) alertBox.style.display = 'none';
+            // Tarayıcı hafızasına "kapattı" diye not al (Buna basarsa bir daha hiç çıkmaz)
             localStorage.setItem('tenisLigi_spamAlertDismissed', 'true');
         });
     }
@@ -4464,5 +4441,146 @@ window.returnToChallengeMenu = function() {
     document.getElementById('create-ad-form').style.display = 'none';
     document.getElementById('challenge-form').style.display = 'none';
 };
+// --- LOBİ AKSİYON MERKEZİ (Kişisel Bildirimler) ---
+function loadLobbyMyActions() {
+    const container = document.getElementById('lobby-actions-container');
+    const card = document.getElementById('lobby-actions-card');
+    if (!container || !card) return;
 
+    const myUid = auth.currentUser.uid;
+
+    // Aktif maçları çek (Bekliyor, Hazır, Sonuç_Bekleniyor)
+    // Not: Firestore'da 'in' sorgusu ile çoklu durum çekebiliriz
+    db.collection('matches')
+        .where('durum', 'in', ['Bekliyor', 'Hazır', 'Sonuç_Bekleniyor'])
+        .get()
+        .then(snapshot => {
+            let myActions = [];
+
+            snapshot.forEach(doc => {
+                const m = doc.data();
+                const mid = doc.id;
+
+                // Sadece BENİ ilgilendiren maçlar
+                if (m.oyuncu1ID !== myUid && m.oyuncu2ID !== myUid) return;
+
+                // 1. DURUM: SKOR ONAYI BEKLİYOR (En Acil)
+                // Durum 'Sonuç_Bekleniyor' VE sonucu giren ben DEĞİLSEM (yani onaylamam lazım)
+                if (m.durum === 'Sonuç_Bekleniyor' && m.sonucuGirenID !== myUid) {
+                    myActions.push({
+                        id: mid,
+                        type: 'approve',
+                        priority: 1,
+                        text: '⚖️ Skor Onayı Bekleniyor',
+                        sub: 'Rakibin sonucu girdi, onayla veya itiraz et.',
+                        color: 'bg-orange-light'
+                    });
+                }
+                
+                // 2. DURUM: BANA GELEN MEYDAN OKUMA
+                // Durum 'Bekliyor' VE 2. oyuncu bensem (Teklif bana gelmiş)
+                else if (m.durum === 'Bekliyor' && m.oyuncu2ID === myUid) {
+                    myActions.push({
+                        id: mid,
+                        type: 'invite',
+                        priority: 2,
+                        text: '⚔️ Maç Teklifi Var',
+                        sub: `${userMap[m.oyuncu1ID]?.isim || 'Rakip'} sana meydan okudu!`,
+                        color: 'bg-purple-light'
+                    });
+                }
+
+                // 3. DURUM: OYNANACAK MAÇ (Hazır)
+                // Tarihi gelmiş veya tarihi belirlenmemiş maçlar
+                else if (m.durum === 'Hazır') {
+                    let timeMsg = 'Tarih Belirlenmedi';
+                    if (m.macZamani) {
+                        const matchDate = m.macZamani.toDate();
+                        const now = new Date();
+                        // Sadece bugünün veya yarının maçlarını, ya da geçmiş ama skoru girilmemişleri göster
+                        const diffHours = (matchDate - now) / (1000 * 60 * 60);
+                        
+                        if (diffHours < -2) {
+                            // Maç saati geçmiş ama hala 'Hazır' duruyor -> Skor Girilmeli
+                            myActions.push({
+                                id: mid,
+                                type: 'enter_score',
+                                priority: 0, // En yüksek öncelik
+                                text: '📝 Skoru Gir',
+                                sub: 'Maç saati geçti, sonucu girmeyi unutma!',
+                                color: 'bg-red-light', // Kırmızı uyarı
+                                style: 'border: 1px solid red;'
+                            });
+                            return; 
+                        } else if (diffHours <= 48) {
+                            // Yaklaşan maç
+                            const timeStr = matchDate.toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'});
+                            const dayStr = matchDate.getDate() === now.getDate() ? 'Bugün' : 'Yarın';
+                            myActions.push({
+                                id: mid,
+                                type: 'match',
+                                priority: 3,
+                                text: `🎾 Maçın Var (${dayStr})`,
+                                sub: `Saat: ${timeStr} - ${m.macYeri || 'Kort ?'}`,
+                                color: 'bg-green-light'
+                            });
+                        }
+                    } else {
+                         // Tarih girilmemiş maç
+                         myActions.push({
+                            id: mid,
+                            type: 'plan',
+                            priority: 4,
+                            text: '📅 Tarih Belirle',
+                            sub: 'Maçınız onaylandı, zamanı planlayın.',
+                            color: 'bg-blue-light'
+                        });
+                    }
+                }
+            });
+
+            // Listeyi temizle
+            container.innerHTML = '';
+
+            // Eğer aksiyon yoksa kutuyu tamamen gizle
+            if (myActions.length === 0) {
+                card.style.display = 'none';
+                return;
+            }
+
+            // Varsa kutuyu göster ve sırala (Önem sırasına göre)
+            card.style.display = 'block';
+            myActions.sort((a, b) => a.priority - b.priority);
+
+            // Ekrana Bas (Kompakt Tasarım Kullanarak)
+            myActions.forEach(action => {
+                const div = document.createElement('div');
+                // Daha önce oluşturduğumuz 'compact-news-row' sınıfını kullanıyoruz
+                div.className = 'compact-news-row';
+                if(action.style) div.style = action.style; // Varsa ekstra stil (örn: kırmızı kenarlık)
+
+                div.onclick = () => {
+                    // Tıklayınca direkt maç detayına gitsin
+                    // 'returnToTab' ayarla ki geri basınca lobiye dönsün
+                    returnToTab = 'tab-lobby'; 
+                    showMatchDetail(action.id);
+                };
+
+                div.innerHTML = `
+                    <div class="compact-left">
+                        <div style="font-size:1.4em;">${action.type === 'approve' ? '⚖️' : (action.type === 'invite' ? '📩' : (action.type === 'enter_score' ? '📝' : '⏰'))}</div>
+                    </div>
+                    <div class="compact-mid">
+                        <div class="compact-title" style="color:#d35400;">${action.text}</div>
+                        <div class="compact-subtitle">${action.sub}</div>
+                    </div>
+                    <div class="compact-right">
+                        <span class="compact-badge ${action.color}" style="font-size:0.7em;">GİT -></span>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        })
+        .catch(err => console.error("Aksiyonlar yüklenirken hata:", err));
+}
 });
