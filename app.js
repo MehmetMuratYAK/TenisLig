@@ -167,7 +167,7 @@ async function sendNotificationEmail(targetUserId, subject, messageHTML) {
         'legend_streak': { icon: '🦁', name: 'Ligin Efsanesi', desc: 'Üst üste 10 galibiyet serisi.' },
         'clay_master': { icon: '🧱', name: 'Toprak Ağası', desc: 'Toprak kortta 5 galibiyet.' },
         'hard_hitter': { icon: '🟦', name: 'Beton Delen', desc: 'Sert kortta 5 galibiyet.' },
-        'grass_king': { icon: '🌱', name: 'Çim Ustası', desc: 'Çim kortta 5 galibiyet.' },
+        
         'marathon': { icon: '🏃', name: 'Maratoncu', desc: '3 set süren zorlu bir maçı kazandın.' },
         'bagel_master': { icon: '🥯', name: 'Fırıncı', desc: 'Bir seti 6-0 kazandın.' },
         'comeback_kid': { icon: '🪃', name: 'Geri Dönüş', desc: 'İlk seti kaybedip maçı kazandın.' },
@@ -393,8 +393,7 @@ const COMMENTARY_PARTS = {
     const valClay = document.getElementById('val-clay');
     const barHard = document.getElementById('bar-hard');
     const valHard = document.getElementById('val-hard');
-    const barGrass = document.getElementById('bar-grass');
-    const valGrass = document.getElementById('val-grass');
+  
     const statFormBadges = document.getElementById('stat-form-badges');
 
     const navItems = document.querySelectorAll('.nav-item');
@@ -668,7 +667,7 @@ function generateAdvancedCommentary(type, data) {
 
         check('clay_master', stats.clay.won >= 5);
         check('hard_hitter', stats.hard.won >= 5);
-        check('grass_king', stats.grass.won >= 5);
+        
 
         if (newBadges.length > 0) {
             await userRef.update({ badges: currentBadges });
@@ -1265,7 +1264,7 @@ function loadGallery() {
 
     // Kort filtrelerini doldur
     if (galleryFilterCourt && galleryFilterCourt.options.length === 1) {
-        ['Toprak', 'Sert', 'Çim'].forEach(c => { 
+        ['Toprak', 'Sert', ].forEach(c => { 
             const opt = document.createElement('option'); opt.value = c; opt.textContent = c; 
             galleryFilterCourt.appendChild(opt); 
         });
@@ -1722,7 +1721,7 @@ function loadScheduledMatches() {
         const q2 = db.collection('matches').where('oyuncu2ID', '==', currentUserID).get();
 
         if (histFilterCourt && histFilterCourt.options.length === 1) {
-            ['Toprak', 'Sert', 'Çim'].forEach(c => { 
+            ['Toprak', 'Sert'].forEach(c => { 
                 const opt = document.createElement('option'); opt.value = c; opt.textContent = c; 
                 histFilterCourt.appendChild(opt); 
             });
@@ -1899,7 +1898,7 @@ function renderMatchSection(matches, container, type) {
         if(fixtureHistoryContainer) fixtureHistoryContainer.innerHTML = '<p style="text-align:center;">Yükleniyor...</p>';
 
         if (filterCourt && filterCourt.options.length === 1) {
-            ['Toprak', 'Sert', 'Çim'].forEach(c => { 
+            ['Toprak', 'Sert', ].forEach(c => { 
                 const opt = document.createElement('option'); opt.value = c; opt.textContent = c; 
                 filterCourt.appendChild(opt); 
             });
@@ -2026,27 +2025,29 @@ function renderFixtureSection(matches, container) {
             gamesPlayed: 0, gamesWon: 0,
             clay: { played: 0, won: 0 },
             hard: { played: 0, won: 0 },
-            grass: { played: 0, won: 0 },
+            
             form: []
         };
 
-        allMatches.forEach(m => {
-            stats.played++;
-            const isWinner = m.kayitliKazananID === userId;
-            if (isWinner) stats.won++;
+allMatches.forEach(m => {
+    stats.played++;
+    const isWinner = m.kayitliKazananID === userId;
+    if (isWinner) stats.won++;
 
-            if(stats.form.length < 5) stats.form.push(isWinner ? 'W' : 'L');
+    if(stats.form.length < 5) stats.form.push(isWinner ? 'W' : 'L');
 
-            let surface = 'other';
-            const courtType = (m.kortTipi || '').toLowerCase();
-            if(courtType.includes('toprak')) surface = 'clay';
-            else if(courtType.includes('sert')) surface = 'hard';
-            else if(courtType.includes('çim')) surface = 'grass';
-            
-            if(surface !== 'other') {
-                stats[surface].played++;
-                if(isWinner) stats[surface].won++;
-            }
+    let surface = 'other';
+    // GÜNCELLEME BURADA: Türkçe karakter desteği eklendi ve varsayılan değer kontrolü yapıldı
+    const courtType = (m.kortTipi || '').toLocaleLowerCase('tr-TR');
+    
+    if(courtType.includes('toprak')) surface = 'clay';
+    else if(courtType.includes('sert')) surface = 'hard';
+    
+    
+    if(surface !== 'other') {
+        stats[surface].played++;
+        if(isWinner) stats[surface].won++;
+    }
 
             if (m.skor) {
                 const s = m.skor; 
@@ -2105,7 +2106,7 @@ function renderFixtureSection(matches, container) {
 
         updateBarChart(barClay, valClay, stats.clay);
         updateBarChart(barHard, valHard, stats.hard);
-        updateBarChart(barGrass, valGrass, stats.grass);
+       
 
         statFormBadges.innerHTML = '';
         if(stats.form.length === 0) {
@@ -2141,23 +2142,26 @@ function renderFixtureSection(matches, container) {
 
 async function showPlayerStats(userId) {
     // --- 1. ADIM: EKRANI TEMİZLE (Eski verileri sıfırla) ---
-    // Bu kısım, bir önceki oyuncunun verilerinin gözükmesini engeller.
     statsPlayerName.textContent = 'Yükleniyor...'; 
     statsTotalPoints.textContent = '-'; 
     statsCourtPref.innerHTML = '';
-    if(statsPlayerPhoto) statsPlayerPhoto.src = u.fotoURL || getSafeAvatar(u.isim);
+    
+    // DÜZELTME: Burada 'u' değişkeni henüz tanımlı olmadığı için hata veriyordu.
+    // Bunun yerine varsayılan bir logo veya boş bir resim koyuyoruz.
+    if(statsPlayerPhoto) statsPlayerPhoto.src = 'logo.png'; 
+    
     document.getElementById('stats-badges-grid').innerHTML = ''; 
     document.getElementById('stats-form-badges').innerHTML = '';
 
     try {
-        const u = userMap[userId]; 
+        const u = userMap[userId]; // 'u' değişkeni BURADA tanımlanıyor
         if(!u) return;
 
         // --- 2. ADIM: YENİ VERİLERİ DOLDUR ---
         statsPlayerName.textContent = u.isim || 'İsimsiz Oyuncu'; 
         statsTotalPoints.textContent = u.toplamPuan || 0; 
         
-        // --- 3. ADIM: ALT BİLGİ METNİNİ OLUŞTUR (DÜZELTİLMİŞ HALİ) ---
+        // --- 3. ADIM: ALT BİLGİ METNİNİ OLUŞTUR ---
         let infoText = "";
         
         // Kulüp bilgisi varsa ekle
@@ -2173,13 +2177,11 @@ async function showPlayerStats(userId) {
             infoText += `⏳ ${duration}`;
         }
         
-        // DİKKAT: Burada fazladan olan kodları sildik.
-        
         // Ekrana Yazdır
         statsCourtPref.innerHTML = `${u.kortTercihi || '-'} <br><span style="font-size:0.85em; color:#777; font-weight:normal;">${infoText}</span>`;
         
-        // Fotoğraf
-        if(statsPlayerPhoto) statsPlayerPhoto.src = u.fotoURL || 'https://via.placeholder.com/120';
+        // Fotoğrafı şimdi, veriyi çektikten sonra ayarlıyoruz
+        if(statsPlayerPhoto) statsPlayerPhoto.src = u.fotoURL || getSafeAvatar(u.isim || 'A');
         
         // --- 4. ADIM: ROZETLER VE BUTONLAR ---
         renderBadges(userId, 'stats-badges-grid');
@@ -2380,7 +2382,7 @@ function showMatchDetail(matchDocId) {
             // --- DURUMA GÖRE İŞLEMLER ---
             
             // 1. İZLEYİCİ İSE (Sadece Skor Göster)
-            if (isReadOnlyView || !isParticipant) {
+            if (!isParticipant) {
                 if (match.durum === 'Sonuç_Bekleniyor' || match.durum === 'Tamamlandı') {
                     const s = match.skor || {}; scoreDisplaySection.style.display = 'block';
                     let resText = match.durum === 'Tamamlandı' ? `<p style="color:green;">Kazanan: ${userMap[match.kayitliKazananID]?.isim}</p>` : `<p style="color:orange;">Sonuç Onayı Bekleniyor</p>`;
@@ -2440,7 +2442,7 @@ function showMatchDetail(matchDocId) {
                         <select id="dynamic-court-type">
                             <option value="Toprak">Toprak 🧱</option>
                             <option value="Sert">Sert 🟦</option>
-                            <option value="Çim">Çim 🌱</option>
+                            
                         </select>
                         <label class="input-label">Kort Seçimi:</label>
                         <select id="dynamic-venue-select"><option value="">Kort Seç</option></select>
@@ -2474,41 +2476,49 @@ function showMatchDetail(matchDocId) {
                 document.getElementById('dynamic-save-schedule-btn').onclick = () => saveMatchSchedule(matchDocId);
 
 
-                // --- B) SKOR GİRME ALANI (GÜNCELLENMİŞ: Yer tutucular ve Konumlandırma) ---
-                scoreInputSection.style.display = 'block'; 
+// --- B) SKOR GİRME ALANI (GÜNCELLENMİŞ) ---
+scoreInputSection.style.display = 'block'; 
+
+scoreInputSection.innerHTML = `
+    <button id="btn-toggle-score" class="btn-main" style="width:100%; margin-bottom:10px; display:flex; justify-content:center; align-items:center; gap:10px; background: linear-gradient(to right, #ffc107, #ff9800); color:#333;">
+        <span>📝</span> Maç Sonucu Gir
+    </button>
+
+    <div id="score-form-container" style="display:none; background:#fff3cd; padding:10px; border-radius:8px; margin-bottom:15px; border:1px solid #ffeeba;">
+         <h4 style="margin-top:0; margin-bottom:10px; color:#856404; font-size:0.9em; border-bottom:1px solid #e6dbb9; padding-bottom:5px;">Maç Detayları</h4>
+         
+         <div style="margin-bottom:15px;">
+            <label class="input-label" style="color:#856404;">Hangi zeminde oynadınız?</label>
+            <select id="score-court-type" style="width:100%; padding:8px; border-radius:6px; border:1px solid #e6dbb9;">
+                <option value="Toprak" ${match.kortTipi === 'Toprak' ? 'selected' : ''}>Toprak 🧱</option>
+                <option value="Sert" ${match.kortTipi === 'Sert' ? 'selected' : ''}>Sert 🟦</option>
                 
-                // NOT: Aşağıdaki inputlarda value="${... || ''}" yaptık. Böylece 0 yerine boş gelir ve placeholder görünür.
-                scoreInputSection.innerHTML = `
-                    <button id="btn-toggle-score" class="btn-main" style="width:100%; margin-bottom:10px; display:flex; justify-content:center; align-items:center; gap:10px; background: linear-gradient(to right, #ffc107, #ff9800); color:#333;">
-                        <span>📝</span> Maç Sonucu Gir
-                    </button>
+            </select>
+         </div>
 
-                    <div id="score-form-container" style="display:none; background:#fff3cd; padding:10px; border-radius:8px; margin-bottom:15px; border:1px solid #ffeeba;">
-                         <h4 style="margin-top:0; margin-bottom:10px; color:#856404; font-size:0.9em; border-bottom:1px solid #e6dbb9; padding-bottom:5px;">Set Sonuçları</h4>
-                         
-                         <div class="score-row">
-                            <span>1. Set</span>
-                            <input type="number" id="s1-me" class="score-box" placeholder="Ben" value="${match.skor?.s1_me || ''}">
-                            <input type="number" id="s1-opp" class="score-box" placeholder="Rakip" value="${match.skor?.s1_opp || ''}">
-                        </div>
-                        <div class="score-row">
-                            <span>2. Set</span>
-                            <input type="number" id="s2-me" class="score-box" placeholder="Ben" value="${match.skor?.s2_me || ''}">
-                            <input type="number" id="s2-opp" class="score-box" placeholder="Rakip" value="${match.skor?.s2_opp || ''}">
-                        </div>
-                        <div class="score-row">
-                            <span>3. Set (Opsiyonel)</span>
-                            <input type="number" id="s3-me" class="score-box" placeholder="Ben" value="${match.skor?.s3_me || ''}">
-                            <input type="number" id="s3-opp" class="score-box" placeholder="Rakip" value="${match.skor?.s3_opp || ''}">
-                        </div>
-                        
-                        <div id="winner-select-container" style="margin-top: 15px; margin-bottom: 10px;">
-                            <label style="font-size:0.85em; color:#856404; font-weight:bold; margin-bottom:5px; display:block;">Kazanan Kim?</label>
-                        </div>
+         <div class="score-row">
+            <span>1. Set</span>
+            <input type="number" id="s1-me" class="score-box" placeholder="Ben" value="${match.skor?.s1_me || ''}">
+            <input type="number" id="s1-opp" class="score-box" placeholder="Rakip" value="${match.skor?.s1_opp || ''}">
+        </div>
+        <div class="score-row">
+            <span>2. Set</span>
+            <input type="number" id="s2-me" class="score-box" placeholder="Ben" value="${match.skor?.s2_me || ''}">
+            <input type="number" id="s2-opp" class="score-box" placeholder="Rakip" value="${match.skor?.s2_opp || ''}">
+        </div>
+        <div class="score-row">
+            <span>3. Set (Opsiyonel)</span>
+            <input type="number" id="s3-me" class="score-box" placeholder="Ben" value="${match.skor?.s3_me || ''}">
+            <input type="number" id="s3-opp" class="score-box" placeholder="Rakip" value="${match.skor?.s3_opp || ''}">
+        </div>
+        
+        <div id="winner-select-container" style="margin-top: 15px; margin-bottom: 10px;">
+            <label style="font-size:0.85em; color:#856404; font-weight:bold; margin-bottom:5px; display:block;">Kazanan Kim?</label>
+        </div>
 
-                        <button id="dynamic-save-score-btn" class="btn-save" style="margin-top:5px; background-color:#28a745;">Sonucu Kaydet ve Gönder 🚀</button>
-                    </div>
-                `;
+        <button id="dynamic-save-score-btn" class="btn-save" style="margin-top:5px; background-color:#28a745;">Sonucu Kaydet ve Gönder 🚀</button>
+    </div>
+`;
 
                 // --- ÖNEMLİ DEĞİŞİKLİK: Kazanan Seçimini Kutunun İçine Taşıma ---
                 const scoreContainer = document.getElementById('score-form-container');
@@ -2790,6 +2800,9 @@ async function saveMatchResult(id) {
         return; 
     }
 
+    // YENİ: Kort Tipini Al
+    const selectedCourtType = document.getElementById('score-court-type').value;
+
     // 2. Skor Inputlarından Değerleri Al
     const s1m = parseInt(document.getElementById('s1-me').value) || 0;
     const s1o = parseInt(document.getElementById('s1-opp').value) || 0;
@@ -2803,6 +2816,7 @@ async function saveMatchResult(id) {
         durum: 'Sonuç_Bekleniyor',
         adayKazananID: winnerSelect.value,
         sonucuGirenID: auth.currentUser.uid,
+        kortTipi: selectedCourtType, // <--- BURASI EKLENDİ (Kort tipini zorla güncelle)
         skor: {
             s1_me: s1m, s1_opp: s1o, 
             s2_me: s2m, s2_opp: s2o, 
@@ -3056,19 +3070,35 @@ confetti({
     if(closeChatModal) { closeChatModal.onclick = () => { chatModal.style.display = 'none'; if (currentChatUnsubscribe) currentChatUnsubscribe(); }; }
     if (clearChatBtn) clearChatBtn.addEventListener('click', clearChatMessages);
 
-    // --- OTOMATİK LİG BAKIM VE TEMİZLİK FONKSİYONU ---
+// --- OTOMATİK LİG BAKIM VE TEMİZLİK FONKSİYONU (GÜNCELLENMİŞ) ---
 async function runLeagueMaintenance() {
     console.log("Lig bakımı başlatılıyor...");
     const now = new Date();
-    const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000; // 5 Günün milisaniye karşılığı
+    const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000; // 5 Gün
 
     try {
-        // --- KURAL 1 & 2: 'Hazır' statüsündeki maçların kontrolü ---
-        
-        const readySnap = await db.collection('matches').where('durum', '==', 'Hazır').get();
-        
         const batch = db.batch(); // Toplu işlem başlatıyoruz
         let operationCount = 0;
+
+        // --- YENİ EKLENEN KISIM BAŞLANGIÇ ---
+        // KURAL 0: 'Bekliyor' statüsündeki (Teklif) maçların kontrolü
+        // 5 günden eski teklifler otomatik silinsin.
+        const pendingSnap = await db.collection('matches').where('durum', '==', 'Bekliyor').get();
+        
+        pendingSnap.forEach(doc => {
+            const m = doc.data();
+            const createDate = m.tarih ? m.tarih.toDate() : null;
+            
+            if (createDate && (now - createDate) > FIVE_DAYS_MS) {
+                console.log(`Süresi Dolmuş Teklif Siliniyor: ${doc.id}`);
+                batch.delete(db.collection('matches').doc(doc.id));
+                operationCount++;
+            }
+        });
+        // --- YENİ EKLENEN KISIM BİTİŞ ---
+
+        // --- KURAL 1 & 2: 'Hazır' statüsündeki maçların kontrolü ---
+        const readySnap = await db.collection('matches').where('durum', '==', 'Hazır').get();
 
         readySnap.forEach(doc => {
             const m = doc.data();
@@ -3078,7 +3108,7 @@ async function runLeagueMaintenance() {
             const createdDate = m.tarih ? m.tarih.toDate() : null;
             const scheduledDate = m.macZamani ? m.macZamani.toDate() : null;
 
-            // KURAL 1: Maç onaylanmış (Hazır) ama tarih girilmemiş
+            // KURAL 1: Maç onaylanmış (Hazır) ama tarih girilmemiş (5 gün geçmiş)
             if (!scheduledDate && createdDate) {
                 if ((now - createdDate) > FIVE_DAYS_MS) {
                     console.log(`Maç İptal (Planlama Yapılmadı): ${matchId}`);
@@ -3098,10 +3128,9 @@ async function runLeagueMaintenance() {
         });
 
         // --- KURAL 3: 'Sonuç_Bekleniyor' statüsündeki maçların otomatik onayı ---
+        const approvalSnap = await db.collection('matches').where('durum', '==', 'Sonuç_Bekleniyor').get();
         
-        const pendingSnap = await db.collection('matches').where('durum', '==', 'Sonuç_Bekleniyor').get();
-        
-        for (const doc of pendingSnap.docs) {
+        for (const doc of approvalSnap.docs) {
             const m = doc.data();
             const matchId = doc.id;
             
@@ -3813,26 +3842,62 @@ const body = `
         }
     }
 
-    async function sendMatchComment(matchId, inputEl) {
-        const text = inputEl.value.trim();
-        if (!text) return;
+async function sendMatchComment(matchId, inputEl) {
+    const text = inputEl.value.trim();
+    if (!text) return;
 
-        const myUser = userMap[auth.currentUser.uid];
-        const userName = myUser ? myUser.isim : 'Bilinmeyen';
+    const myUid = auth.currentUser.uid;
+    const myUser = userMap[myUid];
+    const userName = myUser ? myUser.isim : 'Bilinmeyen';
 
-        try {
-            inputEl.value = ''; // Inputu temizle
-            await db.collection('matches').doc(matchId).collection('comments').add({
-                text: text,
-                userId: auth.currentUser.uid,
-                userName: userName,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    try {
+        inputEl.value = ''; // Inputu temizle
+
+        // 1. Yorumu Veritabanına Kaydet
+        await db.collection('matches').doc(matchId).collection('comments').add({
+            text: text,
+            userId: myUid,
+            userName: userName,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // --- 2. MAİL BİLDİRİMİ (YENİ EKLENEN KISIM) ---
+        // Maç verisini çekip kimlere mail atacağımızı bulalım
+        const matchDoc = await db.collection('matches').doc(matchId).get();
+        if (matchDoc.exists) {
+            const m = matchDoc.data();
+            
+            // Mail gönderilecek kişilerin listesi (Yorumu yazan hariç diğer oyuncular)
+            let targets = [];
+
+            // Eğer yorumu yazan Oyuncu 1 değilse, Oyuncu 1'e gönder
+            if (m.oyuncu1ID && m.oyuncu1ID !== myUid) targets.push(m.oyuncu1ID);
+            
+            // Eğer yorumu yazan Oyuncu 2 değilse, Oyuncu 2'ye gönder
+            if (m.oyuncu2ID && m.oyuncu2ID !== myUid) targets.push(m.oyuncu2ID);
+
+            // Mail İçeriği
+            const subject = "💬 Maçına Yeni Yorum Yapıldı";
+            const body = `
+                <p><strong>${userName}</strong> maç sayfasına bir yorum bıraktı:</p>
+                <blockquote style="background-color:#f9f9f9; border-left: 4px solid #ccc; padding: 10px; margin: 10px 0;">
+                    "${text}"
+                </blockquote>
+                <p>Cevap vermek için uygulamaya git: <a href="https://mehmetmuratyak.github.io/TenisLig/">Tenis Ligi</a></p>
+            `;
+
+            // Belirlenen kişilere mail gönder
+            targets.forEach(uid => {
+                sendNotificationEmail(uid, subject, body);
             });
-        } catch (error) {
-            console.error("Yorum hatası:", error);
-            alert("Yorum gönderilemedi.");
         }
+        // ---------------------------------------------
+
+    } catch (error) {
+        console.error("Yorum hatası:", error);
+        alert("Yorum gönderilemedi.");
     }
+}
     // --- YENİ FOTOĞRAF İŞLEVLERİ ---
 
 // 1. Dosya seçilince önizleme yapma
