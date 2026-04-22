@@ -107,7 +107,7 @@ function pickConsistent(arr, seed) {
 
     // --- GOOGLE APPS SCRIPT İLE MAİL GÖNDERME ---
 // Kopyaladığın uzun linki tırnak içine yapıştır:
-const MAIL_API_URL = "https://script.google.com/macros/s/AKfycbxJBLHF9AUhToj2YVbKQDR8eD_rriXYm3IyfArrWXv7mmBfBK91oN10I9g41RkSA9B2/exec"; 
+const MAIL_API_URL = "https://script.google.com/macros/s/AKfycbx37QOoIvBoTIBQavhUGA-yP45oaeVh66JMqBHT1mno602A8hQeTGm22nvBKzgwrdvg/exec"; 
 
 // --- GOOGLE APPS SCRIPT & ONESIGNAL BİLDİRİM FONKSİYONU ---
 // Mevcut sendNotificationEmail fonksiyonunu silip tamamen bunu yapıştırın:
