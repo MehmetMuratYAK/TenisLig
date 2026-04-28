@@ -1325,7 +1325,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // PUSHER BEAMS BAŞLATMA
             const beamsClient = new window.PusherBeams.BeamsClient({
-                instanceId: 'BURAYA_PUSHER_INSTANCE_ID_GELECEK', // Bunu sonra halledeceğiz
+                instanceId: 'b752a69c-c259-4e6e-adcf-d16c8c323ff9', // Bunu sonra halledeceğiz
             });
             
             beamsClient.start()
