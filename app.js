@@ -1325,25 +1325,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // PUSHER BEAMS BAŞLATMA (GÜVENLİ BLOK)
 // PUSHER BEAMS BAŞLATMA (GÜVENLİ BLOK VE GITHUB PAGES UYUMU)
-            try {
-                if (window.PusherPushNotifications) {
-                    const beamsClient = new window.PusherPushNotifications.Client({
-                        instanceId: 'b752a69c-c259-4e6e-adcf-d16c8c323ff9'
-                    });
-                    
-                    navigator.serviceWorker.ready.then(registration => {
-                        // SİHİRLİ KOD BURADA OLMALIYDI: start() fonksiyonunun içinde!
-                        beamsClient.start({ serviceWorkerRegistration: registration })
-                            .then(() => beamsClient.addDeviceInterest(user.uid))
-                            .then(() => console.log('Pusher cihaz kaydı başarılı: ', user.uid))
-                            .catch(err => console.error("Pusher kayıt hatası:", err));
-                    });
-                } else {
-                    console.warn("Pusher kütüphanesi bulunamadı. Bildirimler pasif.");
-                }
-            } catch (error) {
-                console.error("Bildirim sistemi başlatılırken hata oluştu:", error);
-            }
+// --- PUSHER BEAMS BAŞLATMA ---
+    try {
+        if (window.PusherPushNotifications) {
+            navigator.serviceWorker.ready.then(registration => {
+                const beamsClient = new window.PusherPushNotifications.Client({
+                    instanceId: 'b752a69c-c259-4e6e-adcf-d16c8c323ff9',
+                    serviceWorkerRegistration: registration 
+                });
+                
+                beamsClient.start()
+                    .then(() => beamsClient.addDeviceInterest(user.uid))
+                    .then(() => console.log('Pusher cihaz kaydı başarılı: ', user.uid))
+                    .catch(err => console.error("Pusher kayıt hatası:", err));
+            });
+        }
+    } catch (error) {
+        console.error("Bildirim sistemi başlatılırken hata oluştu:", error);
+    }
 
             // UYGULAMA VERİLERİNİ YÜKLE (Burası artık her halükarda çalışacak)
             fetchUserMap().then(() => { 
