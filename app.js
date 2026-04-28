@@ -92,7 +92,7 @@ async function sendNotificationEmail(targetUserId, subject, messageHTML) {
     if (!targetUser) return;
 
     const plainText = messageHTML.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim().substring(0, 150);
-
+alert("Bildirim gidecek kişinin UID: " + targetUserId);
     const requestData = {
         targetUserId: targetUserId,
         subject: subject,
