@@ -1317,28 +1317,44 @@ document.addEventListener('DOMContentLoaded', function() {
         if (reminderCount > 0) { await batch.commit(); }
     }
 
-    // --- BURASI TEMİZLENDİ VE PUSHER BEAMS EKLENDİ ---
+// --- GÜVENLİ AUTH VE PUSHER BAŞLATMA BLOKU ---
     auth.onAuthStateChanged(user => {
         if (user) {
             authScreen.style.display = 'none';
             mainApp.style.display = 'flex';
 
-            // PUSHER BEAMS BAŞLATMA
-           // --- PUSHER BEAMS BAŞLATMA ---
-            const beamsClient = new window.PusherPushNotifications.Client({
-                instanceId: 'b752a69c-c259-4e6e-adcf-d16c8c323ff9', 
-            });
-            
-            beamsClient.start()
-                .then(() => beamsClient.addDeviceInterest(user.uid)) // Kullanıcının UID'sini dinler
-                .then(() => console.log('Pusher cihaz kaydı başarılı: ', user.uid))
-                .catch(console.error);
+            // PUSHER BEAMS BAŞLATMA (GÜVENLİ BLOK)
+try {
+                if (window.PusherPushNotifications) {
+                    // Pusher'a kendi sw.js dosyamızı kullanmasını söylüyoruz!
+                    navigator.serviceWorker.ready.then(registration => {
+                        const beamsClient = new window.PusherPushNotifications.Client({
+                            instanceId: 'b752a69c-c259-4e6e-adcf-d16c8c323ff9',
+                            serviceWorkerRegistration: registration // <--- SİHİRLİ KOD BU
+                        });
+                        
+                        beamsClient.start()
+                            .then(() => beamsClient.addDeviceInterest(user.uid))
+                            .then(() => console.log('Pusher cihaz kaydı başarılı: ', user.uid))
+                            .catch(err => console.error("Pusher kayıt hatası:", err));
+                    });
+                } else {
+                    console.warn("Pusher kütüphanesi bulunamadı. Bildirimler pasif.");
+                }
+            } catch (error) {
+                console.error("Bildirim sistemi başlatılırken hata oluştu:", error);
+            }
 
+            // UYGULAMA VERİLERİNİ YÜKLE (Burası artık her halükarda çalışacak)
             fetchUserMap().then(() => { 
                 loadLeaderboard(); loadOpponents(); loadMyMatchesOverview(); loadOpenRequests(); loadScheduledMatches(); loadLobbyMyActions(); loadAnnouncements(); setupNotifications(user.uid); checkAndShowRecaps(); runLeagueMaintenance(); checkAndSendReminders(); initSpamWarning(); initOnboarding(); checkProfileCompleteness();
-            });
+            }).catch(err => console.error("Veriler yüklenirken hata:", err));
+
         } else { 
-            authScreen.style.display = 'flex'; mainApp.style.display = 'none'; listeners.forEach(u=>u()); switchAuthTab('login');
+            authScreen.style.display = 'flex'; 
+            mainApp.style.display = 'none'; 
+            listeners.forEach(u=>u()); 
+            switchAuthTab('login');
         }
     });
 
