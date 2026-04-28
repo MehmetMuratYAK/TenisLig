@@ -1,0 +1,11 @@
+{
+  "hosting": {
+    "site": "tenisligi-4672a",
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}
