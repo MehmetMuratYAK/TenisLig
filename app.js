@@ -1324,8 +1324,9 @@ document.addEventListener('DOMContentLoaded', function() {
             mainApp.style.display = 'flex';
 
             // PUSHER BEAMS BAŞLATMA
-            const beamsClient = new window.PusherBeams.BeamsClient({
-                instanceId: 'b752a69c-c259-4e6e-adcf-d16c8c323ff9', // Bunu sonra halledeceğiz
+           // --- PUSHER BEAMS BAŞLATMA ---
+            const beamsClient = new window.PusherPushNotifications.Client({
+                instanceId: 'b752a69c-c259-4e6e-adcf-d16c8c323ff9', 
             });
             
             beamsClient.start()
