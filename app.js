@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
     populateClubDropdowns();
 
     // --- GOOGLE APPS SCRIPT İLE MAİL GÖNDERME ---
-    const MAIL_API_URL = "https://script.google.com/macros/s/AKfycbx37QOoIvBoTIBQavhUGA-yP45oaeVh66JMqBHT1mno602A8hQeTGm22nvBKzgwrdvg/exec"; 
+    const MAIL_API_URL = "https://script.google.com/macros/s/AKfycbxcuSwJoZTVJSjPnDgajr5ATmQJD2aRvlqRlCzCfByOJmMbE-r5PDrQAmgR_Fjq73dZ/exec"; 
 
     // --- TEMİZLENMİŞ BİLDİRİM VE MAİL FONKSİYONU ---
 async function sendNotificationEmail(targetUserId, subject, messageHTML) {
