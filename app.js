@@ -105,16 +105,16 @@ async function sendNotificationEmail(targetUserId, subject, messageHTML) {
     }
 
     try {
-        // En kritik değişiklik: headers ve body formatı
+        // En güvenli yöntem: text/plain göndererek CORS engelini aşmak
         await fetch(MAIL_API_URL, {
             method: "POST",
-            mode: "no-cors", // Google Apps Script için bazen bu gerekir ama veri gitmez. 
-            // Eğer no-cors varken sadece mail gidiyorsa, alttaki yöntemi dene:
+            mode: "no-cors", 
+            headers: { "Content-Type": "text/plain" },
             body: JSON.stringify(requestData)
         });
-        console.log("İstek gönderildi");
+        console.log("İstek başarıyla Google Script'e yollandı.");
     } catch (error) {
-        console.error("Hata:", error);
+        console.error("İstek gönderilirken hata oluştu:", error);
     }
 }
 
