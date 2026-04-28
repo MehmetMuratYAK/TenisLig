@@ -1324,16 +1324,16 @@ document.addEventListener('DOMContentLoaded', function() {
             mainApp.style.display = 'flex';
 
             // PUSHER BEAMS BAŞLATMA (GÜVENLİ BLOK)
-try {
+// PUSHER BEAMS BAŞLATMA (GÜVENLİ BLOK VE GITHUB PAGES UYUMU)
+            try {
                 if (window.PusherPushNotifications) {
-                    // Pusher'a kendi sw.js dosyamızı kullanmasını söylüyoruz!
+                    const beamsClient = new window.PusherPushNotifications.Client({
+                        instanceId: 'b752a69c-c259-4e6e-adcf-d16c8c323ff9'
+                    });
+                    
                     navigator.serviceWorker.ready.then(registration => {
-                        const beamsClient = new window.PusherPushNotifications.Client({
-                            instanceId: 'b752a69c-c259-4e6e-adcf-d16c8c323ff9',
-                            serviceWorkerRegistration: registration // <--- SİHİRLİ KOD BU
-                        });
-                        
-                        beamsClient.start()
+                        // SİHİRLİ KOD BURADA OLMALIYDI: start() fonksiyonunun içinde!
+                        beamsClient.start({ serviceWorkerRegistration: registration })
                             .then(() => beamsClient.addDeviceInterest(user.uid))
                             .then(() => console.log('Pusher cihaz kaydı başarılı: ', user.uid))
                             .catch(err => console.error("Pusher kayıt hatası:", err));
