@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const MAIL_API_URL = "https://script.google.com/macros/s/AKfycbx37QOoIvBoTIBQavhUGA-yP45oaeVh66JMqBHT1mno602A8hQeTGm22nvBKzgwrdvg/exec"; 
 
     // --- TEMİZLENMİŞ BİLDİRİM VE MAİL FONKSİYONU ---
-    async function sendNotificationEmail(targetUserId, subject, messageHTML) {
+async function sendNotificationEmail(targetUserId, subject, messageHTML) {
         const targetUser = userMap[targetUserId];
         if (!targetUser) return;
 
@@ -105,13 +105,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         try {
+            // mode: "no-cors" SİLİNDİ, Content-Type "text/plain" yapıldı (Google'ın hilesi budur)
             await fetch(MAIL_API_URL, {
                 method: "POST",
-                mode: "no-cors", 
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "text/plain" }, 
                 body: JSON.stringify(requestData)
             });
-        } catch (error) { console.error("Bildirim gönderme hatası:", error); }
+            console.log("Bildirim isteği başarıyla gönderildi.");
+        } catch (error) { 
+            console.error("Bildirim gönderme hatası:", error); 
+        }
     }
 
     // --- ROZET TANIMLARI ---
