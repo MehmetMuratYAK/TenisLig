@@ -1324,29 +1324,35 @@ document.addEventListener('DOMContentLoaded', function() {
             mainApp.style.display = 'flex';
 
             // --- PUSHER BEAMS BAŞLATMA ---
-            try {
-                if (window.PusherPushNotifications) {
-                    navigator.serviceWorker.ready.then(registration => {
-                        const beamsClient = new window.PusherPushNotifications.Client({
-                            instanceId: 'b752a69c-c259-4e6e-adcf-d16c8c323ff9',
-                            serviceWorkerRegistration: registration 
-                        });
-                        
-                        beamsClient.start()
-                            .then(() => beamsClient.addDeviceInterest(user.uid))
-                            .then(() => {
-                                console.log('Pusher cihaz kaydı başarılı: ', user.uid);
-                                // SADECE TELEFONDA TEST ETMEK İÇİN GEÇİCİ KOD:
-                                alert('BİNGOO! Telefon Pusher\'a başarıyla kaydoldu! 🎉');
-                            })
-                            .catch(err => console.error("Pusher kayıt hatası:", err));
-                    });
-                } else {
-                    console.warn("Pusher kütüphanesi bulunamadı.");
-                }
-            } catch (error) {
-                console.error("Bildirim sistemi başlatılırken hata oluştu:", error);
-            }
+          // --- PUSHER BEAMS BAŞLATMA (HATA ÖNLEYİCİ VERSİYON) ---
+try {
+    if (window.PusherPushNotifications && user && user.uid) { // UID'nin varlığını kontrol ediyoruz
+        console.log("Pusher başlatılıyor, UID:", user.uid);
+        
+        navigator.serviceWorker.ready.then(registration => {
+            const beamsClient = new window.PusherPushNotifications.Client({
+                instanceId: 'b752a69c-c259-4e6e-adcf-d16c8c323ff9',
+                serviceWorkerRegistration: registration 
+            });
+            
+            beamsClient.start()
+                .then(() => beamsClient.addDeviceInterest(user.uid))
+                .then(() => {
+                    console.log('Pusher cihaz kaydı başarılı!');
+                    // UID'yi ekranda net görmek için kodu güncelledik:
+                    alert('KAYIT TAMAM! \nSenin UID Kodun: ' + user.uid);
+                })
+                .catch(err => {
+                    console.error("Pusher kayıt hatası:", err);
+                    alert("Pusher Hatası: " + err.message);
+                });
+        });
+    } else {
+        console.warn("UID bulunamadı veya kütüphane eksik.");
+    }
+} catch (error) {
+    console.error("Sistem hatası:", error);
+}
 
             // UYGULAMA VERİLERİNİ YÜKLE (Burası artık her halükarda çalışacak)
             fetchUserMap().then(() => { 
