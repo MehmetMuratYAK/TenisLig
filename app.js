@@ -1337,6 +1337,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 beamsClient.start()
                     .then(() => beamsClient.addDeviceInterest(user.uid))
                     .then(() => console.log('Pusher cihaz kaydı başarılı: ', user.uid))
+                    alert('BİNGOO! Telefon Pusher\'a başarıyla kaydoldu! 🎉');
+                            })
                     .catch(err => console.error("Pusher kayıt hatası:", err));
             });
         }
