@@ -92,7 +92,7 @@ async function sendNotificationEmail(targetUserId, subject, messageHTML) {
     if (!targetUser) return;
 
     const plainText = messageHTML.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim().substring(0, 150);
-alert("Bildirim gidecek kişinin UID: " + targetUserId);
+
     const requestData = {
         targetUserId: targetUserId,
         subject: subject,
@@ -1344,7 +1344,7 @@ try {
                 .then(() => {
                     console.log('Pusher cihaz kaydı başarılı!');
                     // UID'yi ekranda net görmek için kodu güncelledik:
-                    alert('KAYIT TAMAM! \nSenin UID Kodun: ' + user.uid);
+                    
                 })
                 .catch(err => {
                     console.error("Pusher kayıt hatası:", err);
