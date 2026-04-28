@@ -88,34 +88,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- TEMİZLENMİŞ BİLDİRİM VE MAİL FONKSİYONU ---
 async function sendNotificationEmail(targetUserId, subject, messageHTML) {
-        const targetUser = userMap[targetUserId];
-        if (!targetUser) return;
+    const targetUser = userMap[targetUserId];
+    if (!targetUser) return;
 
-        const plainText = messageHTML.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim().substring(0, 150) + (messageHTML.length > 150 ? "..." : "");
+    const plainText = messageHTML.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim().substring(0, 150);
 
-        const requestData = {
-            targetUserId: targetUserId, 
-            subject: subject,           
-            body: messageHTML,          
-            plainText: plainText        
-        };
+    const requestData = {
+        targetUserId: targetUserId,
+        subject: subject,
+        body: messageHTML,
+        plainText: plainText
+    };
 
-        if (targetUser.email && targetUser.emailNotifications !== false) {
-            requestData.to = targetUser.email;
-        }
-
-        try {
-            // mode: "no-cors" SİLİNDİ, Content-Type "text/plain" yapıldı (Google'ın hilesi budur)
-            await fetch(MAIL_API_URL, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain" }, 
-                body: JSON.stringify(requestData)
-            });
-            console.log("Bildirim isteği başarıyla gönderildi.");
-        } catch (error) { 
-            console.error("Bildirim gönderme hatası:", error); 
-        }
+    if (targetUser.email && targetUser.emailNotifications !== false) {
+        requestData.to = targetUser.email;
     }
+
+    try {
+        // En kritik değişiklik: headers ve body formatı
+        await fetch(MAIL_API_URL, {
+            method: "POST",
+            mode: "no-cors", // Google Apps Script için bazen bu gerekir ama veri gitmez. 
+            // Eğer no-cors varken sadece mail gidiyorsa, alttaki yöntemi dene:
+            body: JSON.stringify(requestData)
+        });
+        console.log("İstek gönderildi");
+    } catch (error) {
+        console.error("Hata:", error);
+    }
+}
 
     // --- ROZET TANIMLARI ---
     const BADGE_DEFINITIONS = {
