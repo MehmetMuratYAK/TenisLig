@@ -1,7 +1,7 @@
 /* sw.js */
 
-// 1. OneSignal Kütüphanesini İçe Aktar (BU SATIR EN ÜSTTE OLMALI)
-importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
+
+importScripts("https://js.pusher.com/beams/service-worker.js");
 
 // --- CACHING (Senin Mevcut Kodların) ---
 const CACHE_NAME = 'tenis-ligi-v33-push'; // Versiyonu güncelledik
