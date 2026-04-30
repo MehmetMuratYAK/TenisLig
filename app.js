@@ -97,37 +97,69 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- GOOGLE APPS SCRIPT İLE MAİL GÖNDERME ---
     const MAIL_API_URL = "https://script.google.com/macros/s/AKfycbzHc3rELsEjgjj-oH4-T8yi8uLAC_SOuYTDOHGEFgEiyL7dobunalllZRQBi8hwKeTs/exec"; 
 
-    // --- TEMİZLENMİŞ BİLDİRİM VE MAİL FONKSİYONU ---
-async function sendNotificationEmail(targetUserId, subject, messageHTML) {
-    const targetUser = userMap[targetUserId];
-    if (!targetUser) return;
+// UYGULAMANIN YENİ LİNKİNİ BURAYA YAZ (Sonunda / olsun)
+    const APP_URL = "https://bursatenisligi.github.io/TenisLig/"; 
 
-    const plainText = messageHTML.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim().substring(0, 150);
+    async function sendNotificationEmail(targetUserId, subject, messageHTML) {
+        const targetUser = userMap[targetUserId];
+        if (!targetUser) return;
 
-    const requestData = {
-        targetUserId: targetUserId,
-        subject: subject,
-        body: messageHTML,
-        plainText: plainText
-    };
+        // Eski hardcoded linkleri ve "aşağıdaki linke tıkla" gibi dağınık cümleleri otomatik temizliyoruz
+        let cleanMessage = messageHTML
+            .replace(/<p>.*(aşağıdaki|hemen uygulamaya|Cevap vermek).*<\/p>/gi, '')
+            .replace(/<p><a href="https:\/\/mehmetmuratyak\.github\.io.*<\/a><\/p>/gi, '')
+            .replace(/<p>.*Uygulamaya Git.*<\/p>/gi, '');
 
-    if (targetUser.email && targetUser.emailNotifications !== false) {
-        requestData.to = targetUser.email;
+        // Profesyonel, Düzenli Mail Şablonu (HTML Wrapper)
+        const wrappedHTML = `
+            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #eaeaea; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+                
+                <div style="background: linear-gradient(135deg, #c06035 0%, #8d4020 100%); padding: 25px 20px; text-align: center;">
+                    <h2 style="color: #ffffff; margin: 0; font-size: 24px; letter-spacing: 1px;">🎾 Tenis Ligi</h2>
+                </div>
+                
+                <div style="padding: 30px 25px; font-size: 15px; line-height: 1.6; color: #444;">
+                    <h3 style="color: #c06035; margin-top: 0; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">${subject}</h3>
+                    
+                    ${cleanMessage}
+                    
+                    <div style="text-align: center; margin-top: 35px; margin-bottom: 10px;">
+                        <a href="${APP_URL}" style="background-color: #c06035; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 16px; box-shadow: 0 4px 10px rgba(192, 96, 53, 0.3);">Uygulamayı Aç</a>
+                    </div>
+                </div>
+                
+                <div style="background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #888; border-top: 1px solid #eaeaea;">
+                    Bu mesaj <strong>Tenis Ligi</strong> sistemi tarafından otomatik olarak gönderilmiştir.<br>
+                    Mailleri almak istemiyorsanız, uygulama içindeki "Profil" sekmesinden e-posta bildirimlerini kapatabilirsiniz.
+                </div>
+            </div>
+        `;
+
+        const plainText = cleanMessage.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim().substring(0, 150);
+
+        const requestData = {
+            targetUserId: targetUserId,
+            subject: subject,
+            body: wrappedHTML,
+            plainText: plainText
+        };
+
+        if (targetUser.email && targetUser.emailNotifications !== false) {
+            requestData.to = targetUser.email;
+        }
+
+        try {
+            await fetch(MAIL_API_URL, {
+                method: "POST",
+                mode: "no-cors", 
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify(requestData)
+            });
+            console.log("İstek başarıyla Google Script'e yollandı.");
+        } catch (error) {
+            console.error("İstek gönderilirken hata oluştu:", error);
+        }
     }
-
-    try {
-        // En güvenli yöntem: text/plain göndererek CORS engelini aşmak
-        await fetch(MAIL_API_URL, {
-            method: "POST",
-            mode: "no-cors", 
-            headers: { "Content-Type": "text/plain" },
-            body: JSON.stringify(requestData)
-        });
-        console.log("İstek başarıyla Google Script'e yollandı.");
-    } catch (error) {
-        console.error("İstek gönderilirken hata oluştu:", error);
-    }
-}
 
     // --- ROZET TANIMLARI ---
     const BADGE_DEFINITIONS = {
