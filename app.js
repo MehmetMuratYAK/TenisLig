@@ -383,7 +383,7 @@ async function sendNotificationEmail(targetUserId, subject, messageHTML) {
             const parts = currentChatId.split('_'); const myUid = auth.currentUser.uid; const targetId = parts.find(id => id !== myUid); const myName = userMap[myUid]?.isim || 'Bir Oyuncu';
             if (targetId) {
                 const subject = "💬 Yeni Mesajın Var";
-                const body = `<p><strong>${myName}</strong> sana bir mesaj gönderdi:</p><blockquote style="border-left: 4px solid #ccc; margin: 10px 0; padding-left: 10px; color: #555; background-color: #f9f9f9; padding: 10px;">"${text}"</blockquote><p>Cevap vermek için uygulamaya aşağıdaki linkten giriş yapabilirsin:</p><p><a href="https://mehmetmuratyak.github.io/TenisLig/">https://mehmetmuratyak.github.io/TenisLig/</a></p>`;
+                const body = `<p><strong>${myName}</strong> sana bir mesaj gönderdi:</p><blockquote style="border-left: 4px solid #ccc; margin: 10px 0; padding-left: 10px; color: #555; background-color: #f9f9f9; padding: 10px;">"${text}"</blockquote><p>Cevap vermek için uygulamaya aşağıdaki linkten giriş yapabilirsin:</p><p><a href="https://bursatenisligi.github.io/TenisLig/">https://bursatenisligi.github.io/TenisLig/</a></p>`;
                 sendNotificationEmail(targetId, subject, body);
             }
             chatInput.value = ''; 
@@ -809,7 +809,7 @@ try {
                 const m = doc.data();
                 if(m && m.oyuncu1ID) {
                     const subject = "✅ Kort İlanın Kabul Edildi!";
-                    const body = `<p><strong>${me.isim}</strong> açık kort ilanını kabul etti!</p><p>Hemen uygulamaya girip maç tarihini ve kortu belirleyebilirsiniz.</p><p><a href="https://mehmetmuratyak.github.io/TenisLig/">Uygulamaya Git</a></p>`;
+                    const body = `<p><strong>${me.isim}</strong> açık kort ilanını kabul etti!</p><p>Hemen uygulamaya girip maç tarihini ve kortu belirleyebilirsiniz.</p><p><a href="https://bursatenisligi.github.io/TenisLig/">Uygulamaya Git</a></p>`;
                     sendNotificationEmail(m.oyuncu1ID, subject, body);
                 }
             });
@@ -1188,7 +1188,7 @@ function createModernMatchHTML(match, currentUserID, isFixture = false) {
                             // 2. Rakibe Mail Bildirimi Gönder
                             const myName = userMap[currentUserID]?.isim || 'Rakibin';
                             const subject = "✅ Maç Teklifin Kabul Edildi!";
-                            const body = `<p><strong>${myName}</strong> maç teklifini kabul etti!</p><p>Hemen uygulamaya girip maç tarihini ve kortu belirleyebilirsiniz.</p><p><a href="https://mehmetmuratyak.github.io/TenisLig/">Uygulamaya Git</a></p>`;
+                            const body = `<p><strong>${myName}</strong> maç teklifini kabul etti!</p><p>Hemen uygulamaya girip maç tarihini ve kortu belirleyebilirsiniz.</p><p><a href="https://bursatenisligi.github.io/TenisLig/">Uygulamaya Git</a></p>`;
                             
                             // Maili oyuncu 1'e (teklifi atan kişiye) gönderiyoruz
                             sendNotificationEmail(match.oyuncu1ID, subject, body);
@@ -1354,7 +1354,7 @@ function createModernMatchHTML(match, currentUserID, isFixture = false) {
                 const matchData = docSnap.data(); const myUid = auth.currentUser.uid;
                 const targetId = (matchData.oyuncu1ID === myUid) ? matchData.oyuncu2ID : matchData.oyuncu1ID; const myName = userMap[myUid]?.isim || 'Rakibin';
                 const subject = "📝 Maç Sonucu Girildi - Onay Bekliyor";
-                const body = `<p><strong>${myName}</strong> oynadığınız maçın skorunu sisteme girdi.</p><div style="background-color:#e3f2fd; padding:10px; border-radius:5px; border:1px solid #bbdefb; margin:10px 0;"><p style="font-size:16px; font-weight:bold; margin:0;">Girilen Skor: ${s1m}-${s1o}, ${s2m}-${s2o} ${s3m + s3o > 0 ? ', ' + s3m + '-' + s3o : ''}</p><p style="margin:5px 0 0 0; font-size:12px; color:#555;">(Not: Skorlar girilen kişinin bakış açısındandır)</p></div><p>Skoru onaylamak veya itiraz etmek (değiştirmek) için aşağıdaki linke tıkla:</p><p><a href="https://mehmetmuratyak.github.io/TenisLig/">https://mehmetmuratyak.github.io/TenisLig/</a></p>`;
+                const body = `<p><strong>${myName}</strong> oynadığınız maçın skorunu sisteme girdi.</p><div style="background-color:#e3f2fd; padding:10px; border-radius:5px; border:1px solid #bbdefb; margin:10px 0;"><p style="font-size:16px; font-weight:bold; margin:0;">Girilen Skor: ${s1m}-${s1o}, ${s2m}-${s2o} ${s3m + s3o > 0 ? ', ' + s3m + '-' + s3o : ''}</p><p style="margin:5px 0 0 0; font-size:12px; color:#555;">(Not: Skorlar girilen kişinin bakış açısındandır)</p></div><p>Skoru onaylamak veya itiraz etmek (değiştirmek) için aşağıdaki linke tıkla:</p><p><a href="https://bursatenisligi.github.io/TenisLig/">https://bursatenisligi.github.io/TenisLig/</a></p>`;
                 sendNotificationEmail(targetId, subject, body);
             }
             alert("Sonuç girildi, onay bekleniyor. ⏳ Rakibine bildirim gönderildi."); showMatchDetail(id);
@@ -1740,7 +1740,7 @@ submitChallengeBtn.addEventListener('click', async () => {
             
             const senderName = me.isim || 'Bir oyuncu'; const mailSubject = "⚔️ Meydan Okuma Geldi!";
             // Maile format bilgisini de ekledik
-            const mailBody = `<p><strong>${senderName}</strong> sana özel bir maç teklifi gönderdi.</p><div style="background-color:#fff3cd; padding:10px; border-radius:5px; border:1px solid #ffeeba; margin:10px 0;"><p><strong>Maç Tipi:</strong> ${mt}</p><p><strong>Format:</strong> ${format}</p><p><strong>Bahis:</strong> ${wp || 0} Puan</p></div><p>Teklifi kabul etmek veya reddetmek için uygulamaya aşağıdaki adresten gidebilirsin:</p><p><a href="https://mehmetmuratyak.github.io/TenisLig/">https://mehmetmuratyak.github.io/TenisLig/</a></p>`;
+            const mailBody = `<p><strong>${senderName}</strong> sana özel bir maç teklifi gönderdi.</p><div style="background-color:#fff3cd; padding:10px; border-radius:5px; border:1px solid #ffeeba; margin:10px 0;"><p><strong>Maç Tipi:</strong> ${mt}</p><p><strong>Format:</strong> ${format}</p><p><strong>Bahis:</strong> ${wp || 0} Puan</p></div><p>Teklifi kabul etmek veya reddetmek için uygulamaya aşağıdaki adresten gidebilirsin:</p><p><a href="https://bursatenisligi.github.io/TenisLig/">https://bursatenisligi.github.io/TenisLig/</a></p>`;
             sendNotificationEmail(oid, mailSubject, mailBody);
             
             alert("Teklif başarıyla gönderildi! Rakibine mail ile haber verildi. 📨"); challengeForm.style.display = 'none'; document.querySelector('[data-target="tab-matches"]').click();
@@ -1788,7 +1788,7 @@ submitChallengeBtn.addEventListener('click', async () => {
             const myName = me.isim || 'Bir oyuncu'; const leagueText = allowedLeagues.join(', ');
             const subject = "📢 Yeni Kort İlanı!";
             // Maile format bilgisini de ekledik
-            const body = `<p><strong>${myName}</strong> herkese açık bir maç ilanı oluşturdu!</p><div style="background-color:#f8f9fa; padding:10px; border-left:4px solid #28a745; margin:10px 0;"><p><strong>Maç Tipi:</strong> ${mt}</p><p><strong>Format:</strong> ${format}</p><p><strong>Bahis:</strong> ${wp || 0} Puan</p><p><strong>Kabul Edebilen Ligler:</strong> ${leagueText}</p></div><p>Kendine güveniyorsan hemen uygulamaya girip ilanı kabul et:</p><p><a href="https://mehmetmuratyak.github.io/TenisLig/">https://mehmetmuratyak.github.io/TenisLig/</a></p>`;
+            const body = `<p><strong>${myName}</strong> herkese açık bir maç ilanı oluşturdu!</p><div style="background-color:#f8f9fa; padding:10px; border-left:4px solid #28a745; margin:10px 0;"><p><strong>Maç Tipi:</strong> ${mt}</p><p><strong>Format:</strong> ${format}</p><p><strong>Bahis:</strong> ${wp || 0} Puan</p><p><strong>Kabul Edebilen Ligler:</strong> ${leagueText}</p></div><p>Kendine güveniyorsan hemen uygulamaya girip ilanı kabul et:</p><p><a href="https://bursatenisligi.github.io/TenisLig/">https://bursatenisligi.github.io/TenisLig/</a></p>`;
             const allUserIds = Object.keys(userMap);
             allUserIds.forEach(uid => { if (uid !== auth.currentUser.uid) { sendNotificationEmail(uid, subject, body); } });
             
@@ -1863,7 +1863,7 @@ submitChallengeBtn.addEventListener('click', async () => {
                 if (m.oyuncu1ID && m.oyuncu1ID !== myUid) targets.push(m.oyuncu1ID);
                 if (m.oyuncu2ID && m.oyuncu2ID !== myUid) targets.push(m.oyuncu2ID);
                 const subject = "💬 Maçına Yeni Yorum Yapıldı";
-                const body = `<p><strong>${userName}</strong> maç sayfasına bir yorum bıraktı:</p><blockquote style="background-color:#f9f9f9; border-left: 4px solid #ccc; padding: 10px; margin: 10px 0;">"${text}"</blockquote><p>Cevap vermek için uygulamaya git: <a href="https://mehmetmuratyak.github.io/TenisLig/">Tenis Ligi</a></p>`;
+                const body = `<p><strong>${userName}</strong> maç sayfasına bir yorum bıraktı:</p><blockquote style="background-color:#f9f9f9; border-left: 4px solid #ccc; padding: 10px; margin: 10px 0;">"${text}"</blockquote><p>Cevap vermek için uygulamaya git: <a href="https://bursatenisligi.github.io/TenisLig/">Tenis Ligi</a></p>`;
                 targets.forEach(uid => { sendNotificationEmail(uid, subject, body); });
             }
         } catch (error) { console.error("Yorum hatası:", error); alert("Yorum gönderilemedi."); }
