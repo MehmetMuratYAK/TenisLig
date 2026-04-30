@@ -748,13 +748,26 @@ async function acceptOpenRequest(matchId, wager, type, macFormati) {
             if (me.toplamPuan < 0) return alert("Puanın eksiye düştüğü için bahisli maç kabul edemezsin.");
             if (wager > me.toplamPuan * 0.5) return alert(`Bu maç için puanın yetersiz.`);
         }
-        try { 
+try { 
             await db.collection('matches').doc(matchId).update({ 
                 oyuncu2ID: myUid, 
-                oyuncu2PartnerID: partnerID, // YENİ
+                oyuncu2PartnerID: partnerID,
                 durum: 'Hazır' 
             }); 
-            alert("Maç kabul edildi!"); document.getElementById('lobby-detail-modal').style.display='none'; document.querySelector('[data-target="tab-matches"]').click(); 
+            
+            // İlan sahibine bildirim gönder (Veritabanından ilan sahibini bulup mail atıyoruz)
+            db.collection('matches').doc(matchId).get().then(doc => {
+                const m = doc.data();
+                if(m && m.oyuncu1ID) {
+                    const subject = "✅ Kort İlanın Kabul Edildi!";
+                    const body = `<p><strong>${me.isim}</strong> açık kort ilanını kabul etti!</p><p>Hemen uygulamaya girip maç tarihini ve kortu belirleyebilirsiniz.</p><p><a href="https://mehmetmuratyak.github.io/TenisLig/">Uygulamaya Git</a></p>`;
+                    sendNotificationEmail(m.oyuncu1ID, subject, body);
+                }
+            });
+
+            alert("Maç kabul edildi! İlan sahibine bildirim gönderildi. 📨"); 
+            document.getElementById('lobby-detail-modal').style.display='none'; 
+            document.querySelector('[data-target="tab-matches"]').click(); 
         } catch (error) { alert("Hata: Maç kabul edilemedi."); loadOpenRequests(); }
     }
 
@@ -1018,12 +1031,24 @@ function createModernMatchHTML(match, currentUserID, isFixture = false) {
         db.collection('matches').doc(matchDocId).get().then(doc => {
             const match = doc.data();
             const isParticipant = (currentUserID === match.oyuncu1ID || currentUserID === match.oyuncu2ID);
-            const p1Name = userMap[match.oyuncu1ID]?.isim || '???'; const p2Name = match.oyuncu2ID ? (userMap[match.oyuncu2ID]?.isim || '???') : 'Henüz Yok';
+            const p1Name = userMap[match.oyuncu1ID]?.isim || '???'; 
+            const p2Name = match.oyuncu2ID ? (userMap[match.oyuncu2ID]?.isim || '???') : 'Henüz Yok';
             
-            winnerSelect.innerHTML = `<option value="">Kazananı Seçin</option><option value="${match.oyuncu1ID}">${p1Name}</option>`;
-            if(match.oyuncu2ID) winnerSelect.innerHTML += `<option value="${match.oyuncu2ID}">${p2Name}</option>`;
+            // --- ÇİFTLER İÇİN TAKIM İSİMLERİ OLUŞTURMA ---
+            let team1Name = p1Name.split(' ')[0]; 
+            if (match.macFormati === 'Çiftler' && match.oyuncu1PartnerID && userMap[match.oyuncu1PartnerID]) {
+                team1Name += ` & ${userMap[match.oyuncu1PartnerID].isim.split(' ')[0]}`;
+            }
+            let team2Name = p2Name.split(' ')[0];
+            if (match.macFormati === 'Çiftler' && match.oyuncu2PartnerID && userMap[match.oyuncu2PartnerID]) {
+                team2Name += ` & ${userMap[match.oyuncu2PartnerID].isim.split(' ')[0]}`;
+            }
+            // ---------------------------------------------
             
-            let infoHTML = `<h3>${match.macTipi}</h3><p><strong>${p1Name}</strong> vs <strong>${p2Name}</strong></p><p>Bahis: ${match.bahisPuani} Puan</p>`;
+            winnerSelect.innerHTML = `<option value="">Kazanan Takımı Seçin</option><option value="${match.oyuncu1ID}">${team1Name}</option>`;
+            if(match.oyuncu2ID) winnerSelect.innerHTML += `<option value="${match.oyuncu2ID}">${team2Name}</option>`;
+            
+            let infoHTML = `<h3>${match.macTipi} ${match.macFormati === 'Çiftler' ? '<span style="color:#28a745; font-size:0.8em;">(Çiftler 👥)</span>' : ''}</h3><p><strong>${team1Name}</strong> <br><span style="color:#999; font-size:0.8em;">vs</span><br> <strong>${team2Name}</strong></p><p>Bahis: ${match.bahisPuani} Puan</p>`;
             if(match.durum === 'Acik_Ilan') infoHTML += `<p style="color:orange; font-weight:bold;">Bu bir açık ilandır.</p>`;
             
             const courtType = match.kortTipi ? ` (${match.kortTipi})` : '';
@@ -1095,7 +1120,7 @@ function createModernMatchHTML(match, currentUserID, isFixture = false) {
                     }
                     // ---------------------------------------------
                     
-                    const ab = document.createElement('button'); ab.textContent = 'Kabul Et ✅'; ab.className = 'btn-accept'; 
+                const ab = document.createElement('button'); ab.textContent = 'Kabul Et ✅'; ab.className = 'btn-accept'; 
                     ab.onclick = async () => {
                         let partnerID = null;
                         if (match.macFormati === 'Çiftler') {
@@ -1103,12 +1128,28 @@ function createModernMatchHTML(match, currentUserID, isFixture = false) {
                             if (!pSelect.value) return alert("Lütfen partnerini seç!");
                             partnerID = pSelect.value;
                         }
-                        // Sadece durumu güncellemiyoruz, artık oyuncu2PartnerID'yi de veritabanına yazıyoruz.
-                        await db.collection('matches').doc(matchDocId).update({ 
-                            durum: 'Hazır', 
-                            oyuncu2PartnerID: partnerID 
-                        });
-                        alert("Kabul edildi!"); goBackToList();
+                        
+                        try {
+                            // 1. Veritabanını Güncelle
+                            await db.collection('matches').doc(matchDocId).update({ 
+                                durum: 'Hazır', 
+                                oyuncu2PartnerID: partnerID 
+                            });
+                            
+                            // 2. Rakibe Mail Bildirimi Gönder
+                            const myName = userMap[currentUserID]?.isim || 'Rakibin';
+                            const subject = "✅ Maç Teklifin Kabul Edildi!";
+                            const body = `<p><strong>${myName}</strong> maç teklifini kabul etti!</p><p>Hemen uygulamaya girip maç tarihini ve kortu belirleyebilirsiniz.</p><p><a href="https://mehmetmuratyak.github.io/TenisLig/">Uygulamaya Git</a></p>`;
+                            
+                            // Maili oyuncu 1'e (teklifi atan kişiye) gönderiyoruz
+                            sendNotificationEmail(match.oyuncu1ID, subject, body);
+
+                            alert("Kabul edildi! Rakibine mail bildirimi gönderildi. 📨"); 
+                            goBackToList();
+                        } catch (err) {
+                            console.error(err);
+                            alert("Kabul edilirken hata oluştu: " + err.message);
+                        }
                     };
                     const rb = document.createElement('button'); rb.textContent = 'Reddet ❌'; rb.className = 'btn-reject'; rb.onclick = () => deleteMatch(matchDocId, "Reddedildi."); 
                     actionButtonsContainer.append(ab, rb);
