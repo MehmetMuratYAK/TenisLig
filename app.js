@@ -476,23 +476,7 @@ function loadLeaderboard(filterClub = 'all') {
         if (displayedCount === 0) { leaderboardDiv.innerHTML = '<p style="text-align:center; padding:20px; color:#777;">Bu kriterlere uygun oyuncu bulunamadı.</p>'; }
     }
 
-    // Buton Dinleyicilerini Ekleyelim (Bu bloğu loadLeaderboard'un hemen altına koyabilirsin)
-    const btnRankSingles = document.getElementById('btn-rank-singles');
-    const btnRankDoubles = document.getElementById('btn-rank-doubles');
-    if (btnRankSingles && btnRankDoubles) {
-        btnRankSingles.addEventListener('click', () => {
-            currentLeaderboardMode = 'Tekler';
-            btnRankSingles.style.background = '#c06035';
-            btnRankDoubles.style.background = '#6c757d';
-            loadLeaderboard(document.getElementById('leaderboard-club-filter').value);
-        });
-        btnRankDoubles.addEventListener('click', () => {
-            currentLeaderboardMode = 'Çiftler';
-            btnRankSingles.style.background = '#6c757d';
-            btnRankDoubles.style.background = '#c06035';
-            loadLeaderboard(document.getElementById('leaderboard-club-filter').value);
-        });
-    }
+
 
     function analyzeStats(matches) {
         let playerStats = {}; let courtStats = {};
@@ -2118,5 +2102,26 @@ submitChallengeBtn.addEventListener('click', async () => {
                 container.appendChild(div);
             });
         }).catch(err => console.error("Aksiyonlar yüklenirken hata:", err));
+
+    }
+
+
+    const btnRankSingles = document.getElementById('btn-rank-singles');
+    const btnRankDoubles = document.getElementById('btn-rank-doubles');
+
+    if (btnRankSingles && btnRankDoubles) {
+        btnRankSingles.addEventListener('click', () => {
+            currentLeaderboardMode = 'Tekler';
+            btnRankSingles.style.background = '#c06035'; 
+            btnRankDoubles.style.background = '#6c757d'; 
+            loadLeaderboard(document.getElementById('leaderboard-club-filter').value);
+        });
+
+        btnRankDoubles.addEventListener('click', () => {
+            currentLeaderboardMode = 'Çiftler';
+            btnRankSingles.style.background = '#6c757d'; 
+            btnRankDoubles.style.background = '#c06035'; 
+            loadLeaderboard(document.getElementById('leaderboard-club-filter').value);
+        });
     }
 }); // DOMContentLoaded SONU
