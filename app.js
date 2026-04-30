@@ -781,7 +781,6 @@ function createModernMatchHTML(match, currentUserID, isFixture = false) {
         const p1 = userMap[match.oyuncu1ID]; const p2 = userMap[match.oyuncu2ID];
         const p1Name = p1?.isim || '???'; const p2Name = p2 ? (p2.isim || '???') : 'Bekleniyor';
         
-        // --- ÇİFTLER İÇİN TAKIM İSİMLENDİRME ---
         let team1Name = p1Name.split(' ')[0]; 
         if (match.oyuncu1PartnerID && userMap[match.oyuncu1PartnerID]) {
             team1Name += ` & ${userMap[match.oyuncu1PartnerID].isim.split(' ')[0]}`;
@@ -790,9 +789,7 @@ function createModernMatchHTML(match, currentUserID, isFixture = false) {
         if (match.oyuncu2PartnerID && userMap[match.oyuncu2PartnerID]) {
             team2Name += ` & ${userMap[match.oyuncu2PartnerID].isim.split(' ')[0]}`;
         }
-        
-        let title = `${team1Name} vs ${team2Name}`; // TITLE SADECE BURADA TANIMLI
-        // ----------------------------------------
+        let title = `${team1Name} vs ${team2Name}`; 
 
         const displayPhoto = (match.oyuncu1ID === currentUserID || match.oyuncu1PartnerID === currentUserID) ? (p2?.fotoURL || getSafeAvatar(p2Name)) : (p1?.fotoURL || getSafeAvatar(p1Name));
         let badgeClass = 'bg-gray-light'; let iconStr = '⏳'; let statusText = match.durum;
@@ -806,10 +803,14 @@ function createModernMatchHTML(match, currentUserID, isFixture = false) {
         let subText = match.macYeri || 'Kort Seçilmedi'; let rightInfo = '';
         
         if (match.durum === 'Tamamlandı' && match.skor) {
-            const s = match.skor; subText = `${s.s1_me}-${s.s1_opp}, ${s.s2_me}-${s.s2_opp}` + (s.s3_me ? `, ...` : ''); rightInfo = `<span style="font-weight:bold; color:#333;">${iconStr}</span>`;
+            const s = match.skor; 
+            subText = `${s.s1_me}-${s.s1_opp}, ${s.s2_me}-${s.s2_opp}` + (s.s3_me || s.s3_opp ? `, ${s.s3_me}-${s.s3_opp}` : ''); 
+            rightInfo = `<span style="font-weight:bold; color:#333;">${iconStr}</span>`;
         } else if (match.macZamani) {
             const d = match.macZamani.toDate(); const dateStr = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }); const timeStr = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }); rightInfo = `<div style="text-align:right; line-height:1.2;"><div style="font-weight:bold;">${dateStr}</div><div style="font-size:0.8em;">${timeStr}</div></div>`;
-        } else { rightInfo = `<span class="compact-badge ${badgeClass}">${statusText}</span>`; }
+        } else { 
+            rightInfo = `<span class="compact-badge ${badgeClass}">${statusText}</span>`; 
+        }
 
         const targetTab = isFixture ? 'tab-fixture' : 'tab-matches';
         return `<div class="compact-news-row" onclick="returnToTab='${targetTab}'; showMatchDetail('${match.id}')"><div class="compact-left"><img src="${displayPhoto}" class="compact-avatar" style="width:40px; height:40px;"></div><div class="compact-mid"><div class="compact-title">${title}</div><div class="compact-subtitle">${subText}</div></div><div class="compact-right">${rightInfo}</div></div>`;
@@ -1071,7 +1072,44 @@ function createModernMatchHTML(match, currentUserID, isFixture = false) {
 
             if (match.durum === 'Bekliyor') {
                 if (currentUserID === match.oyuncu2ID) {
-                    const ab = document.createElement('button'); ab.textContent = 'Kabul Et ✅'; ab.className = 'btn-accept'; ab.onclick = () => updateMatchStatus(matchDocId, 'Hazır', "Kabul edildi!");
+                    
+                    // --- EKLENEN ÇİFTLER PARTNER SEÇİM KUTUSU ---
+                    if (match.macFormati === 'Çiftler') {
+                        const label = document.createElement('label');
+                        label.textContent = "Takım Arkadaşın (Partnerin):";
+                        label.className = "input-label";
+                        label.style.marginTop = "0";
+                        
+                        const s = document.createElement('select'); 
+                        s.id = 'accept-challenge-partner'; 
+                        s.style.marginBottom = '15px';
+                        s.innerHTML = '<option value="">Partnerini Seç</option>';
+                        
+                        Object.values(userMap).forEach(p => { 
+                            if(p.uid !== currentUserID && p.uid !== match.oyuncu1ID) {
+                                s.innerHTML += `<option value="${p.uid}">${p.isim || p.email}</option>`; 
+                            }
+                        });
+                        actionButtonsContainer.appendChild(label);
+                        actionButtonsContainer.appendChild(s);
+                    }
+                    // ---------------------------------------------
+                    
+                    const ab = document.createElement('button'); ab.textContent = 'Kabul Et ✅'; ab.className = 'btn-accept'; 
+                    ab.onclick = async () => {
+                        let partnerID = null;
+                        if (match.macFormati === 'Çiftler') {
+                            const pSelect = document.getElementById('accept-challenge-partner');
+                            if (!pSelect.value) return alert("Lütfen partnerini seç!");
+                            partnerID = pSelect.value;
+                        }
+                        // Sadece durumu güncellemiyoruz, artık oyuncu2PartnerID'yi de veritabanına yazıyoruz.
+                        await db.collection('matches').doc(matchDocId).update({ 
+                            durum: 'Hazır', 
+                            oyuncu2PartnerID: partnerID 
+                        });
+                        alert("Kabul edildi!"); goBackToList();
+                    };
                     const rb = document.createElement('button'); rb.textContent = 'Reddet ❌'; rb.className = 'btn-reject'; rb.onclick = () => deleteMatch(matchDocId, "Reddedildi."); 
                     actionButtonsContainer.append(ab, rb);
                 } else if (currentUserID === match.oyuncu1ID) {
