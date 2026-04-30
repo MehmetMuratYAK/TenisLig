@@ -658,27 +658,44 @@ function openLobbyDetail(type, data) {
         content.innerHTML = html; modal.style.display = 'flex';
     }
 
-    async function loadAnnouncements() {
+async function loadAnnouncements() {
         if (!announcementsContainer) return; announcementsContainer.innerHTML = `<p style="text-align:center; color:#999; margin-top:10px;">Yükleniyor...</p>`;
         try {
             const matchSnap = await db.collection('matches').where('durum', '==', 'Tamamlandı').orderBy('tarih', 'desc').limit(5).get();
             announcementsContainer.innerHTML = '';
             if (matchSnap.empty) { announcementsContainer.innerHTML = '<p style="text-align:center; padding:10px; font-size:0.9em;">Henüz tamamlanan maç yok.</p>'; return; }
             matchSnap.forEach(doc => {
-                const m = doc.data(); const p1 = userMap[m.oyuncu1ID]; const p2 = userMap[m.oyuncu2ID]; const p1Name = p1?.isim || '?'; const p2Name = p2?.isim || '?';
+                const m = doc.data(); const p1 = userMap[m.oyuncu1ID]; const p2 = userMap[m.oyuncu2ID]; 
+                const p1Name = p1?.isim || '?'; const p2Name = p2?.isim || '?';
+                
+                // --- ÇİFTLER İÇİN TAKIM İSİMLERİ ---
+                let team1Name = p1Name.split(' ')[0];
+                if (m.macFormati === 'Çiftler' && m.oyuncu1PartnerID && userMap[m.oyuncu1PartnerID]) {
+                    team1Name += ` & ${userMap[m.oyuncu1PartnerID].isim.split(' ')[0]}`;
+                }
+                let team2Name = p2Name.split(' ')[0];
+                if (m.macFormati === 'Çiftler' && m.oyuncu2PartnerID && userMap[m.oyuncu2PartnerID]) {
+                    team2Name += ` & ${userMap[m.oyuncu2PartnerID].isim.split(' ')[0]}`;
+                }
+                // ------------------------------------
+
                 let scoreStr = "Skor Yok"; if(m.skor) scoreStr = `${m.skor.s1_me}-${m.skor.s1_opp}, ${m.skor.s2_me}-${m.skor.s2_opp}` + (m.skor.s3_me ? `, ${m.skor.s3_me}-${m.skor.s3_opp}` : '');
-                const winnerName = userMap[m.kayitliKazananID]?.isim || 'Kazanan'; const loserName = (m.kayitliKazananID === m.oyuncu1ID) ? p2Name : p1Name;
+                
+                const winnerName = (m.kayitliKazananID === m.oyuncu1ID) ? team1Name : team2Name; 
+                const loserName = (m.kayitliKazananID === m.oyuncu1ID) ? team2Name : team1Name;
+                
                 let isCrushing = false; if (m.skor && ((m.skor.s1_me <= 1 || m.skor.s1_opp <= 1))) isCrushing = true;
                 const commentary = generateAdvancedCommentary('match_result', { winnerName, loserName, scoreStr, isCrushing, matchId: doc.id });
-                const modalData = { p1Name, p2Name, p1Photo: p1?.fotoURL || getSafeAvatar(p1Name), p2Photo: p2?.fotoURL || getSafeAvatar(p2Name), scoreStr, commentary, matchId: doc.id };
+                const modalData = { p1Name: team1Name, p2Name: team2Name, p1Photo: p1?.fotoURL || getSafeAvatar(p1Name), p2Photo: p2?.fotoURL || getSafeAvatar(p2Name), scoreStr, commentary, matchId: doc.id };
+                
                 const div = document.createElement('div'); div.className = 'compact-news-row'; div.onclick = () => openLobbyDetail('result', modalData);
-                div.innerHTML = `<div class="compact-left"><div style="font-size:1.5em;">🏁</div></div><div class="compact-mid"><div class="compact-title">${p1Name} vs ${p2Name}</div><div class="compact-subtitle">${scoreStr}</div></div><div class="compact-right"><span style="font-size:0.8em; color:#28a745; font-weight:bold;">Sonuç</span></div>`;
+                div.innerHTML = `<div class="compact-left"><div style="font-size:1.5em;">🏁</div></div><div class="compact-mid"><div class="compact-title">${team1Name} vs ${team2Name}</div><div class="compact-subtitle">${scoreStr}</div></div><div class="compact-right"><span style="font-size:0.8em; color:#28a745; font-weight:bold;">Sonuç</span></div>`;
                 announcementsContainer.appendChild(div);
             });
         } catch (e) { announcementsContainer.innerHTML = '<p style="color:red; text-align:center;">Yüklenemedi.</p>'; }
     }
 
-    function loadOpenRequests() {
+function loadOpenRequests() {
         if(!openRequestsContainer) return; openRequestsContainer.innerHTML = '<p style="text-align:center; color:#999; margin-top:10px;">Yükleniyor...</p>';
         const currentUserID = auth.currentUser.uid; const myLeague = getPlayerLeague(userMap[currentUserID]?.toplamPuan || 0);
         db.collection('matches').where('durum', '==', 'Acik_Ilan').orderBy('tarih', 'desc').get().then(snapshot => {
@@ -687,34 +704,40 @@ function openLobbyDetail(type, data) {
             snapshot.forEach(doc => {
                 const data = doc.data(); if(data.oyuncu1ID === currentUserID) return;
                 const p1 = userMap[data.oyuncu1ID]; const p1Name = p1?.isim || 'Bilinmiyor';
+                
+                // --- ÇİFTLER İÇİN TAKIM İSİMLERİ ---
+                let team1Name = p1Name.split(' ')[0];
+                if (data.macFormati === 'Çiftler' && data.oyuncu1PartnerID && userMap[data.oyuncu1PartnerID]) {
+                    team1Name += ` & ${userMap[data.oyuncu1PartnerID].isim.split(' ')[0]}`;
+                }
+                // ------------------------------------
+
                 const isChallenge = data.macTipi === 'Meydan Okuma'; const badgeClass = isChallenge ? 'bg-orange-light' : 'bg-green-light'; const badgeText = isChallenge ? `${data.bahisPuani} P` : 'Dostluk';
                 const allowed = data.allowedLeagues || ['Bronz', 'Gümüş', 'Altın']; const isEligible = allowed.includes(myLeague);
-                const commentary = generateAdvancedCommentary('open_ad', { p1Name: p1Name, wager: data.bahisPuani, matchId: doc.id });
+                const commentary = generateAdvancedCommentary('open_ad', { p1Name: team1Name, wager: data.bahisPuani, matchId: doc.id });
                 
-                // --- DEĞİŞİKLİK BURADA: macFormati verisini modal'a gönderiyoruz ---
                 const modalData = { 
-                    p1Name, 
+                    p1Name: team1Name, 
                     p1Photo: p1?.fotoURL || getSafeAvatar(p1Name), 
                     wager: data.bahisPuani, 
                     matchType: data.macTipi, 
-                    macFormati: data.macFormati || 'Tekler', // YENİ EKLENEN KISIM
+                    macFormati: data.macFormati || 'Tekler',
                     commentary, 
                     matchId: doc.id, 
                     isEligible, 
                     isChallenge, 
                     headerTitle: isChallenge ? 'Meydan Okuma' : 'Dostluk Maçı',
-                    oyuncu1ID: data.oyuncu1ID // Bunu da ekledik ki partner seçerken ilanı açan kişiyi seçemesin
+                    oyuncu1ID: data.oyuncu1ID 
                 };
-                // -------------------------------------------------------------------
 
                 const div = document.createElement('div'); div.className = 'compact-news-row'; if(!isEligible) div.style.opacity = '0.6'; div.onclick = () => openLobbyDetail('ad', modalData);
-                div.innerHTML = `<div class="compact-left"><img src="${p1?.fotoURL || getSafeAvatar(p1Name)}" class="compact-avatar"></div><div class="compact-mid"><div class="compact-title">${p1Name}</div><div class="compact-subtitle">${isChallenge ? 'Meydan Okuma' : 'Dostluk Maçı'} ${data.macFormati === 'Çiftler' ? '(Çiftler 👥)' : ''}</div></div><div class="compact-right"><span class="compact-badge ${badgeClass}">${badgeText}</span></div>`;
+                div.innerHTML = `<div class="compact-left"><img src="${p1?.fotoURL || getSafeAvatar(p1Name)}" class="compact-avatar"></div><div class="compact-mid"><div class="compact-title">${team1Name}</div><div class="compact-subtitle">${isChallenge ? 'Meydan Okuma' : 'Dostluk Maçı'} ${data.macFormati === 'Çiftler' ? '(Çiftler 👥)' : ''}</div></div><div class="compact-right"><span class="compact-badge ${badgeClass}">${badgeText}</span></div>`;
                 openRequestsContainer.appendChild(div);
             });
         });
     }
 
-    function loadScheduledMatches() {
+function loadScheduledMatches() {
         if(!scheduledMatchesContainer) return; scheduledMatchesContainer.innerHTML = '<p style="text-align:center; color:#999; margin-top:10px;">Yükleniyor...</p>';
         db.collection('matches').where('durum', '==', 'Hazır').get().then(snapshot => {
             scheduledMatchesContainer.innerHTML = ''; let matches = [];
@@ -722,12 +745,26 @@ function openLobbyDetail(type, data) {
             matches.sort((a, b) => (a.macZamani ? a.macZamani.toMillis() : 9e12) - (b.macZamani ? b.macZamani.toMillis() : 9e12));
             if(matches.length === 0) { scheduledMatchesContainer.innerHTML = '<p style="text-align:center; color:#999; font-size:0.9em; padding:10px;">Planlanmış maç yok.</p>'; return; }
             matches.forEach(match => {
-                const p1 = userMap[match.oyuncu1ID]; const p2 = userMap[match.oyuncu2ID]; const p1Name = p1?.isim || 'O1'; const p2Name = p2?.isim || 'O2';
+                const p1 = userMap[match.oyuncu1ID]; const p2 = userMap[match.oyuncu2ID]; 
+                const p1Name = p1?.isim || 'O1'; const p2Name = p2?.isim || 'O2';
+                
+                // --- ÇİFTLER İÇİN TAKIM İSİMLERİ ---
+                let team1Name = p1Name.split(' ')[0];
+                if (match.macFormati === 'Çiftler' && match.oyuncu1PartnerID && userMap[match.oyuncu1PartnerID]) {
+                    team1Name += ` & ${userMap[match.oyuncu1PartnerID].isim.split(' ')[0]}`;
+                }
+                let team2Name = p2Name.split(' ')[0];
+                if (match.macFormati === 'Çiftler' && match.oyuncu2PartnerID && userMap[match.oyuncu2PartnerID]) {
+                    team2Name += ` & ${userMap[match.oyuncu2PartnerID].isim.split(' ')[0]}`;
+                }
+                // ------------------------------------
+
                 let dateDisplay = 'Planlanıyor'; let timeStr = 'Tarih Bekleniyor'; let location = match.macYeri || 'Kort Seçilmedi';
                 if (match.macZamani) { const d = match.macZamani.toDate(); dateDisplay = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }); timeStr = d.toLocaleString('tr-TR', { day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' }); }
-                const modalData = { p1Name, p2Name, p1Photo: p1?.fotoURL || getSafeAvatar(p1Name), p2Photo: p2?.fotoURL || getSafeAvatar(p2Name), matchId: match.id, timeStr, location, contextMsg: "Maç detaylarını ve konum bilgisini buradan görebilirsin." };
+                
+                const modalData = { p1Name: team1Name, p2Name: team2Name, p1Photo: p1?.fotoURL || getSafeAvatar(p1Name), p2Photo: p2?.fotoURL || getSafeAvatar(p2Name), matchId: match.id, timeStr, location, contextMsg: "Maç detaylarını ve konum bilgisini buradan görebilirsin." };
                 const div = document.createElement('div'); div.className = 'compact-news-row'; div.onclick = () => openLobbyDetail('schedule', modalData);
-                div.innerHTML = `<div class="compact-left"><div style="font-size:1.5em; width:36px; text-align:center;">📅</div></div><div class="compact-mid"><div class="compact-title">${p1Name} vs ${p2Name}</div><div class="compact-subtitle">${location}</div></div><div class="compact-right"><span class="compact-badge bg-blue-light">${dateDisplay}</span></div>`;
+                div.innerHTML = `<div class="compact-left"><div style="font-size:1.5em; width:36px; text-align:center;">📅</div></div><div class="compact-mid"><div class="compact-title">${team1Name} vs ${team2Name}</div><div class="compact-subtitle">${location}</div></div><div class="compact-right"><span class="compact-badge bg-blue-light">${dateDisplay}</span></div>`;
                 scheduledMatchesContainer.appendChild(div);
             });
         });
