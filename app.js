@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function() {
     populateClubDropdowns();
 
     // --- GOOGLE APPS SCRIPT İLE MAİL GÖNDERME ---
-    const MAIL_API_URL = "https://script.google.com/macros/s/AKfycbzHc3rELsEjgjj-oH4-T8yi8uLAC_SOuYTDOHGEFgEiyL7dobunalllZRQBi8hwKeTs/exec"; 
+    const MAIL_API_URL = "https://script.google.com/macros/s/AKfycby0ci4rioEQOyjqomWdy6iaqmvCzjcAGtZd08-b2OaoDeJkPO2E9gy9p1eDkZeRx0B5/exec"; 
 
 // UYGULAMANIN YENİ LİNKİNİ BURAYA YAZ (Sonunda / olsun)
     const APP_URL = "https://bursatenisligi.github.io/TenisLig/"; 
