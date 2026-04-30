@@ -1,4 +1,6 @@
 var returnToTab = null; 
+let currentLeaderboardMode = 'Tekler';
+
 document.addEventListener('DOMContentLoaded', function() {
     // --- FIREBASE BAŞLATMA ---
     const firebaseConfig = {
@@ -420,7 +422,7 @@ async function sendNotificationEmail(targetUserId, subject, messageHTML) {
             if (statsViewPlayerSelect) { while(statsViewPlayerSelect.options.length > 1) { statsViewPlayerSelect.remove(1); } }
             snapshot.forEach(doc => {
                 const player = doc.data();
-                userMap[doc.id] = { isim: player.isim || player.email, email: player.email, uid: doc.id, toplamPuan: player.toplamPuan, kortTercihi: player.kortTercihi, telefon: player.telefon, fotoURL: player.fotoURL, bildirimTercihi: player.bildirimTercihi || 'ses', tenisBaslangic: player.tenisBaslangic || '', kulup: player.kulup || 'Belirtilmemiş', emailNotifications: (player.emailNotifications !== false), macSayisi: player.macSayisi || 0, galibiyetSayisi: player.galibiyetSayisi || 0, badges: player.badges || [] };
+                userMap[doc.id] = { isim: player.isim || player.email, email: player.email, uid: doc.id, toplamPuan: player.toplamPuan, ciftlerPuani: player.ciftlerPuani, kortTercihi: player.kortTercihi, telefon: player.telefon, fotoURL: player.fotoURL, bildirimTercihi: player.bildirimTercihi || 'ses', tenisBaslangic: player.tenisBaslangic || '', kulup: player.kulup || 'Belirtilmemiş', emailNotifications: (player.emailNotifications !== false), macSayisi: player.macSayisi || 0, galibiyetSayisi: player.galibiyetSayisi || 0, badges: player.badges || [] };
                 if (filterPlayer) { const option = document.createElement('option'); option.value = doc.id; option.textContent = player.isim || player.email; filterPlayer.appendChild(option); }
                 if (galleryFilterPlayer) { const option = document.createElement('option'); option.value = doc.id; option.textContent = player.isim || player.email; galleryFilterPlayer.appendChild(option); }
                 if (statsViewPlayerSelect && doc.id !== auth.currentUser?.uid) { const opt = document.createElement('option'); opt.value = doc.id; opt.textContent = player.isim || player.email; statsViewPlayerSelect.appendChild(opt); }
@@ -428,42 +430,68 @@ async function sendNotificationEmail(targetUserId, subject, messageHTML) {
         });
     }
 
-    function loadLeaderboard(filterClub = 'all') {
+function loadLeaderboard(filterClub = 'all') {
         const leaderboardDiv = document.getElementById('leaderboard');
         if(!leaderboardDiv) return;
         leaderboardDiv.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">🏆 Sıralama güncelleniyor...</p>';
 
-        db.collection('users').orderBy('toplamPuan', 'desc').limit(500).get().then(snapshot => {
-            leaderboardDiv.innerHTML = '';
-            let rank = 1; let displayedCount = 0;
+        // Firestore yerine zaten yüklü olan userMap üzerinden sıralıyoruz (Çok daha hızlı)
+        let usersArray = Object.values(userMap);
+        if (filterClub !== 'all') {
+            usersArray = usersArray.filter(player => player.kulup === filterClub);
+        }
 
-            snapshot.forEach(doc => {
-                const player = doc.data();
-                if (filterClub !== 'all' && player.kulup !== filterClub) return; 
+        // Mod'a göre sıralama yap
+        if (currentLeaderboardMode === 'Çiftler') {
+            usersArray.sort((a, b) => (b.ciftlerPuani !== undefined ? b.ciftlerPuani : 1000) - (a.ciftlerPuani !== undefined ? a.ciftlerPuani : 1000));
+        } else {
+            usersArray.sort((a, b) => (b.toplamPuan || 0) - (a.toplamPuan || 0));
+        }
 
-                const photoURL = player.fotoURL || getSafeAvatar(player.isim || player.email);
-                const badgeHTML = getLeagueBadgeHTML(player.toplamPuan);
-                const clubDisplay = player.kulup ? player.kulup : 'Kulüpsüz';
-                const durationText = calculateTennisDuration(player.tenisBaslangic);
-                
-                let rankBadgeClass = "rank-badge-normal"; let rankIcon = `#${rank}`; let cardBorderClass = "";
-                if (rank === 1) { rankBadgeClass = "rank-badge-gold"; rankIcon = "🥇 1"; cardBorderClass = "card-gold-border"; } 
-                else if (rank === 2) { rankBadgeClass = "rank-badge-silver"; rankIcon = "🥈 2"; cardBorderClass = "card-silver-border"; } 
-                else if (rank === 3) { rankBadgeClass = "rank-badge-bronze"; rankIcon = "🥉 3"; cardBorderClass = "card-bronze-border"; }
+        leaderboardDiv.innerHTML = '';
+        let rank = 1; let displayedCount = 0;
 
-                const playerCard = document.createElement('div');
-                playerCard.className = `player-card ${cardBorderClass}`;
-                playerCard.onclick = () => showPlayerStats(doc.id); 
-                playerCard.innerHTML = `
-                    <div class="leaderboard-left"><div class="${rankBadgeClass}">${rankIcon}</div><img src="${photoURL}" class="leaderboard-avatar"></div>
-                    <div class="leaderboard-info"><div class="leaderboard-name">${player.isim || player.email}</div><div class="leaderboard-club">🏟️ ${clubDisplay}</div><div class="leaderboard-duration">${durationText ? '⏳ ' + durationText : ''}</div></div>
-                    <div class="leaderboard-right"><div class="leaderboard-points">${player.toplamPuan} P</div>${badgeHTML}</div>
-                `;
-                leaderboardDiv.appendChild(playerCard);
-                rank++; displayedCount++;
-            });
-            if (displayedCount === 0) { leaderboardDiv.innerHTML = '<p style="text-align:center; padding:20px; color:#777;">Bu kriterlere uygun oyuncu bulunamadı.</p>'; }
-        }).catch(err => console.log("Sıralama hatası:", err));
+        usersArray.forEach(player => {
+            const score = currentLeaderboardMode === 'Çiftler' ? (player.ciftlerPuani !== undefined ? player.ciftlerPuani : 1000) : (player.toplamPuan || 0);
+            const photoURL = player.fotoURL || getSafeAvatar(player.isim || player.email);
+            const badgeHTML = getLeagueBadgeHTML(score);
+            const clubDisplay = player.kulup ? player.kulup : 'Kulüpsüz';
+            
+            let rankBadgeClass = "rank-badge-normal"; let rankIcon = `#${rank}`; let cardBorderClass = "";
+            if (rank === 1) { rankBadgeClass = "rank-badge-gold"; rankIcon = "🥇 1"; cardBorderClass = "card-gold-border"; } 
+            else if (rank === 2) { rankBadgeClass = "rank-badge-silver"; rankIcon = "🥈 2"; cardBorderClass = "card-silver-border"; } 
+            else if (rank === 3) { rankBadgeClass = "rank-badge-bronze"; rankIcon = "🥉 3"; cardBorderClass = "card-bronze-border"; }
+
+            const playerCard = document.createElement('div');
+            playerCard.className = `player-card ${cardBorderClass}`;
+            playerCard.onclick = () => showPlayerStats(player.uid); 
+            playerCard.innerHTML = `
+                <div class="leaderboard-left"><div class="${rankBadgeClass}">${rankIcon}</div><img src="${photoURL}" class="leaderboard-avatar"></div>
+                <div class="leaderboard-info"><div class="leaderboard-name">${player.isim || player.email}</div><div class="leaderboard-club">🏟️ ${clubDisplay}</div></div>
+                <div class="leaderboard-right"><div class="leaderboard-points">${score} P</div>${badgeHTML}</div>
+            `;
+            leaderboardDiv.appendChild(playerCard);
+            rank++; displayedCount++;
+        });
+        if (displayedCount === 0) { leaderboardDiv.innerHTML = '<p style="text-align:center; padding:20px; color:#777;">Bu kriterlere uygun oyuncu bulunamadı.</p>'; }
+    }
+
+    // Buton Dinleyicilerini Ekleyelim (Bu bloğu loadLeaderboard'un hemen altına koyabilirsin)
+    const btnRankSingles = document.getElementById('btn-rank-singles');
+    const btnRankDoubles = document.getElementById('btn-rank-doubles');
+    if (btnRankSingles && btnRankDoubles) {
+        btnRankSingles.addEventListener('click', () => {
+            currentLeaderboardMode = 'Tekler';
+            btnRankSingles.style.background = '#c06035';
+            btnRankDoubles.style.background = '#6c757d';
+            loadLeaderboard(document.getElementById('leaderboard-club-filter').value);
+        });
+        btnRankDoubles.addEventListener('click', () => {
+            currentLeaderboardMode = 'Çiftler';
+            btnRankSingles.style.background = '#6c757d';
+            btnRankDoubles.style.background = '#c06035';
+            loadLeaderboard(document.getElementById('leaderboard-club-filter').value);
+        });
     }
 
     function analyzeStats(matches) {
@@ -1359,23 +1387,56 @@ function createModernMatchHTML(match, currentUserID, isFixture = false) {
         try { await firebase.firestore().collection('matches').doc(matchId).update(updateData); alert("Düzeltme başarıyla gönderildi! Şimdi rakibinin onayı bekleniyor. 🔄"); showMatchDetail(matchId); } catch (e) { console.error("Güncelleme Hatası:", e); alert("Değişiklik kaydedilirken bir hata oluştu."); }
     }
 
-    async function finalizeMatch(id, m) {
-        const batch = db.batch(); const wid = m.adayKazananID; const lid = (m.oyuncu1ID === wid) ? m.oyuncu2ID : m.oyuncu1ID;
+async function finalizeMatch(id, m) {
+        const batch = db.batch(); 
+        const wid = m.adayKazananID; 
+        const lid = (m.oyuncu1ID === wid) ? m.oyuncu2ID : m.oyuncu1ID;
+
+        // --- ÇİFTLER PARTNERLERİNİ TESPİT ET ---
+        let wPartnerId = null; let lPartnerId = null;
+        if (m.macFormati === 'Çiftler') {
+            wPartnerId = (m.oyuncu1ID === wid) ? m.oyuncu1PartnerID : m.oyuncu2PartnerID;
+            lPartnerId = (m.oyuncu1ID === wid) ? m.oyuncu2PartnerID : m.oyuncu1PartnerID;
+        }
+        // ---------------------------------------
+
         let wg = 0, lg = 0;
         if(m.skor) {
             const s = m.skor; const isEntryByWinner = m.sonucuGirenID === wid;
-            const s1w = isEntryByWinner ? parseInt(s.s1_me) : parseInt(s.s1_opp); const s1l = isEntryByWinner ? parseInt(s.s1_opp) : parseInt(s.s1_me); const s2w = isEntryByWinner ? parseInt(s.s2_me) : parseInt(s.s2_opp); const s2l = isEntryByWinner ? parseInt(s.s2_opp) : parseInt(s.s2_me);
+            const s1w = isEntryByWinner ? parseInt(s.s1_me||0) : parseInt(s.s1_opp||0); const s1l = isEntryByWinner ? parseInt(s.s1_opp||0) : parseInt(s.s1_me||0); const s2w = isEntryByWinner ? parseInt(s.s2_me||0) : parseInt(s.s2_opp||0); const s2l = isEntryByWinner ? parseInt(s.s2_opp||0) : parseInt(s.s2_me||0);
             wg = s1w + s2w; lg = s1l + s2l;
         }
         const bonusW = wg * 5; const bonusL = lg * 5;
 
-        const winnerRef = db.collection('users').doc(wid);
-        let winPoints = 50 + bonusW; if(m.macTipi === 'Meydan Okuma') winPoints = m.bahisPuani + bonusW;
-        batch.update(winnerRef, { toplamPuan: firebase.firestore.FieldValue.increment(winPoints), galibiyetSayisi: firebase.firestore.FieldValue.increment(1), macSayisi: firebase.firestore.FieldValue.increment(1) });
+        let winPoints = 50 + bonusW; let losePoints = 50 + bonusL; 
+        if(m.macTipi === 'Meydan Okuma') { winPoints = m.bahisPuani + bonusW; losePoints = -m.bahisPuani + bonusL; }
 
-        const loserRef = db.collection('users').doc(lid);
-        let losePoints = 50 + bonusL; if(m.macTipi === 'Meydan Okuma') losePoints = -m.bahisPuani + bonusL;
-        batch.update(loserRef, { toplamPuan: firebase.firestore.FieldValue.increment(losePoints), macSayisi: firebase.firestore.FieldValue.increment(1) });
+        // --- ORTAK PUAN GÜNCELLEME FONKSİYONU ---
+        const updateStats = (uid, isWin) => {
+            if(!uid) return;
+            const ref = db.collection('users').doc(uid);
+            const pts = isWin ? winPoints : losePoints;
+            const gInc = isWin ? 1 : 0;
+            
+            if (m.macFormati === 'Çiftler') {
+                // Çiftler maçıysa ciftlerPuani'ni güncelle (Yoksa 1000'den başlat)
+                const uData = userMap[uid] || {};
+                const currentCiftler = uData.ciftlerPuani !== undefined ? uData.ciftlerPuani : 1000;
+                batch.update(ref, { ciftlerPuani: currentCiftler + pts });
+            } else {
+                // Tekler maçıysa normal puanları güncelle
+                batch.update(ref, { toplamPuan: firebase.firestore.FieldValue.increment(pts), galibiyetSayisi: firebase.firestore.FieldValue.increment(gInc), macSayisi: firebase.firestore.FieldValue.increment(1) });
+            }
+        };
+
+        // Kaptanlara ve (varsa) partnerlere puanları dağıt
+        updateStats(wid, true); 
+        updateStats(lid, false);
+        if (m.macFormati === 'Çiftler') { 
+            updateStats(wPartnerId, true); 
+            updateStats(lPartnerId, false); 
+        }
+        // -----------------------------------------
 
         const matchRef = db.collection('matches').doc(id);
         batch.update(matchRef, { durum: 'Tamamlandı', kayitliKazananID: wid });
