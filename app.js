@@ -777,10 +777,12 @@ async function acceptOpenRequest(matchId, wager, type, macFormati) {
         });
     }
 
-    function createModernMatchHTML(match, currentUserID, isFixture = false) {
+function createModernMatchHTML(match, currentUserID, isFixture = false) {
         const p1 = userMap[match.oyuncu1ID]; const p2 = userMap[match.oyuncu2ID];
         const p1Name = p1?.isim || '???'; const p2Name = p2 ? (p2.isim || '???') : 'Bekleniyor';
-        let team1Name = p1Name.split(' ')[0]; // Uzun olmasın diye sadece ilk isim
+        
+        // --- ÇİFTLER İÇİN TAKIM İSİMLENDİRME ---
+        let team1Name = p1Name.split(' ')[0]; 
         if (match.oyuncu1PartnerID && userMap[match.oyuncu1PartnerID]) {
             team1Name += ` & ${userMap[match.oyuncu1PartnerID].isim.split(' ')[0]}`;
         }
@@ -788,8 +790,11 @@ async function acceptOpenRequest(matchId, wager, type, macFormati) {
         if (match.oyuncu2PartnerID && userMap[match.oyuncu2PartnerID]) {
             team2Name += ` & ${userMap[match.oyuncu2PartnerID].isim.split(' ')[0]}`;
         }
-        let title = `${team1Name} vs ${team2Name}`;
-        const displayPhoto = (match.oyuncu1ID === currentUserID) ? (p2?.fotoURL || getSafeAvatar(p2Name)) : (p1?.fotoURL || getSafeAvatar(p1Name));
+        
+        let title = `${team1Name} vs ${team2Name}`; // TITLE SADECE BURADA TANIMLI
+        // ----------------------------------------
+
+        const displayPhoto = (match.oyuncu1ID === currentUserID || match.oyuncu1PartnerID === currentUserID) ? (p2?.fotoURL || getSafeAvatar(p2Name)) : (p1?.fotoURL || getSafeAvatar(p1Name));
         let badgeClass = 'bg-gray-light'; let iconStr = '⏳'; let statusText = match.durum;
         
         if(match.durum === 'Hazır') { badgeClass = 'bg-blue-light'; iconStr = '📅'; statusText = 'Oynanacak'; }
@@ -798,7 +803,7 @@ async function acceptOpenRequest(matchId, wager, type, macFormati) {
         else if(match.durum === 'Tamamlandı') { badgeClass = 'bg-green-light'; iconStr = '✅'; statusText = 'Bitti'; }
         else if(match.durum === 'Acik_Ilan') { badgeClass = 'bg-green-light'; iconStr = '📢'; statusText = 'İlan'; }
 
-        let title = `${p1Name} vs ${p2Name}`; let subText = match.macYeri || 'Kort Seçilmedi'; let rightInfo = '';
+        let subText = match.macYeri || 'Kort Seçilmedi'; let rightInfo = '';
         
         if (match.durum === 'Tamamlandı' && match.skor) {
             const s = match.skor; subText = `${s.s1_me}-${s.s1_opp}, ${s.s2_me}-${s.s2_opp}` + (s.s3_me ? `, ...` : ''); rightInfo = `<span style="font-weight:bold; color:#333;">${iconStr}</span>`;
