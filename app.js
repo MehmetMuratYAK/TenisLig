@@ -15,13 +15,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     const auth = firebase.auth();
     const db = firebase.firestore();
+
+    const adMatchFormat = document.getElementById('ad-match-format');
+    const adPartnerContainer = document.getElementById('ad-partner-container');
+    const adPartnerSelect = document.getElementById('ad-partner-select');
+
+    const challengeMatchFormat = document.getElementById('challenge-match-format');
+    const challengePartnerContainer = document.getElementById('challenge-partner-container');
+    const challengePartnerSelect = document.getElementById('challenge-partner-select');
+
     
     // --- KORT LİSTESİ ---
     const COURT_LIST = [
         "Meşelipark Tenis Kulübü", "Evrensel Tenis", "Esas Tenis ve Spor Kulübü", "Podyum Tenis",
         "Bursa Yenigün Tenis Kortu", "Hüdavendigar Spor Tesisleri", "Yenigün Tenis Akademi",
         "Ertuğrul Sağlam Tenis Kortları", "Altınşehir Gençlik Merkezi", "Nilüfer Hobi Bahçeleri Tenis Sahası",
-        "Gd Academy Bursa", "Uni+ Sport Club Tenis Kortları", "Aslanlar Tenis Akademisi", "Ferdi / Bağımsız"
+        "Gd Academy Bursa", "Uni+ Sport Club Tenis Kortları", "Aslanlar Tenis Akademisi", "Ferdi / Bağımsız"    
     ];
 
     // --- YARDIMCI: GÜVENLİ AVATAR OLUŞTURUCU (CORS HATASINI ÖNLER) ---
@@ -604,18 +613,45 @@ async function sendNotificationEmail(targetUserId, subject, messageHTML) {
     }
 
     function loadOpponents() {
-        if(!opponentSelect) return; opponentSelect.innerHTML = '<option value="">Rakip Seçin</option>';
+        if(opponentSelect) opponentSelect.innerHTML = '<option value="">Rakip Seçin</option>';
+        if(adPartnerSelect) adPartnerSelect.innerHTML = '<option value="">Partner Seçin</option>';
+        if(challengePartnerSelect) challengePartnerSelect.innerHTML = '<option value="">Partner Seçin</option>';
+        
         const currentUserID = auth.currentUser.uid;
-        Object.values(userMap).forEach(player => { if (player.uid !== currentUserID) { const option = document.createElement('option'); option.value = player.uid; option.textContent = `${player.isim || player.email}`; opponentSelect.appendChild(option); } });
+        Object.values(userMap).forEach(player => { 
+            if (player.uid !== currentUserID) { 
+                const opt1 = document.createElement('option'); opt1.value = player.uid; opt1.textContent = `${player.isim || player.email}`; 
+                const opt2 = opt1.cloneNode(true);
+                const opt3 = opt1.cloneNode(true);
+                
+                if(opponentSelect) opponentSelect.appendChild(opt1); 
+                if(adPartnerSelect) adPartnerSelect.appendChild(opt2);
+                if(challengePartnerSelect) challengePartnerSelect.appendChild(opt3);
+            } 
+        });
     }
 
-    function openLobbyDetail(type, data) {
+function openLobbyDetail(type, data) {
         const modal = document.getElementById('lobby-detail-modal'); const content = document.getElementById('lobby-detail-content'); let html = '';
         if (type === 'result') {
             html = `<div class="detail-big-icon">🏁</div><h3>Maç Sonucu</h3><div class="detail-players"><div class="detail-player-box"><img src="${data.p1Photo}" class="detail-avatar"><div>${data.p1Name}</div></div><div class="detail-vs">VS</div><div class="detail-player-box"><img src="${data.p2Photo}" class="detail-avatar"><div>${data.p2Name}</div></div></div><div style="font-size:1.5em; font-weight:bold; margin-bottom:15px; color:#28a745;">${data.scoreStr}</div><div class="detail-commentary">${data.commentary}</div><button onclick="document.getElementById('lobby-detail-modal').style.display='none'; showMatchDetail('${data.matchId}')" class="btn-main">Maç Detayına Git</button>`;
         } else if (type === 'ad') {
-            let btnHTML = data.isEligible ? `<button class="btn-main" style="background:#28a745;" onclick="acceptOpenRequest('${data.matchId}', ${data.wager}, '${data.matchType}')">✅ Meydan Okumayı Kabul Et</button>` : `<button class="btn-main" style="background:#ccc; cursor:not-allowed;" disabled>🔒 Ligin Yetmiyor</button>`;
-            html = `<div class="detail-big-icon">${data.isChallenge ? '🔥' : '🤝'}</div><h3>${data.headerTitle}</h3><div class="detail-players"><div class="detail-player-box"><img src="${data.p1Photo}" class="detail-avatar"><div>${data.p1Name}</div></div><div class="detail-vs">?</div><div class="detail-player-box"><div style="width:60px; height:60px; border-radius:50%; background:#eee; display:flex; align-items:center; justify-content:center; margin:0 auto 5px auto; font-size:20px; color:#999;">👤</div><div>Rakip Aranıyor</div></div></div><div style="background:#fff3cd; padding:10px; border-radius:8px; margin-bottom:15px; color:#856404; font-weight:bold;">Bahis: ${data.wager} Puan</div><div class="detail-commentary">${data.commentary}</div>${btnHTML}`;
+            // --- ÇİFTLER İÇİN PARTNER SEÇİM KUTUSU ---
+            let partnerSelectHTML = '';
+            if (data.macFormati === 'Çiftler' && data.isEligible) {
+                let options = '<option value="">Takım Arkadaşını Seç</option>';
+                Object.values(userMap).forEach(p => {
+                    if (p.uid !== auth.currentUser.uid && p.uid !== data.oyuncu1ID) {
+                        options += `<option value="${p.uid}">${p.isim || p.email}</option>`;
+                    }
+                });
+                partnerSelectHTML = `<div style="margin-bottom:15px; text-align:left;"><label style="font-size:0.85em; font-weight:bold; color:#555;">Bu bir çiftler maçı. Partnerini seç:</label><select id="accept-ad-partner" style="width:100%; padding:8px; border-radius:6px; border:1px solid #ccc; margin-top:5px;">${options}</select></div>`;
+            }
+            // ------------------------------------------
+
+            let btnHTML = data.isEligible ? `<button class="btn-main" style="background:#28a745;" onclick="acceptOpenRequest('${data.matchId}', ${data.wager}, '${data.matchType}', '${data.macFormati}')">✅ Meydan Okumayı Kabul Et</button>` : `<button class="btn-main" style="background:#ccc; cursor:not-allowed;" disabled>🔒 Ligin Yetmiyor</button>`;
+            
+            html = `<div class="detail-big-icon">${data.isChallenge ? '🔥' : '🤝'}</div><h3>${data.headerTitle}</h3><div class="detail-players"><div class="detail-player-box"><img src="${data.p1Photo}" class="detail-avatar"><div>${data.p1Name}</div></div><div class="detail-vs">?</div><div class="detail-player-box"><div style="width:60px; height:60px; border-radius:50%; background:#eee; display:flex; align-items:center; justify-content:center; margin:0 auto 5px auto; font-size:20px; color:#999;">👤</div><div>Rakip Aranıyor</div></div></div><div style="background:#fff3cd; padding:10px; border-radius:8px; margin-bottom:15px; color:#856404; font-weight:bold;">Bahis: ${data.wager} Puan</div><div class="detail-commentary">${data.commentary}</div>${partnerSelectHTML}${btnHTML}`;
         } else if (type === 'schedule') {
             html = `<div class="detail-big-icon">📅</div><h3>Maç Planı</h3><div class="detail-players"><div class="detail-player-box"><img src="${data.p1Photo}" class="detail-avatar"><div>${data.p1Name}</div></div><div class="detail-vs">VS</div><div class="detail-player-box"><img src="${data.p2Photo}" class="detail-avatar"><div>${data.p2Name}</div></div></div><div class="detail-commentary"><strong>Zaman:</strong> ${data.timeStr}<br><strong>Yer:</strong> ${data.location}<br><br>${data.contextMsg}</div><button onclick="document.getElementById('lobby-detail-modal').style.display='none'; showMatchDetail('${data.matchId}')" class="btn-main">Detayları Gör</button>`;
         }
@@ -654,9 +690,25 @@ async function sendNotificationEmail(targetUserId, subject, messageHTML) {
                 const isChallenge = data.macTipi === 'Meydan Okuma'; const badgeClass = isChallenge ? 'bg-orange-light' : 'bg-green-light'; const badgeText = isChallenge ? `${data.bahisPuani} P` : 'Dostluk';
                 const allowed = data.allowedLeagues || ['Bronz', 'Gümüş', 'Altın']; const isEligible = allowed.includes(myLeague);
                 const commentary = generateAdvancedCommentary('open_ad', { p1Name: p1Name, wager: data.bahisPuani, matchId: doc.id });
-                const modalData = { p1Name, p1Photo: p1?.fotoURL || getSafeAvatar(p1Name), wager: data.bahisPuani, matchType: data.macTipi, commentary, matchId: doc.id, isEligible, isChallenge, headerTitle: isChallenge ? 'Meydan Okuma' : 'Dostluk Maçı' };
+                
+                // --- DEĞİŞİKLİK BURADA: macFormati verisini modal'a gönderiyoruz ---
+                const modalData = { 
+                    p1Name, 
+                    p1Photo: p1?.fotoURL || getSafeAvatar(p1Name), 
+                    wager: data.bahisPuani, 
+                    matchType: data.macTipi, 
+                    macFormati: data.macFormati || 'Tekler', // YENİ EKLENEN KISIM
+                    commentary, 
+                    matchId: doc.id, 
+                    isEligible, 
+                    isChallenge, 
+                    headerTitle: isChallenge ? 'Meydan Okuma' : 'Dostluk Maçı',
+                    oyuncu1ID: data.oyuncu1ID // Bunu da ekledik ki partner seçerken ilanı açan kişiyi seçemesin
+                };
+                // -------------------------------------------------------------------
+
                 const div = document.createElement('div'); div.className = 'compact-news-row'; if(!isEligible) div.style.opacity = '0.6'; div.onclick = () => openLobbyDetail('ad', modalData);
-                div.innerHTML = `<div class="compact-left"><img src="${p1?.fotoURL || getSafeAvatar(p1Name)}" class="compact-avatar"></div><div class="compact-mid"><div class="compact-title">${p1Name}</div><div class="compact-subtitle">${isChallenge ? 'Meydan Okuma' : 'Dostluk Maçı'}</div></div><div class="compact-right"><span class="compact-badge ${badgeClass}">${badgeText}</span></div>`;
+                div.innerHTML = `<div class="compact-left"><img src="${p1?.fotoURL || getSafeAvatar(p1Name)}" class="compact-avatar"></div><div class="compact-mid"><div class="compact-title">${p1Name}</div><div class="compact-subtitle">${isChallenge ? 'Meydan Okuma' : 'Dostluk Maçı'} ${data.macFormati === 'Çiftler' ? '(Çiftler 👥)' : ''}</div></div><div class="compact-right"><span class="compact-badge ${badgeClass}">${badgeText}</span></div>`;
                 openRequestsContainer.appendChild(div);
             });
         });
@@ -681,14 +733,29 @@ async function sendNotificationEmail(targetUserId, subject, messageHTML) {
         });
     }
 
-    async function acceptOpenRequest(matchId, wager, type) {
+async function acceptOpenRequest(matchId, wager, type, macFormati) {
+        let partnerID = null;
+        if (macFormati === 'Çiftler') {
+            const partnerSelect = document.getElementById('accept-ad-partner');
+            if (!partnerSelect || !partnerSelect.value) return alert("Çiftler maçı için lütfen bir partner seçin!");
+            partnerID = partnerSelect.value;
+        }
+
         if(!confirm("Bu maçı kabul etmek istiyor musun?")) return;
         const myUid = auth.currentUser.uid; const me = userMap[myUid];
+        
         if (type === 'Meydan Okuma') {
             if (me.toplamPuan < 0) return alert("Puanın eksiye düştüğü için bahisli maç kabul edemezsin.");
             if (wager > me.toplamPuan * 0.5) return alert(`Bu maç için puanın yetersiz.`);
         }
-        try { await db.collection('matches').doc(matchId).update({ oyuncu2ID: myUid, durum: 'Hazır' }); alert("Maç kabul edildi!"); document.querySelector('[data-target="tab-matches"]').click(); } catch (error) { alert("Hata: Maç kabul edilemedi."); loadOpenRequests(); }
+        try { 
+            await db.collection('matches').doc(matchId).update({ 
+                oyuncu2ID: myUid, 
+                oyuncu2PartnerID: partnerID, // YENİ
+                durum: 'Hazır' 
+            }); 
+            alert("Maç kabul edildi!"); document.getElementById('lobby-detail-modal').style.display='none'; document.querySelector('[data-target="tab-matches"]').click(); 
+        } catch (error) { alert("Hata: Maç kabul edilemedi."); loadOpenRequests(); }
     }
 
     function loadMyMatchesOverview() {
@@ -713,6 +780,15 @@ async function sendNotificationEmail(targetUserId, subject, messageHTML) {
     function createModernMatchHTML(match, currentUserID, isFixture = false) {
         const p1 = userMap[match.oyuncu1ID]; const p2 = userMap[match.oyuncu2ID];
         const p1Name = p1?.isim || '???'; const p2Name = p2 ? (p2.isim || '???') : 'Bekleniyor';
+        let team1Name = p1Name.split(' ')[0]; // Uzun olmasın diye sadece ilk isim
+        if (match.oyuncu1PartnerID && userMap[match.oyuncu1PartnerID]) {
+            team1Name += ` & ${userMap[match.oyuncu1PartnerID].isim.split(' ')[0]}`;
+        }
+        let team2Name = p2Name.split(' ')[0];
+        if (match.oyuncu2PartnerID && userMap[match.oyuncu2PartnerID]) {
+            team2Name += ` & ${userMap[match.oyuncu2PartnerID].isim.split(' ')[0]}`;
+        }
+        let title = `${team1Name} vs ${team2Name}`;
         const displayPhoto = (match.oyuncu1ID === currentUserID) ? (p2?.fotoURL || getSafeAvatar(p2Name)) : (p1?.fotoURL || getSafeAvatar(p1Name));
         let badgeClass = 'bg-gray-light'; let iconStr = '⏳'; let statusText = match.durum;
         
@@ -1420,6 +1496,19 @@ try {
     adMatchTypeSelect.addEventListener('change', e=>{adWagerPointsInput.style.display=e.target.value==='Meydan Okuma'?'block':'none'});
     backToListBtn.addEventListener('click', goBackToList);
 
+    // Çiftler seçildiğinde partner menüsünü göster
+    if(adMatchFormat) {
+    adMatchFormat.addEventListener('change', (e) => {
+        adPartnerContainer.style.display = e.target.value === 'Çiftler' ? 'block' : 'none';
+    });
+    }
+    if(challengeMatchFormat) {
+    challengeMatchFormat.addEventListener('change', (e) => {
+        challengePartnerContainer.style.display = e.target.value === 'Çiftler' ? 'block' : 'none';
+    });
+    }
+
+
     if (authActionBtn) {
         authActionBtn.addEventListener('click', async () => {
             const email = emailInput.value; const password = passwordInput.value;
@@ -1436,40 +1525,107 @@ try {
         });
     }
 
-    submitChallengeBtn.addEventListener('click', async () => {
-        const oid = opponentSelect.value; const mt = matchTypeSelect.value; let wp = parseInt(wagerPointsInput.value);
+submitChallengeBtn.addEventListener('click', async () => {
+        const oid = opponentSelect.value; 
+        const mt = matchTypeSelect.value; 
+        let wp = parseInt(wagerPointsInput.value);
+
+        // --- YENİ EKLENEN ÇİFTLER KONTROLLERİ ---
+        const format = challengeMatchFormat ? challengeMatchFormat.value : 'Tekler';
+        const partnerID = challengePartnerSelect ? challengePartnerSelect.value : '';
+        // ----------------------------------------
+
         if (!oid) return alert("Lütfen bir rakip seçin!");
+        
+        // --- YENİ EKLENEN PARTNER DOĞRULAMASI ---
+        if (format === 'Çiftler' && !partnerID) {
+            return alert("Lütfen çiftler maçı için bir partner seçin!");
+        }
+        if (format === 'Çiftler' && partnerID === oid) {
+            return alert("Partneriniz ile rakibiniz aynı kişi olamaz!");
+        }
+        // ----------------------------------------
+
         if (mt === 'Meydan Okuma' && (isNaN(wp) || wp < 50 || wp % 50 !== 0)) { return alert("Bahis puanı en az 50 olmalı ve 50'nin katları olmalıdır!"); }
+        
         const me = userMap[auth.currentUser.uid]; const op = userMap[oid]; 
+        
         if (mt === 'Meydan Okuma') {
             if (me.toplamPuan < 0) return alert("Puanın eksiye düştüğü için bahisli maç teklif edemezsin.");
             if (op.toplamPuan < 0) return alert("Rakibin puanı eksi olduğu için bahisli maç kabul edemez.");
             if (wp > me.toplamPuan * 0.5) return alert("Maksimum bahis, toplam puanının yarısı olabilir.");
             if (wp > op.toplamPuan * 0.5) return alert("Bu bahis miktarı rakibin puan limitini aşıyor.");
         }
+        
         try {
-            await db.collection('matches').add({ oyuncu1ID: auth.currentUser.uid, oyuncu2ID: oid, macTipi: mt, bahisPuani: wp || 0, durum: 'Bekliyor', tarih: firebase.firestore.FieldValue.serverTimestamp(), kayitliKazananID: null });
+            // --- EKLENEN YENİ ALANLAR (macFormati, oyuncu1PartnerID, oyuncu2PartnerID) ---
+            await db.collection('matches').add({ 
+                oyuncu1ID: auth.currentUser.uid, 
+                oyuncu1PartnerID: format === 'Çiftler' ? partnerID : null,
+                oyuncu2ID: oid, 
+                oyuncu2PartnerID: null, // Rakip maçı kabul ederken kendi partnerini seçecek
+                macFormati: format,
+                macTipi: mt, 
+                bahisPuani: wp || 0, 
+                durum: 'Bekliyor', 
+                tarih: firebase.firestore.FieldValue.serverTimestamp(), 
+                kayitliKazananID: null 
+            });
+            
             const senderName = me.isim || 'Bir oyuncu'; const mailSubject = "⚔️ Meydan Okuma Geldi!";
-            const mailBody = `<p><strong>${senderName}</strong> sana özel bir maç teklifi gönderdi.</p><div style="background-color:#fff3cd; padding:10px; border-radius:5px; border:1px solid #ffeeba; margin:10px 0;"><p><strong>Maç Tipi:</strong> ${mt}</p><p><strong>Bahis:</strong> ${wp || 0} Puan</p></div><p>Teklifi kabul etmek veya reddetmek için uygulamaya aşağıdaki adresten gidebilirsin:</p><p><a href="https://mehmetmuratyak.github.io/TenisLig/">https://mehmetmuratyak.github.io/TenisLig/</a></p>`;
+            // Maile format bilgisini de ekledik
+            const mailBody = `<p><strong>${senderName}</strong> sana özel bir maç teklifi gönderdi.</p><div style="background-color:#fff3cd; padding:10px; border-radius:5px; border:1px solid #ffeeba; margin:10px 0;"><p><strong>Maç Tipi:</strong> ${mt}</p><p><strong>Format:</strong> ${format}</p><p><strong>Bahis:</strong> ${wp || 0} Puan</p></div><p>Teklifi kabul etmek veya reddetmek için uygulamaya aşağıdaki adresten gidebilirsin:</p><p><a href="https://mehmetmuratyak.github.io/TenisLig/">https://mehmetmuratyak.github.io/TenisLig/</a></p>`;
             sendNotificationEmail(oid, mailSubject, mailBody);
+            
             alert("Teklif başarıyla gönderildi! Rakibine mail ile haber verildi. 📨"); challengeForm.style.display = 'none'; document.querySelector('[data-target="tab-matches"]').click();
         } catch (error) { console.error("Teklif gönderme hatası:", error); alert("Bir hata oluştu: " + error.message); }
     });
 
     submitAdBtn.addEventListener('click', async () => {
-        const mt = adMatchTypeSelect.value; let wp = parseInt(adWagerPointsInput.value);
+        const mt = adMatchTypeSelect.value; 
+        let wp = parseInt(adWagerPointsInput.value);
+        
+        // --- YENİ EKLENEN ÇİFTLER KONTROLLERİ ---
+        const format = adMatchFormat ? adMatchFormat.value : 'Tekler';
+        const partnerID = adPartnerSelect ? adPartnerSelect.value : '';
+        // ----------------------------------------
+
         const checkboxes = document.querySelectorAll('input[name="allowed-leagues"]:checked'); const allowedLeagues = Array.from(checkboxes).map(cb => cb.value);
         if (allowedLeagues.length === 0) { return alert("Lütfen bu ilanı kabul edebilecek en az bir lig seçin!"); }
+        
+        // --- YENİ EKLENEN PARTNER DOĞRULAMASI ---
+        if (format === 'Çiftler' && !partnerID) {
+            return alert("Lütfen çiftler maçı için bir partner seçin!");
+        }
+        // ----------------------------------------
+
         if(mt === 'Meydan Okuma' && (isNaN(wp)||wp<50||wp%50!==0)) { return alert("Bahis puanı en az 50 ve 50'nin katları olmalıdır!"); }
         const me = userMap[auth.currentUser.uid];
         if (mt === 'Meydan Okuma') { if (me.toplamPuan < 0) return alert("Puanın eksiye düştüğü için bahisli ilan açamazsın."); if (wp > me.toplamPuan * 0.5) return alert("Maksimum bahis toplam puanının yarısı olabilir."); }
+        
         try {
-            await db.collection('matches').add({ oyuncu1ID: auth.currentUser.uid, oyuncu2ID: null, macTipi: mt, bahisPuani: wp || 0, durum: 'Acik_Ilan', tarih: firebase.firestore.FieldValue.serverTimestamp(), kayitliKazananID: null, allowedLeagues: allowedLeagues });
+            // --- EKLENEN YENİ ALANLAR (macFormati, oyuncu1PartnerID, oyuncu2PartnerID) ---
+            await db.collection('matches').add({ 
+                oyuncu1ID: auth.currentUser.uid, 
+                oyuncu1PartnerID: format === 'Çiftler' ? partnerID : null,
+                oyuncu2ID: null, 
+                oyuncu2PartnerID: null,
+                macFormati: format,
+                macTipi: mt, 
+                bahisPuani: wp || 0, 
+                durum: 'Acik_Ilan', 
+                tarih: firebase.firestore.FieldValue.serverTimestamp(), 
+                kayitliKazananID: null, 
+                allowedLeagues: allowedLeagues 
+            });
+            
             const myName = me.isim || 'Bir oyuncu'; const leagueText = allowedLeagues.join(', ');
             const subject = "📢 Yeni Kort İlanı!";
-            const body = `<p><strong>${myName}</strong> herkese açık bir maç ilanı oluşturdu!</p><div style="background-color:#f8f9fa; padding:10px; border-left:4px solid #28a745; margin:10px 0;"><p><strong>Maç Tipi:</strong> ${mt}</p><p><strong>Bahis:</strong> ${wp || 0} Puan</p><p><strong>Kabul Edebilen Ligler:</strong> ${leagueText}</p></div><p>Kendine güveniyorsan hemen uygulamaya girip ilanı kabul et:</p><p><a href="https://mehmetmuratyak.github.io/TenisLig/">https://mehmetmuratyak.github.io/TenisLig/</a></p>`;
+            // Maile format bilgisini de ekledik
+            const body = `<p><strong>${myName}</strong> herkese açık bir maç ilanı oluşturdu!</p><div style="background-color:#f8f9fa; padding:10px; border-left:4px solid #28a745; margin:10px 0;"><p><strong>Maç Tipi:</strong> ${mt}</p><p><strong>Format:</strong> ${format}</p><p><strong>Bahis:</strong> ${wp || 0} Puan</p><p><strong>Kabul Edebilen Ligler:</strong> ${leagueText}</p></div><p>Kendine güveniyorsan hemen uygulamaya girip ilanı kabul et:</p><p><a href="https://mehmetmuratyak.github.io/TenisLig/">https://mehmetmuratyak.github.io/TenisLig/</a></p>`;
             const allUserIds = Object.keys(userMap);
             allUserIds.forEach(uid => { if (uid !== auth.currentUser.uid) { sendNotificationEmail(uid, subject, body); } });
+            
             alert("İlan başarıyla yayınlandı ve oyunculara mail gönderildi! 📢"); createAdForm.style.display = 'none'; loadOpenRequests(); document.querySelector('[data-target="tab-lobby"]').click(); 
         } catch (error) { console.error("İlan oluşturma hatası:", error); alert("Hata oluştu: " + error.message); }
     });

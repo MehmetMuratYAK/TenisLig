@@ -254,6 +254,16 @@
                         <h4>📢 İlan Oluştur</h4>
                     </div>
                     <p class="form-hint">Bu talebi ligdeki herkes görebilir.</p>
+                    <label class="input-label">Maç Formatı</label>
+                    <select id="ad-match-format">
+                        <option value="Tekler">Tekler (1v1) 👤</option>
+                        <option value="Çiftler">Çiftler (2v2) 👥</option>
+                    </select>
+                    
+                    <div id="ad-partner-container" style="display:none; background: #f0f8ff; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                        <label class="input-label" style="margin-top:0;">Takım Arkadaşın (Partnerin)</label>
+                        <select id="ad-partner-select"><option value="">Partner Seçin</option></select>
+                    </div>                    
                     <label class="input-label">Maç Tipi</label>
                     <select id="ad-match-type">
                         <option value="Dostluk">Dostluk Maçı 🤝</option>
@@ -276,8 +286,19 @@
                         <button class="btn-back-small" onclick="returnToChallengeMenu()">⬅ Geri</button>
                         <h4>⚔️ Özel Teklif</h4>
                     </div>
-                    <label class="input-label">Rakip Seç</label>
-                    <select id="opponent-select"><option value="">Yükleniyor...</option></select>
+                    <label class="input-label">Maç Formatı</label>
+                    <select id="challenge-match-format">
+                        <option value="Tekler">Tekler (1v1) 👤</option>
+                        <option value="Çiftler">Çiftler (2v2) 👥</option>
+                    </select>
+                    
+                    <div id="challenge-partner-container" style="display:none; background: #f0f8ff; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                        <label class="input-label" style="margin-top:0;">Takım Arkadaşın (Partnerin)</label>
+                        <select id="challenge-partner-select"><option value="">Partner Seçin</option></select>
+                    </div>
+                    <label class="input-label">Rakip Seç (Rakip Kaptan)</label>
+                    <select id="opponent-select"><option value="">Yükleniyor...</option></select>                   
+                    
                     <label class="input-label">Maç Tipi</label>
                     <select id="match-type-select">
                         <option value="Dostluk">Dostluk Maçı 🤝</option>
