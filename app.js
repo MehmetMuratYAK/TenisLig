@@ -1596,48 +1596,32 @@ async function finalizeMatch(id, m) {
     }
 
 // --- GÜVENLİ AUTH VE PUSHER BAŞLATMA BLOKU ---
-   auth.onAuthStateChanged(user => {
+// --- GÜVENLİ AUTH BAŞLATMA BLOKU ---
+    auth.onAuthStateChanged(user => {
         if (user) {
             authScreen.style.display = 'none';
             mainApp.style.display = 'flex';
 
-            // --- PUSHER BEAMS BAŞLATMA ---
-          // --- PUSHER BEAMS BAŞLATMA (HATA ÖNLEYİCİ VERSİYON) ---
-try {
-    if (window.PusherPushNotifications && user && user.uid) { // UID'nin varlığını kontrol ediyoruz
-        console.log("Pusher başlatılıyor, UID:", user.uid);
-        
-        navigator.serviceWorker.ready.then(registration => {
-            const beamsClient = new window.PusherPushNotifications.Client({
-                instanceId: 'b752a69c-c259-4e6e-adcf-d16c8c323ff9',
-                serviceWorkerRegistration: registration 
-            });
-            
-            beamsClient.start()
-                .then(() => beamsClient.addDeviceInterest(user.uid))
-                .then(() => {
-                    console.log('Pusher cihaz kaydı başarılı!');
-                    // UID'yi ekranda net görmek için kodu güncelledik:
-                    
-                })
-                .catch(err => {
-                    console.error("Pusher kayıt hatası:", err);
-                    alert("Pusher Hatası: " + err.message);
-                });
-        });
-    } else {
-        console.warn("UID bulunamadı veya kütüphane eksik.");
-    }
-} catch (error) {
-    console.error("Sistem hatası:", error);
-}
-
-            // UYGULAMA VERİLERİNİ YÜKLE (Burası artık her halükarda çalışacak)
+            // UYGULAMA VERİLERİNİ YÜKLE (Pusher başlatma kodları buradan tamamen kaldırıldı)
             fetchUserMap().then(() => { 
-                loadLeaderboard(); loadOpponents(); loadMyMatchesOverview(); loadOpenRequests(); loadScheduledMatches(); loadLobbyMyActions(); loadAnnouncements(); setupNotifications(user.uid); checkAndShowRecaps(); runLeagueMaintenance(); checkAndSendReminders(); initSpamWarning(); initOnboarding(); checkProfileCompleteness();
+                loadLeaderboard(); 
+                loadOpponents(); 
+                loadMyMatchesOverview(); 
+                loadOpenRequests(); 
+                loadScheduledMatches(); 
+                loadLobbyMyActions(); 
+                loadAnnouncements(); 
+                setupNotifications(user.uid); 
+                checkAndShowRecaps(); 
+                runLeagueMaintenance(); 
+                checkAndSendReminders(); 
+                initSpamWarning(); 
+                initOnboarding(); 
+                checkProfileCompleteness();
             }).catch(err => console.error("Veriler yüklenirken hata:", err));
 
         } else { 
+            // KULLANICI GİRİŞ YAPMAMIŞSA
             authScreen.style.display = 'flex'; 
             mainApp.style.display = 'none'; 
             listeners.forEach(u=>u()); 
@@ -2155,5 +2139,46 @@ submitChallengeBtn.addEventListener('click', async () => {
             btnRankDoubles.style.background = '#c06035'; 
             loadLeaderboard(document.getElementById('leaderboard-club-filter').value);
         });
+    }
+    // --- SAFARİ/IOS UYUMLU MANUEL BİLDİRİM İZNİ ---
+    const btnEnablePush = document.getElementById('btn-enable-push');
+    if (btnEnablePush) {
+        btnEnablePush.addEventListener('click', async () => {
+            if (!window.PusherPushNotifications) {
+                return alert("Tarayıcınız veya cihazınız bu bildirim türünü desteklemiyor (PWA olarak ana ekrana eklediğinizden emin olun).");
+            }
+            
+            try {
+                // BUTONA BASILDIĞINDA İZİN İSTİYORUZ (Apple'ın şart koştuğu şey tam olarak bu)
+                const permission = await Notification.requestPermission();
+                
+                if (permission === 'granted') {
+                    btnEnablePush.textContent = "Bağlanıyor... ⏳";
+                    
+                    const registration = await navigator.serviceWorker.ready;
+                    const beamsClient = new window.PusherPushNotifications.Client({
+                        instanceId: 'b752a69c-c259-4e6e-adcf-d16c8c323ff9',
+                        serviceWorkerRegistration: registration 
+                    });
+                    
+                    await beamsClient.start();
+                    await beamsClient.addDeviceInterest(auth.currentUser.uid);
+                    
+                    alert("Harika! Bildirimler başarıyla açıldı. Artık hiçbir maçı kaçırmayacaksın! 🔔");
+                    btnEnablePush.style.display = 'none'; // Başarılı olunca butonu gizle
+                } else {
+                    alert("Bildirim izni reddedildi. Telefonunuzun ayarlarından uygulamanın bildirimlerine izin vermeniz gerekebilir.");
+                }
+            } catch (error) {
+                console.error("Bildirim açma hatası:", error);
+                alert("Bildirimler açılırken bir hata oluştu: " + error.message);
+                btnEnablePush.textContent = "🔔 Telefona Bildirim Gönder"; // Hatada butonu eski haline getir
+            }
+        });
+        
+        // Zaten izin verilmişse butonu baştan gizle
+        if (window.Notification && Notification.permission === 'granted') {
+            btnEnablePush.style.display = 'none';
+        }
     }
 }); // DOMContentLoaded SONU
