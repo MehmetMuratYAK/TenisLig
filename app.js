@@ -2141,39 +2141,48 @@ submitChallengeBtn.addEventListener('click', async () => {
         });
     }
     // --- SAFARİ/IOS UYUMLU MANUEL BİLDİRİM İZNİ ---
+// --- SAFARİ/IOS UYUMLU MANUEL BİLDİRİM İZNİ (KUSURSUZ VERSİYON) ---
     const btnEnablePush = document.getElementById('btn-enable-push');
     if (btnEnablePush) {
-        btnEnablePush.addEventListener('click', async () => {
-            if (!window.PusherPushNotifications) {
-                return alert("Tarayıcınız veya cihazınız bu bildirim türünü desteklemiyor (PWA olarak ana ekrana eklediğinizden emin olun).");
+        btnEnablePush.addEventListener('click', function() {
+            // 1. Cihaz bildirimleri destekliyor mu kontrolü
+            if (!('Notification' in window)) {
+                alert("Hata: Tarayıcınız bildirimleri desteklemiyor. Lütfen uygulamayı Safari üzerinden 'Ana Ekrana Ekle' diyerek yüklediğinizden emin olun.");
+                return;
             }
-            
-            try {
-                // BUTONA BASILDIĞINDA İZİN İSTİYORUZ (Apple'ın şart koştuğu şey tam olarak bu)
-                const permission = await Notification.requestPermission();
-                
+
+            // 2. Kullanıcıdan izin isteme (Apple'ın katı kuralı: async KULLANILAMAZ)
+            Notification.requestPermission().then(async (permission) => {
                 if (permission === 'granted') {
                     btnEnablePush.textContent = "Bağlanıyor... ⏳";
                     
-                    const registration = await navigator.serviceWorker.ready;
-                    const beamsClient = new window.PusherPushNotifications.Client({
-                        instanceId: 'b752a69c-c259-4e6e-adcf-d16c8c323ff9',
-                        serviceWorkerRegistration: registration 
-                    });
-                    
-                    await beamsClient.start();
-                    await beamsClient.addDeviceInterest(auth.currentUser.uid);
-                    
-                    alert("Harika! Bildirimler başarıyla açıldı. Artık hiçbir maçı kaçırmayacaksın! 🔔");
-                    btnEnablePush.style.display = 'none'; // Başarılı olunca butonu gizle
+                    try {
+                        const registration = await navigator.serviceWorker.ready;
+                        if (!window.PusherPushNotifications) {
+                            alert("Hata: Bildirim kütüphanesi yüklenemedi. İnternetinizi kontrol edip sayfayı yenileyin.");
+                            return;
+                        }
+                        
+                        const beamsClient = new window.PusherPushNotifications.Client({
+                            instanceId: 'b752a69c-c259-4e6e-adcf-d16c8c323ff9',
+                            serviceWorkerRegistration: registration 
+                        });
+                        
+                        await beamsClient.start();
+                        await beamsClient.addDeviceInterest(auth.currentUser.uid);
+                        
+                        alert("Harika! Bildirimler başarıyla açıldı! Artık hiçbir maçı kaçırmayacaksın. 🔔");
+                        btnEnablePush.style.display = 'none';
+                    } catch (error) {
+                        alert("Sistem arka planda bağlanamadı: " + error.message);
+                        btnEnablePush.textContent = "🔔 Telefona Bildirim Gönder";
+                    }
                 } else {
-                    alert("Bildirim izni reddedildi. Telefonunuzun ayarlarından uygulamanın bildirimlerine izin vermeniz gerekebilir.");
+                    alert("İzin reddedildi. Lütfen telefonunuzun Ayarlar > Safari (veya Uygulama) bölümünden bildirim izinlerini açın.");
                 }
-            } catch (error) {
-                console.error("Bildirim açma hatası:", error);
-                alert("Bildirimler açılırken bir hata oluştu: " + error.message);
-                btnEnablePush.textContent = "🔔 Telefona Bildirim Gönder"; // Hatada butonu eski haline getir
-            }
+            }).catch(error => {
+                alert("İzin istenirken bir hata oluştu: " + error.message);
+            });
         });
         
         // Zaten izin verilmişse butonu baştan gizle
